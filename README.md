@@ -1,0 +1,7 @@
+- [x] init
+- [x] discovery
+- [ ] research
+- [ ] design
+- [ ] scope
+- [ ] plan
+- [ ] deliver
