@@ -14,18 +14,22 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | _Sprint 9 — URL pending_ |
-| **Progress** | Sprint 1 of 9 complete |
-| **Runs today** | `tax.py`, `return_series.py`, 35 passing tests |
-| **Not yet written** | `engine.py` bodies, `spike_grid.py`, `app.py` |
+| **Progress** | Sprint 2A complete — 2 of 10 sprint units |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, 89 passing tests |
+| **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; `app.py` |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
 headline figures from the documents alone. It reproduced two of three, built a
 working deterministic engine to do it, and found the third impossible as
-specified. Every figure below came out of that engine. This repo's own
-`engine.py` is still a skeleton, so read them as reproduced-and-pending rather
-than as output of this codebase. Two figures were withdrawn during review and say
-so rather than carrying a stale value.
+specified. Every figure below came out of that engine.
+
+**Sprint 2A has since brought the accumulation half into this repo.** The four
+age-65 balances, `t_now`, both year-20 allowances and D-15's proxy reproduce from
+`uv run python engine.py` and are asserted by tests. The modeled draw, the
+today's-law marker and both thresholds are still gate-two figures, pending Sprint
+2B. Two figures were withdrawn during review and restored in 2A as labeled
+proxies; the bootstrap values they stand in for are owed by Sprint 3.
 
 ---
 
@@ -106,7 +110,8 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 35 tests, all green
+uv run pytest                    # 89 tests, all green
+uv run python engine.py          # engine self-test — Sprint 2A's published scalars
 uv run python return_series.py   # return-series self-test
 ```
 
@@ -133,9 +138,9 @@ uv run streamlit run app.py      # Sprint 6
 | `tax.py` | ✅ | Every number that came from outside the model — 2026 single-filer brackets, standard deduction, deferral cap, state rate, early-withdrawal penalty. No tax number appears anywhere else in the repo, and `tests/` is the one stated exemption |
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
-| `engine.py` | ⬜ | Skeleton. Signatures, invariants, and the tests that defend them. No bodies yet. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
+| `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 60-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | ⬜ | Sprint 5. T1–T8, each docstring naming the claim it defends |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 5 collects T1–T8 into it rather than creating it; T1–T5 land in 2B, T6–T8 in Sprint 3 |
 | `app.py` | ⬜ | Sprint 6. Streamlit. Reads `cube.json`; contains no stochastic code |
 
 ---
@@ -243,7 +248,8 @@ asserted.
 | 3 | Design gate one | `prompt3.txt` | [`GATE-1.md`](docs/review/GATE-1.md) |
 | 4 | Design gate two | `prompt4.txt` | [`GATE-2.md`](docs/review/GATE-2.md) |
 | 5 | Sprint planning + Sprint 1 | `prompt5.txt` | [`docs/sprints/Sprint1.txt`](docs/sprints/Sprint1.txt) · _(link)_ |
-| 6 | Docs assessment | — | _(link)_ |
+| 6 | Sprint 2A | `prompt5.txt` _(reused)_ | [`docs/sprints/Sprint2A.txt`](docs/sprints/Sprint2A.txt) · _(link)_ |
+| 7 | Docs assessment | `prompt6.txt` | _(link)_ |
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three

@@ -25,9 +25,17 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: `engine.py` is a skeleton.** Signatures, invariants and the tests that
-defend them are written; the bodies are Sprints 2A, 2B and 3. Every figure in
-this file came out of the gate-two cold-read engine, not out of this repo.
+**Status: two layers implemented, four functions still raising.** Sprint 2A
+landed the profile, the income curve, contributions, accumulation, the D-33
+ladder and the constant-path builder. `retirement_draw`, `outcome`, `breakeven`
+and `marker_withdrawal` are Sprints 2B and 3.
+
+**The accumulation figures in this file now come out of this repo.** The four
+age-65 balances, `t_now`, the year-20 allowances and D-15's proxy all reproduce
+from `uv run python engine.py` and are asserted by `tests/test_engine.py`.
+Everything downstream of the retirement draw — the draw itself, the marker, and
+both thresholds — is still a gate-two cold-read figure and stays pending until
+Sprint 2B runs it.
 
 | Section | |
 |---|---|
@@ -213,15 +221,19 @@ should not die on the interesting cases.
 
 # Tests
 
-Two suites. `tests/test_tax.py` ships now — 35 tests, each defending a number
+Two suites, 89 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` is Sprint 5 and holds these eight, each
-asserting a claim made elsewhere in the docs:
+imported. `tests/test_engine.py` — opened at Sprint 2A, 54 tests over the
+profile, the ladder, contributions and accumulation.
+
+Sprint 5 does not create that second file; it **collects and maps** T1–T8 into
+it. T1–T5 arrive in Sprint 2B, T6–T8 in Sprint 3. Each asserts a claim made
+elsewhere in the docs:
 
 | Test | Defends |
 |---|---|
 | T1 · Equal rates at both ends produce equal outcomes | The identity is real |
-| T2 · `t*` unchanged across 4, 7, 9, 12 percent, and the Traditional path is the Roth path scaled by `(1−t_later)` at every year | The return rate never affects the choice — the scalar-multiple assertion is why it holds for any `r`, not just the four sampled |
+| T2 · `t*` unchanged across 4, 7, 9, 12 percent, **and the common draw cancels out of the difference** — `after_tax_trad(100) − roth(100)` is identical at draw = 0, $108,397 and $250,000 | The return rate never affects the choice. **Corrected at Sprint 2A:** the trajectories are not a scalar multiple of each other through decumulation, so the assertion is on the difference, not the ratio — and that is the stronger claim, holding for any `r` and any draw rather than the four sampled |
 | T3 · At the $185,000 test profile with the cap binding, Roth shelters strictly more | The same-dollars trap, and why the limit matters |
 | T4 · A no-crossing cell returns a sentinel rather than raising | The demo survives the interesting cases |
 | T5 · The today's-law marker is strictly below `t*` | You defer at marginal and withdraw across the whole structure from zero |
