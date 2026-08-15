@@ -1,0 +1,69 @@
+# Railway deploy configuration.  P3a, closing R2.
+#
+# WHY THIS FILE EXISTS AT ALL, since Railpack claims zero-config:
+# Railpack's Python provider resolves a start command in two steps.  First it
+# looks for a framework it knows -- FastHTML, Flask, FastAPI, Django.  STREAMLIT
+# IS NOT ONE OF THEM.  Second, failing that, it scans the repo root for a main
+# file, in this order:
+#
+#     main.py, app.py, start.py, bot.py, hello.py, server.py
+#
+# Our entry point is app.py.  It is the SECOND name on that list.  So without an
+# explicit start command Railpack does not error -- it runs `python app.py`, and
+# a Streamlit script run that way prints two warnings to stderr, starts no
+# server, and EXITS ZERO.  Build green, deploy green, container gone, no error
+# line anywhere.  Measured, not assumed: exit code 0.
+#
+# That is the failure this file prevents, and healthcheckPath below is what
+# makes it loud if it ever comes back.
+#
+# Config-as-code OVERRIDES the Railway dashboard (env-specific config > base
+# config > service settings).  So this file is the source of truth and the
+# dashboard cannot silently disagree with it.  On the deployment details page,
+# every value sourced from here carries a file icon you can hover.
+
+[build]
+builder = "RAILPACK"
+
+# Deliberately NO watchPatterns.  It would skip rebuilds on docs-only commits
+# and save a little build time through Sprints 2A-5, at the cost of a new way to
+# ship a stale deploy -- add a path, forget the pattern, wonder at Sprint 9 why
+# the URL is old.  This project already spends its risk budget on R2.  Every
+# commit rebuilds; that is the boring choice on purpose.
+
+[deploy]
+
+# --server.port $PORT      Railway injects PORT.  Railpack runs the start command
+#                          through a shell, so expansion needs no wrapper.
+# --server.address 0.0.0.0 Bind all interfaces or the edge cannot reach it.
+# --server.headless true   Skips the first-run email prompt, which otherwise
+#                          wants to write ~/.streamlit/credentials.toml in a
+#                          container whose home directory is nobody's business.
+# --server.fileWatcherType none
+#                          No inotify watchers on code that cannot change after
+#                          the image is built.
+# --browser.gatherUsageStats false
+#                          Telemetry off.
+startCommand = "streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.fileWatcherType none --browser.gatherUsageStats false"
+
+# THE GUARD.  Streamlit serves /_stcore/health with a 200 and the body "ok".
+# If the start command is ever wrong -- renamed entry file, typo, dashboard
+# override -- nothing listens here, the healthcheck fails, and Railway marks the
+# deployment FAILED with a named reason.  That converts the one genuinely silent
+# failure mode in this pipeline into a loud one.  It is the same move D-06 makes
+# for bisection and D-38 makes for balances: refuse to return a plausible answer
+# from a degenerate state.
+healthcheckPath = "/_stcore/health"
+
+# 120s is generous for a Streamlit boot that also imports numpy -- typically a
+# few seconds -- but bounded, so a genuinely dead deploy declares itself in two
+# minutes rather than Railway's five-minute default.  Raise it if a cold boot on
+# shared vCPU ever lands near the limit; a false failure costs a whole round.
+healthcheckTimeout = 120
+
+# ON_FAILURE rather than ALWAYS.  ALWAYS would restart a container that exited
+# ZERO, which is exactly what the `python app.py` fallback does -- an infinite
+# loop of clean exits, burning Hobby credits and reporting nothing.  Capped
+# retries mean a crash-loop stops and waits to be read.
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
