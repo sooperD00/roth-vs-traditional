@@ -368,10 +368,18 @@ to Roth. Solving for the tie under D-26's frozen allowance `A`:
 t*_policy  =  t_now · T₆₅  /  ( t_now · T₆₅ + A )
 ```
 
-which exceeds `t_now` whenever `A < R₆₅` — and `A` is the Roth balance ten years
-before 65, so it always is. The threshold moves **right**, away from the marker.
-At the reference archetype: 32.5% under current rules, 58.4% once the treatment
-moves, against a 15.2% marker.
+which exceeds `t_now` whenever `A < R₆₅` — and `A` is the Roth balance **eleven**
+years before 65 (year 20 is age 54, D-26), so it always is. The threshold moves
+**right**, away from the marker. At the reference archetype: 32.5% under current
+rules, 58.4% once the treatment moves, against a 15.2% marker.
+
+**CORRECTION, Sprint 2A — the expression above is right and its symbols are
+under-labeled.** Both terms are future values at 100: `t_now·T₆₅·(1+r)³⁵` against
+`S·A₁`, the compounded value of the withdrawals the allowance funded, which is
+$5,211,109 at the archetype rather than the raw $607,475. Substitute age-65
+magnitudes and the same expression returns **53.0%**, not 58.4%. The inequality
+and therefore the whole argument of this section are unaffected — only the
+number a reader recomputes by hand. D-40 carries the corrected form.
 
 So the archetype's lesson is the honest one: *the scenario you were told makes
 Roth safe is the one that widens Traditional's lead.* The flip is real, but it
