@@ -140,7 +140,7 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
 | `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B, 2C and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 5 collects T1–T8 into it rather than creating it; T1–T5 land across 2B and 2C, T6–T8 in Sprint 3 |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; T1–T2 land in 2B, T3–T5 in 2C, T6–T8 in Sprint 3 |
 | `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
 | `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |

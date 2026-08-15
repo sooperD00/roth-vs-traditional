@@ -1,7 +1,8 @@
 """Sprint 1's assertions. Each defends a number published in DECISIONS.md.
 
 These are NOT among the eight engine tests in DECISIONS section 6 -- those live
-in test_engine.py and are collected in Sprint 5. DoD item 5 covers this file.
+in test_engine.py and are collected at the tail of Sprint 4. DoD item 5 covers
+this file.
 
 THE LITERALS HERE ARE DELIBERATE. D-21's rule is that no tax number appears
 anywhere else in the repo, and tests/ is its one exemption: a hand-verification

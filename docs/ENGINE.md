@@ -239,9 +239,10 @@ profile, the ladder, contributions and accumulation. `tests/test_deploy_config.p
 config rather than the engine, and they are counted here because `uv run pytest`
 runs them; the eight numbered tests below are a different set entirely.
 
-Sprint 5 does not create `tests/test_engine.py`; it **collects and maps** T1–T8
-into it. T1–T5 arrive across Sprints 2B and 2C, T6–T8 in Sprint 3. Each asserts a claim made
-elsewhere in the docs:
+No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4 closes
+by collecting and mapping** T1–T8 into it, each docstring naming the sentence it
+protects. T1 and T2 arrive in Sprint 2B, T3–T5 in 2C, T6–T8 in Sprint 3. Each
+asserts a claim made elsewhere in the docs:
 
 | Test | Defends |
 |---|---|

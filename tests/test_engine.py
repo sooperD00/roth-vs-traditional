@@ -1,12 +1,15 @@
 """The eight engine tests of DECISIONS section 6, collected across Sprints 2A-4.
 
-Sprint 5 does not CREATE this file -- it opens it, checks that eight tests are
-green, and writes the docstring-to-README mapping that is the panel-facing
-artifact. So the tests arrive here as the sprints that need them are built:
+No sprint CREATES this file -- Sprint 2A opened it. SPRINT 4 CLOSES BY checking
+that eight tests are green and writing the docstring-to-README mapping that is
+the panel-facing artifact. (That was Sprint 5 until the P3a docs review folded
+it into Sprint 4's tail; the sprint numbers past 4 did not move.) So the tests
+arrive here as the sprints that need them are built:
 
     Sprint 2A  (this pass)  the accumulation gates. NOT numbered T-anything --
                             they defend Sprint 2A's done-when, not section 6
-    Sprint 2B               T1, T2, T3, T4, T5
+    Sprint 2B               T1, T2
+    Sprint 2C               T3, T4, T5
     Sprint 3                T6, T7, T8
 
 THE LITERALS HERE ARE DELIBERATE, same rule tests/test_tax.py states: a
