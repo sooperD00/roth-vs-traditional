@@ -105,10 +105,16 @@ your binding constraint yet.**
 | Shocks drawn independently of returns | Mild, roughly symmetric — wrong |
 | Shocks correlated with drawdowns | Non-linear, fat — because forced liquidation happens exactly when prices are worst |
 
-This is the margin call. Not levered on paper, but: a 40-year
-obligation to eat, no free borrowing against future wages, and the
-recall timing is set by the same process that sets asset prices.
-ONE correlation coefficient carries the whole argument.
+This is the margin call. Not levered on paper, but: a 40-year obligation to eat,
+no free borrowing against future wages, and the recall timing is set by the same
+process that sets asset prices.
+
+> **Superseded by D-08.** This section originally read "ONE correlation
+> coefficient carries the whole argument." There is no coefficient. Shocks are
+> placed into each path's worst years by drawdown `argsort` — the placement *is*
+> the correlation, so there is nothing to calibrate and nothing to defend. An
+> uncorrelated toggle scatters them randomly for contrast, which makes the tail
+> appear and disappear in one click.
 
 Energy analog: a financed solar customer who loses income in a
 downturn must default or sell at the moment resale value is lowest.
@@ -163,6 +169,10 @@ Details worth having in the README:
 ---
 
 ## Recommended output stack
+
+> **Superseded by DECISIONS section 8.** This ≈75-minute stack predates the cube
+> (D-14), the three rung mechanisms (D-16), and the ladder graphic (D-31–D-33).
+> The layer breakdown is still the right decomposition; the numbers are stale.
 
 | Layer | Artifact | Budget |
 |---|---|---|

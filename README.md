@@ -46,7 +46,7 @@ Four lessons follow from that. Every control on the page delivers one.
 | The return rate never affects the choice | 7 / 10 / 12% buttons |
 | Tax rates do affect the choice | Income shape, state toggle, bracket accordion |
 | Fragility matters more than the choice, for most people | Resilience-rung slider driving the scatter plot |
-| You are not in control of the tax law | The "nevermind" toggle |
+| You are not in control of the tax law | Two thresholds side by side, plus the "nevermind" toggle |
 
 ### The investment return rate never affects the choice
 
@@ -72,9 +72,23 @@ One sentence puts both effects in the same unit, which is the only place on the 
 
 ### You are not in control of the tax law
 
-Roth is a bet that a rule holds for thirty years. A toggle takes the bet away. After year N, withdrawals become ordinary income regardless of account type, the threshold moves, and the app names what happened rather than presenting it as a neutral scenario. Traditional already banked its deduction; Roth is the side with something to lose, and that asymmetry is the point.
+Roth is a bet that a rule holds for thirty years. Traditional is a bet that
+rates don't rise. Neither is the neutral position, and the app reports both
+thresholds side by side rather than making the user click to see the second one.
 
-Next to the toggle: Poland 2013, Ireland 2011, US SECURE Act 2019. Rules have moved under people who already committed.
+The bracket-rise case needs no model. It is already the axis — a higher future
+rate is a position to the right of the break-even, which is what the user is
+locating themselves against anyway. Only the treatment-moves case needs a
+second number, and it is one more call to the same function.
+
+After year N the Roth balance is frozen as a tax-free allowance and everything
+past it is ordinary income. Traditional needs no branch at all: its withdrawals
+were already ordinary income. That absence in the code is the asymmetry.
+
+Next to the toggle: Poland 2013, Ireland 2011, US SECURE Act 2019. The likeliest
+version of this is not a tax on Roth withdrawals — it is tax-free money ceasing
+to be invisible, counted toward a Medicare premium or the taxable share of
+Social Security. Untaxed, and expensive anyway.
 
 # MVP Architechture
 
@@ -155,17 +169,25 @@ Four, each asserting a claim made elsewhere in this README.
 
 - The bracket-rise case cuts the opposite way from "nevermind"
 - D-15 — the dots come from the reference archetype while the line is personalized
+- Some people choose Roth knowing the expected value is worse, because they'd rather not owe anything later. That preference is real and this model does not contain it — none of the five objectives can express "I want it settled."
 
-
+| Cut | Why | What it would take |
+|---|---|---|
+| **Certainty preference** — choosing Roth knowing the expected value is worse, because you'd rather not hold an open position | All five objectives are about wealth outcomes. None can express *I want it settled*. This is a real preference and the model does not contain it | A utility formulation over outcome *variance* rather than level, or an explicit premium the user names. Neither fits the threshold framing, which is why it is a branch rather than a sixth objective |
+| **Bracket rise as a modeled scenario** | Already on the axis. A higher future rate is a position to the right of `t*` | Nothing. Naming it is the work, and the two-threshold headline does that |
+| Two-bar asymmetry chart (p90 gain vs p10 loss, both against median) | Teaches a real lesson — outcomes are left-skewed, the bad case is bigger than the good one — but not L3. L3 is *fragility beats the account choice*, carried by the dot collapse and the $X/$Y sentence. Adjacent, not the same | A `p90_dollars` field in the cube and one chart. ~10 minutes. The semi-variance and ergodicity notes in DESIGN.md are the argument it would draw |
 # AI Disclosure
 
 1. research
  - (kept private)
 
 2. design
- - asdf
+ - (kept private)
 
-3. code execution -- with Claude Opus 5, Max Thinking
+3. sprint planning
+ - 
+
+4. code execution -- with Claude Opus 5, Max Thinking
  - asdf
 
 
