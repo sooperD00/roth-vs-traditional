@@ -28,14 +28,14 @@ table. There is one implementation of the math and two ways to reach it.
 **Status: two layers implemented, four functions still raising.** Sprint 2A
 landed the profile, the income curve, contributions, accumulation, the D-33
 ladder and the constant-path builder. `retirement_draw`, `outcome`, `breakeven`
-and `marker_withdrawal` are Sprints 2B and 3.
+and `marker_withdrawal` are Sprints 2B, 2C and 3.
 
 **The accumulation figures in this file now come out of this repo.** The four
 age-65 balances, `t_now`, the year-20 allowances and D-15's proxy all reproduce
 from `uv run python engine.py` and are asserted by `tests/test_engine.py`.
 Everything downstream of the retirement draw — the draw itself, the marker, and
 both thresholds — is still a gate-two cold-read figure and stays pending until
-Sprint 2B runs it.
+Sprints 2B and 2C run it.
 
 | Section | |
 |---|---|
@@ -102,6 +102,16 @@ only if the arithmetic runs. Clamp it and both sides pile up at $0 across a rang
 of rates, the difference goes flat, and bisection returns whichever endpoint it
 started nearest. Objectives 4 and 5 read the flag; nobody reads a clamped
 balance.
+
+**The rule extends to the bequest, and that is where it is easy to miss.** Under
+the "nevermind" policy the Roth's terminal balance is tax-free up to whatever
+allowance is left and ordinary income beyond it — which reads naturally as
+`min(B, rem) + max(0, B − rem)·(1 − t_later)`. That `max(0, ...)` is a clamp
+wearing tax logic, and with it the second threshold does not exist at all: the
+difference never changes sign and the solver returns a sentinel where the
+headline should be. The signed form, `rem + (B − rem)·(1 − t_later)`, is the one
+that crosses at 58.4%. `DECISIONS.md` carries all three readings and what each
+one measures.
 
 ## 5. Common random numbers
 
@@ -227,7 +237,7 @@ imported. `tests/test_engine.py` — opened at Sprint 2A, 54 tests over the
 profile, the ladder, contributions and accumulation.
 
 Sprint 5 does not create that second file; it **collects and maps** T1–T8 into
-it. T1–T5 arrive in Sprint 2B, T6–T8 in Sprint 3. Each asserts a claim made
+it. T1–T5 arrive across Sprints 2B and 2C, T6–T8 in Sprint 3. Each asserts a claim made
 elsewhere in the docs:
 
 | Test | Defends |

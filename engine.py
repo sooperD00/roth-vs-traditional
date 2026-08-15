@@ -422,7 +422,7 @@ def retirement_draw(roth_65: float, n_years: int, rate: float) -> float:
     RETURN rate, while `rate` in outcome() is t_later, the future marginal TAX
     rate. Sprint 2B should rename both at the point it implements this.
     """
-    raise NotImplementedError   # Sprint 2B
+    raise NotImplementedError   # Sprint 2C
 
 
 def marker_withdrawal(net_draw: float) -> float:

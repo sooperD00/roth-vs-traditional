@@ -14,7 +14,7 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | _Sprint 9 — URL pending_ |
-| **Progress** | Sprint 2A complete — 2 of 10 sprint units |
+| **Progress** | Sprint 2A complete — 2 of 11 sprint units |
 | **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, 89 passing tests |
 | **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; `app.py` |
 
@@ -138,9 +138,9 @@ uv run streamlit run app.py      # Sprint 6
 | `tax.py` | ✅ | Every number that came from outside the model — 2026 single-filer brackets, standard deduction, deferral cap, state rate, early-withdrawal penalty. No tax number appears anywhere else in the repo, and `tests/` is the one stated exemption |
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
-| `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
+| `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B, 2C and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 60-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 5 collects T1–T8 into it rather than creating it; T1–T5 land in 2B, T6–T8 in Sprint 3 |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 5 collects T1–T8 into it rather than creating it; T1–T5 land across 2B and 2C, T6–T8 in Sprint 3 |
 | `app.py` | ⬜ | Sprint 6. Streamlit. Reads `cube.json`; contains no stochastic code |
 
 ---
@@ -187,6 +187,13 @@ to the right of the marker, so the scenario you were told makes Roth safe is the
 one that widens Traditional's lead. The design deck had this drawn backwards; the
 reversal is in [`docs/DESIGN.md`](docs/DESIGN.md) part 4 and
 [`GATE-2.md`](docs/review/GATE-2.md).
+
+*Both thresholds are computed with balances allowed to go negative — the engine
+records ruin rather than enforcing a floor, which is what keeps the difference
+monotone enough to solve. Traditional's terminal balance goes negative above a
+33.45% future rate, so the 58.4% figure is a crossing between two already-ruined
+paths. That is what makes it computable; it is not a retirement anyone funds. See
+`DECISIONS.md`, D-26's subsection.*
 
 The flip is real, but it belongs to someone else. The early-career preset reads
 Roth under current rules and Traditional once the rule moves. **The rule change

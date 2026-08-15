@@ -176,7 +176,7 @@ match.
 | D-14 | **The cube is computed at the reference archetype, not at the user's profile** | It is precomputed. Consequence in D-15 |
 | D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **6.78%** — the historical series' own geometric mean, which `return_series.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars.** So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them a few points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series. **RESTORED in Sprint 2A: the deterministic proxy at the series' own geometric mean puts T65 at $2,028,066 against $2,108,867 at 7%, a 3.83% gap.** That is a proxy, not the bootstrap — Sprint 3 supplies the real distribution and decides what Sprint 6's caption carries |
 | D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received. **Supersedes D-13** | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting makes D-13's claim structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect, so the deterministic path must reject it. **Validation gate, and it is DERIVABLE rather than measured — see the note below** |
-| D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance |
+| D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance. **This extends to the D-26 bequest, and that is the one place a clamp looks like tax logic rather than a floor** — see D-26's subsection, where it is the difference between a headline and a sentinel |
 
 ### D-15 — the dollar side of the return-model mismatch  ✅ PROXY RESTORED, Sprint 2A
 
@@ -422,6 +422,102 @@ in `engine.py` it would keep running and quietly mean something else.
 alias. Delete it and call `tax.gross_for_net` directly, keeping the D-24
 docstring at the call site.
 
+### D-26 — the terminal rule as code
+
+**THE RULE AS CODE, because the prose invites an implementation D-38 forbids.**
+D-26 records that the terminal treatment decides whether the gate is reachable.
+What it did not record is that there are **three** readings of *"tax-free up to
+whatever allowance is left, ordinary income at `t_later` beyond it"* — and only
+one produces the published headline:
+
+| Reading | Terminal expression | `t*_policy` |
+|---|---|---|
+| Bequest untaxed | `B` | **no crossing** |
+| Clamped — the natural one | `min(B, rem) + max(0, B − rem)·(1 − t_later)` | **no crossing** |
+| **Linear and signed — THIS ONE** | `rem + (B − rem)·(1 − t_later)` | **58.4064%** |
+
+```python
+# Roth bequest at 100 under the policy. rem is whatever is left of the
+# frozen allowance after 35 years of draws. NO min(), NO max().
+after_tax = rem + (B - rem) * (1.0 - t_later)
+```
+
+**`max(0, ...)` IS A CLAMP AND D-38 PROHIBITS IT.** It is also exactly why the
+clamped row fails. At the archetype the allowance funds about six of thirty-five
+retirement years; the Roth grosses up for the remaining twenty-nine and `B` is
+deeply negative long before 100. A clamp at zero stops that negative bequest from
+being scaled by `(1 − t_later)` **while Traditional's negative bequest still is**
+— so the two accounts get taxed asymmetrically in the direction of the arithmetic
+rather than of the model, the difference never changes sign, and `breakeven()`
+returns a sentinel where the headline belongs.
+
+The signed form is the one that matches Traditional. Once the allowance is spent
+the Roth *is* an ordinary-income account, so its terminal value scales by
+`(1 − t_later)` whatever its sign. That is D-38's rule applied to the bequest
+instead of to the balance, and it is the same rule.
+
+**Reproduced independently at the Sprint 2A docs review**, forward sweep, no
+bisection: the signed form crosses at **58.4064%**, matching D-40's closed form —
+`t_now·T₆₅·(1+r)³⁵` = $7,317,533 against an implied `S·A₁` = $5,211,117, which
+D-40 publishes as $5,211,109.
+
+**AND THE CROSSING SITS INSIDE THE RUINED REGION — say it before a panelist finds
+it.** Traditional's terminal balance goes negative for `t_later` > **33.45%**,
+and `t*` under current rules is **32.50%**, just below that boundary. The policy
+threshold at **58.41%** is therefore 25 points inside the region where both
+accounts have been ruined for years: at the crossing both terminal values are
+about **−$5.62M**. This is legitimate under D-38 and it is precisely what makes
+the number computable — ruin is recorded, not enforced, so the arithmetic runs
+and the difference stays monotone. But *"the threshold is 58.4%"* and *"at 58.4%
+neither account funded the retirement"* are both true and only the first is
+published. One sentence in the app, the same treatment R6 gives the 54% draw.
+
+### D-39 — the draw under a stochastic path set
+
+**TWO THINGS THE DETERMINISTIC CASE HIDES.** Both are invisible in Sprint 2B,
+where there is one path and one rate. Both bite in Sprint 3.
+
+**1. `retirement_draw(roth_65, n_years, rate)` takes a scalar `rate`, and a
+bootstrap has none.** D-39 says the draw is solved *once per `(profile, rate)`*
+and *held fixed across every path*. At `n_paths = 2000` there is no scalar `rate`
+to pass and no single `roth₆₅` to size against. Two candidates, and the choice
+moves ruin:
+
+| Candidate | Consequence |
+|---|---|
+| The 7% deterministic default (D-04a) | Sized above what the median bootstrap path sustains — the series compounds at 6.776% (D-15) |
+| The series' own geometric mean, 6.776% | Consistent with the dots, inconsistent with the balance graph's 7% line |
+
+**Pin it in Sprint 2B while the function is being written**, not in Sprint 3 when
+the paths arrive. Either way the draw stays ONE number across all paths; that
+half of D-39 is not in question.
+
+**2. The 15% margin does not survive volatility, and Sprint 4's ruin gate rests
+on it.** The margin was sized against a deterministic 7% path. Measured at the
+Sprint 2A docs review over 2,000 block-bootstrap paths, shock-free, draw fixed at
+the deterministic solve: **1,062 of 2,000 Roth paths go negative before 100 —
+53.1%.** That is sequence risk, not a tuning error. No plausible margin closes
+it, because a level real draw against a 19.30% standard deviation over 35 years
+ruins about half the time by construction.
+
+**Consequence for Sprint 4**, whose done-when read *ruin is 0.0 across the
+0-shock slab*. That gate cannot pass. It is not wrong about what it wanted — a
+0-shock slab that already ruins leaves the shock columns nothing to show against
+— so the decision is which of these to take, and it should be taken deliberately
+rather than discovered:
+
+| Option | Cost |
+|---|---|
+| Report it as a finding, drop the absolute gate | The shock columns measure a smaller marginal effect against a ruined baseline |
+| Raise `ROTH_TERMINAL_MARGIN` until the slab is clean | Needs roughly 50%+, which stops being a margin and becomes a bequest motive the model does not have |
+| Read ruin as **relative** — `ruin(shocks=n) − ruin(shocks=0)` | Keeps the shock effect legible, abandons the absolute reading |
+| Size the draw off a low percentile rather than the mean path | Reopens D-39's premise, which is the thing D-39 exists to close |
+
+**This is the project's own methodology pointed at itself a second time**, the
+same shape as D-05: a named fudge factor was measured, its justification did not
+survive, and the failure is written down rather than the reason quietly
+rewritten.
+
 ### Ladder and gates
 
 | ID | Decision | Why |
@@ -535,7 +631,7 @@ read it.** Fields: `income_points` (four `(age, gross)` pairs, D-19), `savings_r
 
 - `paths` is passed in, never drawn inside — that is what makes D-07 hold
 - `outcome` is public; `spike_grid` calls it directly for the dollar fields
-- **Guard before bisecting.** Evaluate the difference at both bracket endpoints and assert it is non-constant. Two evaluations, one assertion. A difference that is identically zero otherwise returns whichever endpoint bisection started nearest, **silently** — worse than the no-crossing case T4 covers, which at least has a sentinel. This guard would have caught objective 2 in Sprint 2B instead of Sprint 4
+- **Guard before bisecting.** Evaluate the difference at both bracket endpoints and assert it is non-constant. Two evaluations, one assertion. A difference that is identically zero otherwise returns whichever endpoint bisection started nearest, **silently** — worse than the no-crossing case T4 covers, which at least has a sentinel. This guard would have caught objective 2 in Sprint 2C instead of Sprint 4
 - Solve by bisection over the future marginal rate
 - **No clamping** (D-38)
 - Returns the `Result` shape above
@@ -640,6 +736,7 @@ both the total and the order of cuts. Actuals go in the README.
 | R1 | ~~2026 bracket edges, deduction and deferral limit are unverified~~ **CLOSED 2026-08-15.** Verified against IRS IR-2025-103 / Rev. Proc. 2025-32, the primary source, and corroborated independently by Tax Foundation | Source comment in `tax.py` carries both URLs and the verification date |
 | R7 | **Two known biases, both deferred, pointing opposite ways.** SALT deductibility ignored (overstates Traditional by up to 2.0 points on `t*`); over-65 deductions omitted (understates Traditional by 1.7 points on the marker) | Both are stated with their size and direction in the README, and neither changes a verdict. Roughly cancelling is not the defense — knowing which way each one bends the answer is |
 | R8 | **The block bootstrap's stated reason failed measurement.** It does not fatten the tail relative to an IID draw; it thins it slightly. A reviewer who knows time-series work may reach for this | Owned, not hidden. D-05 carries the measurement, the README has a section on it, and the pick survives on the recovery-forgone channel. `n ≈ 19.6` independent blocks is the same critique the README already makes of Bengen — say it first |
+| R9 | **The 0-shock slab ruins about half the time under the bootstrap** — 53.1% measured, shock-free, draw at the deterministic solve. Sprint 4's *ruin is 0.0* gate cannot pass as written, and D-39's 15% margin cannot be raised far enough to save it | D-39's subsection carries the measurement and four options with their costs. **Decide at Sprint 3**, before Sprint 4 builds the cube on the assumption |
 | R2 | Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker | Railway from GitHub. Flag at 15 minutes. **P3a is now a scheduled hard gate on Sprint 6 rather than a floating pre-flight** — it needs no project code, so it runs in parallel with Sprints 2A–5. Railpack's framework detection does not cover Streamlit, so expect to set the start command explicitly |
 | R3 | Objectives 4 and 5 may not cross in range | T4 |
 | R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in the README, not hidden |
