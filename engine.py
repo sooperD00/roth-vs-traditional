@@ -5,15 +5,33 @@ Everything else in the project is presentation.
 
 INVARIANTS THE TESTS DEFEND
   T1  t_now == t_later  ->  equal outcomes                        (D-01)
-  T2  t* unchanged across r in {4, 7, 9, 12}%, AND the after-tax
-      Traditional path equals the Roth path scaled by (1 - t_later)
-      at EVERY year. The scalar-multiple assertion is why T2 holds
-      for any r, not only the four sampled                        (L1)
+  T2  t* unchanged across r in {4, 7, 9, 12}%, AND the common draw
+      CANCELS out of the difference: after_tax_trad(100) - roth(100)
+      is identical at draw = 0, 108_397 and 250_000, at every r.
+      Both accounts fund the same net spending, so the draw subtracts
+      the same real amount from both after-tax paths and vanishes.
+      The difference is
+          roth_65 * [(1 - t_later)/(1 - t_now) - 1] * (1 + r)**35
+      which crosses zero at t_later == t_now for ANY r and ANY draw.
+      THAT is why t* is exact, and it is a stronger claim than the
+      four sampled rates.                                         (L1)
+
+      NOT the earlier wording. "The after-tax Traditional path equals
+      the Roth path scaled by (1 - t_later) at every year" is FALSE
+      through decumulation once t_later != t_now: the ratio runs
+      1.12 -> 1.43 -> 8.91 across ages 66, 82, 99. It holds in
+      accumulation, or at t_later == t*.
   T5  the today's-law marker is strictly below t*                 (D-24)
 
-  Validation gate: the entire 0-shock slab of the cube -- 3 rungs x
-  objectives 1-4 -- equals t_now EXACTLY. The scalar multiple holds
-  per path, so this is not approximate                            (D-22)
+  Validation gate, DERIVABLE not measured: objectives 1, 3, 4 and 5
+  are monotone functionals of the after-tax terminal distribution,
+  so wherever the two distributions are positive scalar multiples,
+  all of them cross at t_now. Mid preserves the multiple (a paused
+  contribution removes c from Traditional and c*(1-t_now) from Roth)
+  and High preserves it trivially. So the whole Mid and High slabs
+  equal t_now at every shock count -- 32 of 48 cells -- plus Low's
+  0-shock row, for 36 of 48. Only Low with shocks >= 1 varies.
+  Assert as an identity, not a tolerance.                         (D-22)
 
 WHAT MUST NOT APPEAR IN THIS FILE
   - `import streamlit`                                            (D-11)
@@ -40,7 +58,7 @@ ROTH_TERMINAL_MARGIN = 0.15   # D-39. The draw leaves this fraction of the
 class Result:
     breakeven: float | None
     status: str            # "crosses" | "always_roth" | "always_trad"
-    dollars: dict | None   # {"2": {"roth": f, "trad": f}, "10": {...}}
+    dollars: dict | None   # keyed by delta: {"2": {"roth": f, "trad": f}, "10": {...}}
     ruin: dict             # {"roth": f, "trad": f}
 
 
@@ -74,7 +92,12 @@ def retirement_draw(roth_65: float, n_years: int, rate: float) -> float:
     ruin -- the model would be measuring the spending assumption instead of the
     tax question.
 
-    Sprint 2 gate: returns 108_397 at the archetype.
+    Sprint 2B gate: returns 108_397 at the archetype.
+
+    SCOPE (D-39): solved once per (profile, rate) on the SHOCK-FREE Roth
+    accumulation, then held fixed across every path, rung and shock count.
+    A draw that adapted to shocks would shrink spending to whatever the damaged
+    balance could afford, and ruin would never fire.
     """
     raise NotImplementedError
 
@@ -86,7 +109,9 @@ def marker_withdrawal(net_draw: float) -> float:
     flat t_later, but D-24's marker is a fact about TODAY's brackets, so its
     operand cannot depend on t_later.
 
-    Sprint 2 gate: 127_804 at the archetype, giving a 15.2% marker.
+    Sprint 2B gate: 127_804 at the archetype, giving a 15.2% marker.
+    DELETE THIS FUNCTION IN 2B -- it is a pure alias for tax.gross_for_net.
+    Keep this docstring at the call site. [SPRINT-2-CLEANUP]
     """
     raise NotImplementedError
 
@@ -127,6 +152,13 @@ def breakeven(profile, objective, shocks, policy, paths) -> Result:
     `paths` is passed in, never drawn inside -- that is what makes D-07 hold.
     The quantity of interest is a small difference between two large numbers,
     so the two sides MUST be evaluated on the same draws.
+
+    GUARD BEFORE BISECTING (D-06). Evaluate the difference at both bracket
+    endpoints and assert it is non-constant. Two evaluations, one assertion.
+    A difference that is identically zero otherwise returns whichever endpoint
+    bisection started nearest, SILENTLY -- worse than the no-crossing case,
+    which at least has a sentinel. Objective 2 was the only known instance and
+    it is cut; nothing else should trip this.
 
     Objectives 4 and 5 genuinely do not cross inside a plausible range for some
     cells. Return the sentinel; do not raise (T4, R3). At n_paths == 1,

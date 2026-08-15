@@ -197,8 +197,8 @@ def gross_for_net(net: float) -> float:
     [SPRINT-2-CLEANUP] engine.py's marker_withdrawal() becomes a pure alias for
     this function. Delete it there and call tax.gross_for_net directly, keeping
     the D-24 docstring at the call site. Tagged here rather than in engine.py
-    because Sprint 1 does not have that file open; Sprint 2 will read this
-    module to use this function. Ref: D-24, remaining-sprints Sprint 2.
+    because Sprint 1 does not have that file open; Sprint 2B will read this
+    module to use this function. Ref: D-24, remaining-sprints Sprint 2B.
     """
     if net <= STANDARD_DEDUCTION:
         return net

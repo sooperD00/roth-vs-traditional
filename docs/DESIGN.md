@@ -39,10 +39,15 @@ objective, columns = shock count. Cells = the break-even rate.
 | # | Objective | Good at | Bad at |
 |---|---|---|---|
 | 1 | Max expected after-tax terminal wealth | Simplest | Ignores that you spend it, not stack it |
-| 2 | Max after-tax lifetime spending | Right unit | Needs a spending model |
+| ~~2~~ | ~~Max after-tax lifetime spending~~ **CUT — D-06** | Right unit | *Needed a spending model. D-39 made spending a fixed common input, which deleted the precondition. Both accounts then fund identical spending on every path and the difference is identically zero* |
 | 3 | Max median outcome | Robust to tails | Hides the tail |
 | 4 | Max 10th percentile (regret-minimizing) | Matches how people actually feel | Conservative-looking |
 | 5 | P(not running out) | Intuitive | Binary; loses magnitude |
+
+> **Superseded by D-06.** Four objectives ship, not five. The bad-at column above
+> is the record of why: *needs a spending model* was objective 2's precondition,
+> and D-39 removed it. A gate-two regression, caught by asking what else a common
+> draw flattens.
 
 <!-- Demo moment: same inputs, swap the objective, watch the recommendation flip.
      That IS "explain the numerical dynamics." One radio button. -->
@@ -54,7 +59,6 @@ Cells = the break-even future marginal rate.
 |                            | 0 events | 1 event | 2 events | 3 events |
 |----------------------------|----------|---------|----------|----------|
 | Max expected terminal      |          |         |          |          |
-| Max lifetime spending      |          |         |          |          |
 | Max median outcome         |          |         |          |          |
 | Max 10th percentile        |          |         |          |          |
 | P(not running out)         |          |         |          |          |
@@ -260,7 +264,7 @@ decision exactly.
 **One number to treat with care.** The mockup states *"ending at $200k instead of
 declining to $165k costs Traditional 1.4 points of its advantage."* D-19 makes
 the qualitative claim but not the measurement, so 1.4 lives only in this picture.
-Treat it as a design-phase estimate pending Sprint 2.
+Treat it as a design-phase estimate pending Sprint 2A, which builds the income curve and can measure it directly.
 
 ## 3.3 — Accordion of departures
 
@@ -302,13 +306,13 @@ see one magnitude beat another when only one of them is on the axis.*
 | Emit a **cube**, not a table | Rungs × objectives × shock counts precomputed. The control becomes an array index, the app does no math, and the dots move instantly |
 | Row = shock count, color = objective family | Gray for expected-value objectives, orange for tail. Gray dots barely move down the rows while orange dots fan out — the expected-value-vs-tail divergence, free alongside L3 (D-34) |
 | **No jitter** | Rows already separate the dots. Overlap within a row means the objectives agree, which is information rather than clutter |
-| The collapse is the lesson | At a low rung the five definitions of "optimal" disagree across a wide span of tax points; at a high rung they converge. **Sprint 8 measures whether that actually happens.** If the dots don't collapse, L3 isn't landing, and it is better to find that out in the sprint than on stage |
+| The collapse is the lesson | At a low rung the four definitions of "optimal" disagree across a wide span of tax points; at Mid and High they land on **one identical value**. That is now derived rather than hoped for (D-22): only Low's penalty is asymmetric, so 36 of 48 cells equal `t_now` exactly. **The collapse is a cliff, not a gradient** — and the cliff is the stronger statement |
 
 **What moved — most of the numbers on this slide.**
 
 | Mockup | Now |
 |---|---|
-| Eight rungs, 160 floats | **Three** rungs, 60 cells (D-16) |
+| Eight rungs, 160 floats | **Three** rungs, **48** cells (D-16, D-06) |
 | A **slider** feeding shock severity | **Ten checkboxes**; the rung selects a code *branch*, not a severity (D-16, D-32) |
 | Panels labeled "Rung 2", "Rung 3" | **Named, never numbered** — Low, Mid, High |
 

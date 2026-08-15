@@ -26,7 +26,7 @@ The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
 **Status: `engine.py` is a skeleton.** Signatures, invariants and the tests that
-defend them are written; the bodies are Sprint 2 and Sprint 3. Every figure in
+defend them are written; the bodies are Sprints 2A, 2B and 3. Every figure in
 this file came out of the gate-two cold-read engine, not out of this repo.
 
 | Section | |
@@ -34,7 +34,7 @@ this file came out of the gate-two cold-read engine, not out of this repo.
 | [Five load-bearing choices](#five-load-bearing-choices) | The decisions that change an answer |
 | [Where the paths come from](#where-the-paths-come-from) | The return series, and a fudge factor that got measured |
 | [Shock timing and size](#shock-timing-and-size) | Three rungs, three code branches |
-| [Output — the cube](#output--the-cube) | 60 cells and what each one carries |
+| [Output — the cube](#output--the-cube) | 48 cells and what each one carries |
 | [Tests](#tests) | Two suites, and which claim each defends |
 
 ---
@@ -104,7 +104,7 @@ The quantity of interest is a small difference between two large numbers.
 Evaluate the two sides on independent draws and sampling noise swamps the
 difference you came to measure; evaluate them on the same draws and the noise
 cancels. The comparison is paired, the cube is reproducible from
-`seed = 20260815` at `n_paths = 2000`, and sixty cells cost almost nothing.
+`seed = 20260815` at `n_paths = 2000`, and forty-eight cells cost almost nothing.
 
 # Where the paths come from
 
@@ -196,7 +196,7 @@ and high does neither.
 
 # Output — the cube
 
-The PoC writes a cube: three rungs × five objectives × four shock counts. Each
+The PoC writes a cube: three rungs × four objectives × four shock counts. Each
 cell carries the break-even rate, a status field for the cells where the two
 choices never cross, both dollar outcomes at two miss sizes, and the ruin
 fractions.
