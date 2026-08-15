@@ -192,13 +192,15 @@ def gross_for_net(net: float) -> float:
 
     Published pair: gross_for_net(108_397) returns 127_803.95, not 127_804.
     $127,804 and $108,397 are two display roundings of one unrounded point
-    (D-24). Do not assert them against each other exactly.
+    (D-24). Do not assert them against each other exactly. The engine passes the
+    UNROUNDED draw, which returns 127,803.64 -- a third rounding of the same
+    point, and the reason those two figures must never be asserted against one
+    another.
 
-    [SPRINT-2-CLEANUP] engine.py's marker_withdrawal() becomes a pure alias for
-    this function. Delete it there and call tax.gross_for_net directly, keeping
-    the D-24 docstring at the call site. Tagged here rather than in engine.py
-    because Sprint 1 does not have that file open; Sprint 2B will read this
-    module to use this function. Ref: D-24, remaining-sprints Sprint 2B.
+    CLOSED AT SPRINT 2B. engine.py's marker_withdrawal() was a pure alias for
+    this function; it is deleted and the marker is now
+    tax.effective_rate(tax.gross_for_net(draw)) at the call site. D-24's
+    reasoning lives in engine.py where that function stood.
     """
     if net <= STANDARD_DEDUCTION:
         return net
