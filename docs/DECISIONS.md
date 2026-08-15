@@ -51,6 +51,12 @@ file at each gate — so between gates it may disagree, and this file wins by
 default. **Except** where the README states a number or a claim the panel will
 read, in which case the disagreement is a defect and gets fixed in the same pass.
 
+`remaining-sprints.md` is a **source, not a working surface — but only for the
+budget table and the cut ladder**, both of which §8 delegates to it. On anything
+else this file wins. Gate two's HoH correction landed in D-21 and in `tax.py` and
+did *not* land in Sprint 1's goal paragraph, where it then propagated forward into
+a sprint brief. That gap is what this row closes.
+
 Design deck (`*.PNG`) — working surface. This file wins. Where the deck carries a
 number that exists nowhere else, that number gets promoted into a decision rather
 than left in an image.
@@ -92,15 +98,16 @@ beside the tax controls. One moves the answer, one can't.
 
 ## 2. Definition of done
 
-Shipped when all seven exist:
+Shipped when all eight exist:
 
 1. `tax.py` — 2026 brackets, deferral limit, state rate, early-withdrawal penalty. One module, source comments
 2. `engine.py` — pure functions, no Streamlit import
 3. `spike_grid.py` — CLI; writes `cube.json` and prints the markdown grid
 4. `test_engine.py` — **the eight tests in §6**
-5. `app.py` — Streamlit, layout per §7
-6. Deployed, reachable by URL
-7. `## Scope & Branches` in README — Cut / Why / What-it-would-take
+5. `tests/test_tax.py` — **Sprint 1's assertions**, listed in that sprint's done-when. Not among §6's eight, which are engine tests
+6. `app.py` — Streamlit, layout per §7
+7. Deployed, reachable by URL
+8. `## Scope & Branches` in README — Cut / Why / What-it-would-take
 
 Not done, and labeled as such in the UI: historical sequence replay, a real
 spending model, RMDs, Social Security, real per-state tax data, the employer
@@ -137,7 +144,7 @@ match.
 | D-11 | **One engine module, two entry points.** `spike_grid.py` and `app.py` both import `engine.py`. No duplicated math | The PoC is not throwaway. It is a script that imports a module and prints a table |
 | D-12 | **The app contains no stochastic code.** It reads `cube.json` | Deploys smaller, cannot be slow in front of a panel, no seed in production |
 | D-14 | **The cube is computed at the reference archetype, not at the user's profile** | It is precomputed. Consequence in D-15 |
-| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **~6.81%** — the historical series' own geometric mean, which `returns.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars: 3.4%.** T65 is $2,108,867 at 7% against $2,038,611 at 6.81%. So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them about three points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series |
+| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **~6.81%** — the historical series' own geometric mean, which `return_series.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars: 3.4%.** T65 is $2,108,867 at 7% against $2,038,611 at 6.81%. So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them about three points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series |
 | D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received. **Supersedes D-13** | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting makes D-13's claim structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect, so the deterministic path must reject it. **Validation gate: the entire 0-shock slab (3 rungs × objectives 1–4) equals `t_now` exactly** |
 | D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance |
 
@@ -167,18 +174,97 @@ three are the model.
 
 | ID | Decision | Why |
 |---|---|---|
-| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single. **Income shape, four points, linearly interpolated: (35, $165,000) · (38, $75,000) · (55, $200,000) · (65, $200,000).** Savings rate 20%. State: **taxed while working, untaxed in retirement** (D-30 defaults) | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes. The trough at 38 is parental leave, which CONTEXT part E already flags as this population's low-bracket window. The end point is flat from the peak rather than declining: ending high is the *conservative* case, since it raises retirement spending and narrows Traditional's lead. **Consequence: `t_now` = 24% federal with no bracket straddle, 32.5% combined** |
+| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single. **Income shape, four points, linearly interpolated: (35, $165,000) · (38, $75,000) · (55, $200,000) · (65, $200,000).** Savings rate 20%. State: **taxed while working, untaxed in retirement** (D-30 defaults) | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes. The trough at 38 is parental leave, which CONTEXT part E already flags as this population's low-bracket window. The end point is flat from the peak rather than declining: ending high is the *conservative* case, since it raises retirement spending and narrows Traditional's lead. **Consequence: `t_now` = 24% federal, 32.5% combined. The absence of a bracket straddle is no longer an assumption** — `deferral_rate` and `marginal_rate` agree exactly at $165,000, and `tests/test_tax.py` asserts it. See the D-21 subsection for the three incomes where they do not |
 | D-20 | **Horizon runs to age 100; `n_years = 100 − current_age`.** Two phases: accumulate 35→64, decumulate 65→99. All objectives evaluate at 100. Guard on `current_age >= 65` | Planning past median longevity is the standard convention, because outliving the money is the failure that matters. Splitting the phases is what puts `t*` where it belongs — in the withdrawal years. "Terminal wealth" therefore means bequest at 100, not balance at 65 |
-| D-21 | **`tax.py` implements SINGLE only:** 2026 bracket edges, seven rates, standard deduction $16,100, deferral cap $24,500, **state rate 8.5%**, **early-withdrawal penalty 10%**. MFJ and HoH are `TODO` stubs. **Over-65 deductions are DEFERRED, not omitted** | The deduction applies to withdrawals, so gross minus deduction gives taxable and the bracket table is read in taxable terms. **The state rate and the penalty live here too**: they are tax numbers, and Sprint 1's rule is that no tax number appears anywhere else in the repo. **R1 is CLOSED** — all seven single edges and the $16,100 deduction verified against IRS IR-2025-103 / Rev. Proc. 2025-32 on 2026-08-15, and corroborated by Tax Foundation's independent table. **HoH's reason changed:** the stub was justified by "overlapping edges at the 24/32 boundary," which the primary source does not support — the published HoH column is contiguous (24% ends $201,750, 32% begins $201,751). It stands on D-19's reason instead, which is the stronger one: the UI models one income curve and one age, so a household is something the controls cannot represent. **The two over-65 deductions are deferred with their cost measured** — the permanent $2,050 (IRC 63(f)) and the temporary, income-phased OBBB senior deduction of up to $6,000. Together they take the marker from 15.2% to 13.5%, which *widens* Traditional's lead, so omitting them understates the recommendation rather than inflating it. Neither changes a verdict; the preset's flip survives at 14.4% against a 12.0% threshold. Wiring the $2,050 is one conditional on age and is the honest one to do first; the $6,000 sunsets, and applying it across a 35-year retirement would assert something the statute does not say |
+| D-21 | **`tax.py` implements SINGLE only:** 2026 bracket edges, seven rates, standard deduction $16,100, deferral cap $24,500, **state rate 8.5%**, **early-withdrawal penalty 10%**. MFJ and HoH are `TODO` stubs. **Over-65 deductions are DEFERRED, not omitted. `t_now` is a deferral rate, not a bracket lookup — see the subsection below** | The deduction applies to withdrawals, so gross minus deduction gives taxable and the bracket table is read in taxable terms. **The state rate and the penalty live here too**: they are tax numbers, and Sprint 1's rule is that no tax number appears anywhere else in the repo. **`tests/` is the one exemption**, stated in the module docstring, because a hand-verification that imports the constant it is verifying tests nothing. **R1 is CLOSED** — all seven single edges and the $16,100 deduction verified against IRS IR-2025-103 / Rev. Proc. 2025-32 on 2026-08-15, and corroborated by Tax Foundation's independent table. **HoH's reason changed:** the stub was justified by "overlapping edges at the 24/32 boundary," which the primary source does not support — the published HoH column is contiguous (24% ends $201,750, 32% begins $201,751). It stands on D-19's reason instead, which is the stronger one: the UI models one income curve and one age, so a household is something the controls cannot represent. **The two over-65 deductions are deferred with their cost measured** — the permanent $2,050 (IRC 63(f)) and the temporary, income-phased OBBB senior deduction of up to $6,000. Together they take the marker from 15.2% to 13.5%, which *widens* Traditional's lead, so omitting them understates the recommendation rather than inflating it. **That 13.5% carries a convention and the constants' comment must name it: the gross is RE-SOLVED to hold D-39's net draw at $108,397, falling to ~$125,380, and the $6,000 is taken IN FULL.** Holding gross fixed at $127,804 instead gives 13.7%; applying the OBBB phaseout gives ~14.1%. Neither changes a verdict; the preset's flip survives at 14.4% against a 12.0% threshold. Wiring the $2,050 is one conditional on age and is the honest one to do first; the $6,000 sunsets, and applying it across a 35-year retirement would assert something the statute does not say |
 | D-25 | **D-01 applies at `min(capacity, cap)` in PRE-TAX terms.** Base case: **$24,500 to Traditional, $16,538 to Roth** — the Roth deliberately under-fills. **D2 ON** fills the Roth to $24,500 after-tax, which costs **$36,296** pre-tax | The cap is denominated in nominal contribution dollars — pre-tax for Traditional, after-tax for Roth — so at the boundary the two choice sets differ and the convention has nothing to equalize. Reading D-01 as a comparison device rather than a behavior model resolves this: the base case isolates the *timing* effect, D2 adds the *capacity* effect back as a named step. Under-filling the Roth is artificial and is labeled so in the app |
 | D-42 | **T3 runs at a `$185,000` test profile, not the archetype.** The archetype's capacity is $33,000 against the $36,296 cost of maxing the Roth — **D2 ON is unaffordable there.** $185,000 gives $37,000 of capacity and stays inside the 24% bracket after the deferral | The earlier claim that "T3 exercises something the reference user experiences" was arithmetic done at 24% before the state toggle landed. Rather than move the archetype to rescue the test, the test gets its own profile and says so. **The archetype's inability to max a Roth is itself the D2 lesson from the other side** — the cap is denominated in dollars that cost you more, so it binds sooner than it looks — and that sentence belongs in the accordion's D2 row |
 | D-27 | **Everything is in real 2026 dollars. Brackets are treated as inflation-indexed**, so the 2026 table applies at every year of the run | Returns are declared real while the bracket table is nominal 2026. Running both unstated models a world where brackets never index — bracket creep would push the future rate up on its own and `t*` would be an artifact of the mismatch. Real throughout is internally consistent and matches the law. The return series must be real or deflated on load |
 | D-28 | **Spending stub: save 20% of income during accumulation.** Modeled contribution is `min(0.20 × income, cap)`; the remainder is out of model and displayed grayed. **The retirement draw is not a replacement rate — see D-39** | Source: BLS household budget data. The grayed excess ($8,500/yr at the archetype) shares a row with D3: both are money outside the 401k that the model does not follow. **The 80% replacement rate is deleted as an input.** It bankrupted both accounts — $160,000/yr net against a $24,500 cap is not fundable at any return, and objective 1 returned $0 = $0 with no crossing |
 | D-39 | **The retirement draw is the level real after-tax amount that leaves 15% of the *Roth's* age-65 balance at 100.** Computed, not input. Sized off the Roth because it is the smaller account and therefore the binding one. **Shock magnitude is $40,000 real per life event** | Two accounts are being compared as ways to fund *the same life*, so the spending path must be one both can afford. Size it off Traditional and the Roth runs out at 79 — every Roth-side objective then reports ruin and the comparison is measuring the spending assumption instead of the tax question. The 15% margin exists so the base case is not sitting exactly at zero, where any shock ruins every objective at once. **At the archetype: $108,397/yr, which is 54% of final working income** — reported as an outcome, with one sentence saying Social Security and the grayed taxable account cover the rest. $40,000 for a shock is a named fudge factor, 1.6× a contribution year, so Low's forced sale and Mid's skipped year are the same order of magnitude; sensitivity at $25k and $80k goes in Scope & Branches, the same treatment block length gets |
 | D-30 | **State tax is two booleans sharing one rate: 8.5%, DC's marginal rate at the archetype income.** Top strip — *State income tax, while working* — default **yes**. Accordion D4 — *You retire to a state that also taxes income* — default **no**. Added to the federal rate; real per-state data stays `TODO` | Split because the earning state and the retirement state are different assumptions and the gap between them is the whole effect. Defaults are earn-taxed / retire-untaxed, the widest honest case: **`t_now` = 32.5% against a 15.2% federal effective marker, Traditional by 17.3 points.** Turning the accordion half on narrows it back toward baseline — that is the correction most users should apply, so **D4's row is exempt from the accordion read-only cut.** 8.5% rather than a round 10 because DC's top rate applies above ~$1M and the panel files DC returns. **Simplification, quantified: the rate is additive to the federal rate, ignoring SALT deductibility.** For a filer who itemizes the true combined marginal rate is `0.24 + 0.085 × (1 − 0.24)` = **30.5%, not 32.5% — a 2.0-point overstatement of the headline itself**, in the direction that flatters Traditional. It bites only on itemizers: at the archetype, state income tax alone is $14,025 against a $16,100 standard deduction, so it takes roughly $2,075 more of mortgage interest, property tax or charity to cross — likely for an owner, not automatic for a renter. **This is the larger of the two known biases and it points opposite to the deferred over-65 deductions (D-21), so they roughly cancel.** `TODO` with real per-state data |
-| D-24 | **Departures do not perturb the deterministic headline. D1 is a reference marker, not a model change:** the app computes the effective rate today's brackets produce on the modeled withdrawal and draws it as a second line beside `t*`. Accordion-editable means the user overrides that computed number, not the bracket model | Under a flat future rate the after-tax Traditional trajectory is the Roth trajectory scaled by `(1−t_later)` — identical for any `r`, any income shape, any spending path. T2 therefore holds by construction. What breaks the scalar multiple is a mechanism that hits the accounts asymmetrically: the penalty, the cap, the rule change. D1 is not one of those. **The marker's withdrawal is defined non-circularly as the gross amount today's brackets require to fund D-39's net draw** — $127,804 gross for $108,397 net, an effective **15.2%**. Federal only at the defaults, since D4 is off. *(Read federal-only and with no state anywhere, the same comparison is 24% against 15.2% — Traditional by 8.8 points. That is the figure this decision originally carried and it was never the default.)* |
+| D-24 | **Departures do not perturb the deterministic headline. D1 is a reference marker, not a model change:** the app computes the effective rate today's brackets produce on the modeled withdrawal and draws it as a second line beside `t*`. Accordion-editable means the user overrides that computed number, not the bracket model | Under a flat future rate the after-tax Traditional trajectory is the Roth trajectory scaled by `(1−t_later)` — identical for any `r`, any income shape, any spending path. T2 therefore holds by construction. What breaks the scalar multiple is a mechanism that hits the accounts asymmetrically: the penalty, the cap, the rule change. D1 is not one of those. **The marker's withdrawal is defined non-circularly as the gross amount today's brackets require to fund D-39's net draw**, computed by `tax.gross_for_net()` in closed form rather than by a solver (D-21) — $127,804 gross for $108,397 net, an effective **15.2%**. **Both published figures are display roundings of one unrounded point**: $127,804 nets $108,397.04, and `gross_for_net(108_397)` returns $127,803.95. They must not be asserted against each other exactly. Federal only at the defaults, since D4 is off. *(Read federal-only and with no state anywhere, the same comparison is 24% against 15.2% — Traditional by 8.8 points. That is the figure this decision originally carried and it was never the default.)* |
 | D-26 | **At year N, snapshot the Roth balance as a tax-free allowance in real dollars. It does not grow.** Retirement withdrawals draw it down first; everything past it is ordinary income at `t_later`. Traditional is unchanged. **Policy is not a cube axis** — the toggle moves the headline line, never the dots | D-09's "prospective, not retroactive to existing balance" is the harsher of two grandfathering readings and it is the one written down: freezing the balance rather than the account. Because D-10 already labels this as Roth's bet rather than a neutral scenario, the sub-choices are modeled gently — allowance drawn first rather than pro-rated — so the effect shown is real rather than stacked. One scalar to carry, and it matches basis-recovery mechanics. **At the archetype, N=20 lands at age 55 and the allowance is $607,475 against a $1,423,485 Roth balance at 65 — about six of thirty-five retirement years** |
 | D-40 | **The policy threshold moves RIGHT, not left. At the archetype it is 58.4% against `t*` = 32.5%, and the verdict does not flip.** The flip is carried by an **early-career preset** — income shape (35, $60,000) · (38, $54,000) · (55, $200,000) · (65, $200,000), neither state taxing — where `t*` = 12.0%, the marker is 15.9%, and the policy threshold is 29.1%: **Roth under current rules, Traditional once the rule moves** | The deck drew the second threshold at 14% with Roth winning to its right. The algebra cannot do that. A policy that harms only Roth strictly raises the rate at which Roth becomes worthwhile — `t*_policy = t_now·T₆₅ / (t_now·T₆₅ + allowance)`, which exceeds `t_now` whenever the allowance is smaller than the Roth balance, which it always is. So at the archetype the honest reading is the stronger one: *the scenario you were told makes Roth safe is the one that widens Traditional's lead.* The flip is real, but it belongs to the person the policy actually costs something — the low-bracket saver Roth was supposed to be for, which is precisely CONTEXT part E's recent-hire segment. **Two artifacts, not one: the default teaches that the bet is bigger than it looked, the preset teaches that it can reverse an answer** |
+
+### D-21 — `t_now` is a deferral rate, not a bracket lookup
+
+`t_now` is the rate the deferred dollars actually avoid:
+
+```python
+def deferral_rate(gross, contribution):
+    return (tax_on(gross) - tax_on(gross - contribution)) / contribution
+```
+
+Exact, one extra call to a function the module already needs, and no lookup at a
+boundary — so the last-dollar/next-dollar question stops existing rather than
+getting answered.
+
+**`marginal_rate()` is not `t_now`.** It survives for display and as
+`combined_rate`'s federal half, and its docstring says so. The two are equal only
+when the contribution stays inside one bracket. When it straddles, `marginal_rate`
+overstates `t_now` — and `t*` *is* `t_now`, so the error lands on the headline.
+
+| Straddle band (gross) | Edge | Bracket gap | Worst error |
+|---|---|---|---|
+| $66,500 – $83,125 | 12 → 22 | 10.0 | 9.92 pts |
+| $121,800 – $146,300 | 22 → 24 | 2.0 | 1.99 pts |
+| $217,875 – $242,375 | 24 → 32 | 8.0 | 7.99 pts |
+
+**The mechanism is derivable, which means a panelist can check it without
+rerunning anything.** Just above the edge the whole contribution comes out of the
+band *below*, so `deferral_rate` converges on the lower band rate while
+`marginal_rate` returns the upper one — and the worst error is therefore the
+bracket gap itself. It is a supremum approached as gross → the edge from above,
+not a value attained: *at* the edge the two agree exactly and the error is zero.
+Two different mechanisms close the bands, which is why they are not the same
+width. Band 1 is uncapped and closes when 80% of gross clears the edge, at
+edge ÷ 0.8. Bands 2 and 3 close a flat $24,500 above their edge, where the cap
+binds instead of the savings rate.
+
+**Neither headline profile straddles.** The archetype is 24.00% and the preset is
+12.00% under either method, so 32.5% and 12.0% stand. **Band 3 is the one that
+matters**: $218,000 gross reads 32% federal and 40.5% combined under a lookup,
+against a true 24.04% and 32.54% — the same magnitude as band 1, sitting in the
+income range a Staff engineer types first. Raise the preset from $60,000 to
+$70,000 and a lookup gives 22.0% against a true 14.5%.
+
+**The savings rate does not live in `tax.py`.** `contribution(gross,
+savings_rate)` applies `min(savings_rate × gross, DEFERRAL_CAP)` — the cap is a
+tax number and stays here; D-28's 20% is behavioral and arrives as an argument
+from `engine.py`. Both `deferral_rate` and `combined_rate` take the contribution
+rather than deriving it, which also states the cap-binding out loud at every call
+site instead of burying it in a `min()`.
+
+**`gross_for_net()` lives here too.** `net(gross)` is piecewise linear, so the
+inverse is closed form — invert the piece:
+
+```
+within a bracket:  net = g(1−rate) − base + rate·(SD + lo)
+so:                g   = (net + base − rate·(SD + lo)) / (1 − rate)
+```
+
+Round-trips to 1.16e-10 across $0–$700k. Bisection agrees to 1e-11 and costs 300
+iterations plus a tolerance argument nobody should have to defend.
+`d(net)/d(gross) = 1 − marginal_rate ≥ 0.63`, so net is strictly increasing and
+the inverse is unique everywhere — there is no branch where it is ambiguous.
+**Guard below the standard deduction**, where there is no tax and `net == gross`:
+without it the formula extrapolates the 10% bracket downward and
+`gross_for_net(11_160)` returns $10,611, a gross below the net it is supposed to
+fund. Reachable in the app, since a low income gives a low balance gives a low
+draw, and the marker is computed on it.
+
+It belongs here rather than in `engine.py` for three reasons. It is a fact about
+the tax code, and Sprint 1 already rules that gross↔taxable conversion lives here
+— gross↔net is the same species. It is where D-39's net and D-24's gross meet,
+which is the exact conversion that was ambiguous at gate two, when 17% and 15.2%
+were both defensible; a named, tested primitive makes that convention one
+auditable object instead of a loop inside a bigger function. And it inherits
+future changes: wire the over-65 deduction or MFJ and the inverse follows, where
+in `engine.py` it would keep running and quietly mean something else.
+**Consequence:** `marker_withdrawal()` in the `engine.py` skeleton becomes a pure
+alias. Delete it and call `tax.gross_for_net` directly, keeping the D-24
+docstring at the call site.
 
 ### Ladder and gates
 
@@ -199,7 +285,7 @@ three are the model.
 | D-36 | **`$Y` compares the user's rung to the next rung up, one step.** Undefined at High; the app says so rather than printing zero | One step is the smaller and more defensible claim, and with three rungs a two-step comparison only exists for Low |
 | D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family** — gray for expected-value (1, 2), neutral for median (3), orange for tail (4, 5). No jitter | The encoding renders DESIGN.md's stated prediction directly: gray dots barely move down the rows because expected value is blind to shocks, while orange dots fan out. The panel carries L3 and the expected-value-vs-tail divergence at the same time, and the second one is free. No jitter because rows already separate the dots; overlap within a row means the objectives agree, which is information rather than clutter |
 | D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links inward to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule |
-| D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `returns.py`, a module-level list of annual real returns with a source comment. It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series is legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it. Sprint 3 does not start until the real series is in the file, and the stub must be obviously fake (a short repeating list) so that nobody ships it by accident |
+| D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `return_series.py`, a module-level list of annual real returns with a source comment. It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series is legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it. Sprint 3 does not start until the real series is in the file, and the stub must be obviously fake (a short repeating list) so that nobody ships it by accident |
 
 ---
 
@@ -267,7 +353,9 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 
 ## 6. Tests
 
-Eight. Each asserts a claim made elsewhere in the docs, which is the point.
+Eight, and they are **engine** tests. Each asserts a claim made elsewhere in the
+docs, which is the point. Sprint 1's assertions are not among them — they live in
+`tests/test_tax.py` and are listed in that sprint's done-when.
 
 | # | Test | Claim it defends |
 |---|---|---|
