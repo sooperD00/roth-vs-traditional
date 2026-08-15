@@ -21,3 +21,6 @@ Thumbs.db
 #   uv.lock          Railway builds with `uv sync --locked` and fails without it
 #   cube.json        Sprint 9 requires it committed; the app must not compute it
 #   .python-version  uv and Railpack both read it
+
+# Tests
+tests/results_*.txt
