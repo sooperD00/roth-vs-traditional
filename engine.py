@@ -38,8 +38,53 @@ WHAT MUST NOT APPEAR IN THIS FILE
   - any tax literal; they live in tax.py                          (D-21)
   - any draw of the paths array; it is passed in                  (D-07)
   - any clamp of a balance at zero                                (D-38)
+
+SPRINT 2B PINNED THREE THINGS THE DOCUMENTS LEFT OPEN. Each is stated at the
+function that implements it; collected here because a reader looking for
+"what did 2B decide" should not have to find three docstrings.
+
+  1. THE DRAW'S RETURN RATE. outcome() receives `paths`, never a scalar return
+     rate -- its own `rate` argument is t_later, a TAX rate. D-39 named two
+     candidates (7% deterministic, 6.776% the series' geometric mean) and asked
+     2B to pick. Neither was picked. Instead: the draw is sized at
+     draw_return_rate(paths), the geometric mean of the array the engine was
+     handed, on a deterministic reference accumulation at that rate. On a
+     constant array that returns the rate itself to within 1e-16, so the
+     deterministic gate reproduces; on a bootstrap it returns the series' own
+     mean. One expression, no branch, and D-22's "the engine cannot tell which
+     kind it received" survives literally rather than by convention.
+     CONSEQUENCE, and it is owed to Sprint 3: R9's 53.1% ruin figure was
+     measured with the draw sized at the 7% deterministic solve. Under this
+     rule the bootstrap draw is smaller, so that figure needs re-measuring --
+     in the direction that makes R9 less bad, not worse.
+  2. RUIN'S OPERAND is the account BALANCE, not the after-tax value (Sec 5 says
+     "after-tax balance"). For Traditional and for Roth under current rules the
+     two agree in sign, because (1 - t_later) > 0. They can disagree for Roth
+     UNDER THE POLICY, where rem*t_later + B*(1 - t_later) stays positive for a
+     small negative B. Running out of money is a fact about the account; `rem`
+     is a tax attribute, not money you can spend.
+  3. `shocks > 0` RAISES rather than silently returning the 0-shock answer.
+     Same reasoning make_paths("block", ...) already uses: a silent fallback
+     would make every shocked gate in Sprints 3 and 4 pass for the wrong
+     reason. The PARAMETER lands here so Sprint 3 fills a branch instead of
+     moving a seam under 2A's 54 tests; only the BODY is deferred.
+
+OBJECTIVE ENCODING (D-06, CONTEXT part C). Four ints, and 2 is not one of them:
+  1  mean of the after-tax terminal distribution   ("max expected terminal")
+  3  median                                        ("max median outcome")
+  4  10th percentile                               ("regret-minimizing")
+  5  P(not running out) -- MAXIMIZED like the other three, so it is the
+     COMPLEMENT of Result.ruin. D-22's "P(< 0)" names the same functional
+     pointed the other way; every objective has to increase in the same
+     direction or breakeven() has no monotone difference to bracket.
+  2  REJECTED. Under a common draw and D-38 both accounts fund identical
+     spending, so the difference is identically zero (D-06).
+
+POLICY ENCODING (D-09, D-26): `None` for current rules, or an int year N for
+"nevermind" applied at that year. Not a boolean -- N is D-26's snapshot index.
 """
 
+import hashlib
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -276,7 +321,7 @@ class Accumulation:
     roth_by_year: list = field(repr=False)
 
 
-def accumulate(profile: Profile, path) -> Accumulation:
+def accumulate(profile: Profile, path, shocks: int = 0) -> Accumulation:
     """Ages current_age -> 64, both accounts, one real-return path.
 
     CASH FLOWS LAND AT PERIOD END (D-20):
@@ -293,9 +338,21 @@ def accumulate(profile: Profile, path) -> Accumulation:
     drawn here -- that is what makes D-07 hold (D-07 is about the CUBE, but the
     discipline has to start where the first random number would be consumed).
 
-    Shocks do not appear in this function. All three rung mechanisms are defined
-    on a contribution stream (D-08, D-16) and they arrive in Sprint 3; High's
-    branch -- portfolio untouched -- is already exactly this code.
+    `shocks` ARRIVED IN SPRINT 2B AS A DEFAULTED PARAMETER AND AN EMPTY BRANCH.
+    All three rung mechanisms are defined on a contribution stream (D-08, D-16)
+    and their bodies are Sprint 3's; High's branch -- portfolio untouched -- is
+    already exactly this code. The parameter landed early on purpose: Sprint 3's
+    two obvious routes were to change a published signature underneath 2A's 54
+    tests, or to duplicate this loop inside outcome(). Defaulting it here is the
+    third, and it is D-39's own argument about the draw's `rate` applied to a
+    second parameter -- pin it while the function is open, not when the paths
+    arrive (remaining-sprints, Sprint 2B PIN).
+
+    IT RAISES ABOVE ZERO RATHER THAN QUIETLY IGNORING THE COUNT. Returning the
+    0-shock balances under shocks=3 is the same failure make_paths("block", ...)
+    already refuses: every shocked gate in Sprints 3 and 4 would pass for the
+    wrong reason, and the 12 informative cells of the cube (D-22) would report
+    the 36 uninformative ones' answer.
 
     Sprint 2A gates, at 7% real:
         ARCHETYPE     trad 2,108,867   roth 1,423,485
@@ -307,6 +364,15 @@ def accumulate(profile: Profile, path) -> Accumulation:
         raise ValueError(
             f"path has {len(path)} years, accumulation needs {n} "
             f"(n_years = {TERMINAL_AGE} - current_age, D-20)"
+        )
+    if shocks:
+        # [SPRINT-3-CLEANUP] The three rung mechanisms are Sprint 3's first
+        # deliverable (D-16, remaining-sprints Sprint 3). Raising rather than
+        # ignoring the count, for make_paths("block", ...)'s reason.
+        raise NotImplementedError(
+            f"shocks={shocks}: the rung mechanisms are Sprint 3 -- see D-16 and "
+            "remaining-sprints.md. The parameter is pinned here (Sprint 2B), "
+            "the branch is not"
         )
     t_now = profile.t_now
     trad = roth = 0.0
@@ -398,9 +464,57 @@ def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07):
     raise ValueError(f"unknown kind {kind!r}: expected 'constant' or 'block'")
 
 
-def retirement_draw(roth_65: float, n_years: int, rate: float) -> float:
+def draw_return_rate(paths) -> float:
+    """The one scalar real return the retirement draw is sized at (D-39's pin).
+
+    THE PROBLEM THIS SOLVES. outcome() never receives a return rate. Its `rate`
+    argument is t_later, a TAX rate; the only return information it holds is
+    `paths`. But retirement_draw() needs a scalar, and D-39 requires the draw to
+    be ONE number held fixed across every path, rung and shock count. D-39's
+    subsection named two candidates -- 7% deterministic (D-04a) or the series'
+    6.776% geometric mean (D-15) -- and asked Sprint 2B to pick one.
+
+    IT IS BOTH, AND THAT IS WHY THIS IS ONE EXPRESSION RATHER THAN A CHOICE.
+    The geometric mean of the array the engine was handed returns the constant
+    itself on a constant array -- measured at 5.6e-17 absolute error, which
+    leaves the published $108,397 bit-identical -- and returns the series' own
+    compounded rate on a bootstrap array. Both candidates fall out of the same
+    sentence: the draw is sized at the geometric mean of whatever return model
+    it was given.
+
+    NO BRANCH, AND THAT IS THE POINT. Reading paths[0][0], or testing whether
+    every element is equal, would reintroduce exactly the flag D-22 deleted when
+    it made deterministic mode a SHAPE. The engine still cannot tell which kind
+    of array it received.
+
+    OWED TO SPRINT 3: R9's 53.1% ruin measurement was taken with the draw sized
+    at the 7% deterministic solve. A bootstrap sized at 6.776% draws less, so
+    that figure needs re-measuring before Sprint 3 picks among D-39's four
+    options. The direction is favorable -- less ruin, not more -- which is
+    precisely why it must be re-measured rather than assumed to still hold.
+
+    Flattened over every path and every year, not per path: D-39 wants one
+    number, and a per-path rate is the adaptive draw that PIN 3 forbids.
+    """
+    flat = np.asarray(paths, dtype=float).ravel()
+    if flat.size == 0:
+        raise ValueError("paths is empty: no return model to size the draw at")
+    return geometric_mean(flat)
+
+
+def retirement_draw(roth_65: float, n_decumulation_years: int,
+                    return_rate: float, margin: float = ROTH_TERMINAL_MARGIN
+                    ) -> float:
     """The level real AFTER-TAX draw that leaves ROTH_TERMINAL_MARGIN of
     roth_65 at age 100 (D-39).
+
+    BOTH NAME COLLISIONS ARE RESOLVED HERE, which is what the Sprint 2B tech
+    debt line asked for. What the stub called `n_years` is the 35 DECUMULATION
+    years, NOT D-20's n_years = 100 - current_age = 65; it is now
+    `n_decumulation_years`. What the stub called `rate` is the RETURN rate,
+    while `rate` in outcome() is t_later, a TAX rate; it is now `return_rate`.
+    Two functions one screen apart took an argument named `rate` and meant
+    different quantities.
 
     Sized off the Roth because it is the smaller account and therefore the
     binding one. Two accounts are being compared as ways to fund the same life,
@@ -416,27 +530,299 @@ def retirement_draw(roth_65: float, n_years: int, rate: float) -> float:
     A draw that adapted to shocks would shrink spending to whatever the damaged
     balance could afford, and ruin would never fire.
 
-    TWO NAME COLLISIONS IN THIS SIGNATURE, both inherited and both worth saying
-    out loud before 2B writes the body. `n_years` here is the 35 DECUMULATION
-    years, not D-20's n_years = 100 - current_age = 65. And `rate` here is the
-    RETURN rate, while `rate` in outcome() is t_later, the future marginal TAX
-    rate. Sprint 2B should rename both at the point it implements this.
+    CLOSED FORM, NOT A SOLVER. Draws land at PERIOD END (D-20), so 35 level
+    draws compound as an annuity-immediate:
+
+        roth_65 * (1+r)**n  -  S * [((1+r)**n - 1) / r]  =  margin * roth_65
+
+    which rearranges to the expression below. There is no tolerance argument to
+    defend and no iteration count, the same reasoning tax.gross_for_net() uses
+    for its own inversion (D-21).
+
+    THE PERIOD-END CONVENTION IS NOT FREE AND THE CROSS-CHECK IS CHEAP. Read as
+    an annuity-due -- draw first, then grow -- every draw divides by (1+r) and
+    the archetype's answer becomes $101,305 instead of $108,397, -6.5%. That is
+    D-20's named misreading, and it is asserted in the tests for the same reason
+    the accumulation side asserts $2,256,487: far enough to fail every gate,
+    close enough to read as an interpolation bug.
     """
-    raise NotImplementedError   # Sprint 2B
+    if n_decumulation_years < 1:
+        raise ValueError(
+            f"n_decumulation_years must be positive, got {n_decumulation_years}"
+        )
+    if return_rate <= -1.0:
+        raise ValueError(f"return_rate {return_rate} implies total loss or worse")
+    growth = (1.0 + return_rate) ** n_decumulation_years
+    if return_rate == 0.0:
+        annuity = float(n_decumulation_years)   # the limit of the ratio at r -> 0
+    else:
+        annuity = (growth - 1.0) / return_rate
+    return (roth_65 * growth - margin * roth_65) / annuity
 
 
-def marker_withdrawal(net_draw: float) -> float:
-    """The gross amount today's brackets require to fund `net_draw`.
+# --- The today's-law marker (D-24) -------------------------------------------
+# THERE IS NO FUNCTION HERE, AND THAT IS THE DELIVERABLE. marker_withdrawal()
+# stood in this spot as a one-line alias for tax.gross_for_net(). Sprint 2B
+# deleted it; call tax.gross_for_net(draw) directly. Its reasoning stays here
+# rather than moving, because "where does the marker come from" is a question a
+# reader asks of engine.py.
+#
+#   THE MARKER IS  tax.effective_rate(tax.gross_for_net(draw))
+#
+# Defined this way to break a circularity: the engine decumulates at the flat
+# t_later, but D-24's marker is a fact about TODAY's brackets, so its operand
+# cannot depend on t_later. It is an EFFECTIVE rate against t*'s MARGINAL rate,
+# and the gap between them is the lesson -- you defer at the margin and withdraw
+# across the whole structure from zero. The app's axis says so (Sec 7).
+#
+# Sprint 2B gate: $127,804 gross for the archetype's $108,397 net, a 15.2%
+# marker. Both published figures are display roundings of ONE unrounded point --
+# gross_for_net(108_397) returns 127,803.95 while the unrounded draw returns
+# 127,803.64 -- so they must never be asserted against each other exactly.
+#
+# CALL SITES. _selftest() below prints it, and tests/test_engine.py asserts it.
+# The real consumers arrive later: T5 in Sprint 2C, and the app's second axis
+# line in Sprint 6. D-24's "D1 is a marker, not a perturbation" is a claim about
+# those consumers -- if the number moves when D1 toggles, something implemented
+# a display marker as a model change.
 
-    Defined this way to break the circularity: the engine decumulates at the
-    flat t_later, but D-24's marker is a fact about TODAY's brackets, so its
-    operand cannot depend on t_later.
 
-    Sprint 2B gate: 127_804 at the archetype, giving a 15.2% marker.
-    DELETE THIS FUNCTION IN 2B -- it is a pure alias for tax.gross_for_net.
-    Keep this docstring at the call site. [SPRINT-2-CLEANUP]
+# --- Accumulation cache -------------------------------------------------------
+# ACCUMULATION DOES NOT DEPEND ON t_later. That was Sprint 2A's seam, and it is
+# the reason this cache is correctness-neutral rather than a risk: breakeven()
+# bisects over t_later, so without it every bisection step redoes 2,000 identical
+# 30-year accumulation loops. Measured at n_paths = 2000: ~470 ms per outcome()
+# call, ~47 s per breakeven(), ~38 minutes for Sprint 4's 48-cell cube against a
+# 25-minute budget. With it, the cube reuses 12 accumulations (3 rungs x 4 shock
+# counts) and lands under a minute. Vectorizing the decumulation is NOT the win
+# and was measured too -- it saves 2 s of 49.
+#
+# Keyed on the array's CONTENTS, not its id(). D-07 says the array is drawn once
+# and reused, so id() would work in practice and silently collide the first time
+# it does not.
+_ACCUMULATION_CACHE: dict = {}
+_ACCUMULATION_CACHE_MAX = 8
+
+
+def _accumulations(profile: Profile, paths, shocks: int) -> tuple:
+    """One Accumulation per row of `paths`, cached on (profile, shocks, paths).
+
+    Returns the objects accumulate() returns, unmodified. Callers must treat
+    them as read-only -- Accumulation is a plain dataclass, so a caller that
+    mutated one would poison every later cache hit.
     """
-    raise NotImplementedError
+    digest = hashlib.blake2b(
+        np.ascontiguousarray(paths, dtype=float).tobytes(), digest_size=16
+    ).digest()
+    key = (profile, shocks, paths.shape, digest)
+    hit = _ACCUMULATION_CACHE.get(key)
+    if hit is None:
+        hit = tuple(accumulate(profile, row, shocks=shocks) for row in paths)
+        if len(_ACCUMULATION_CACHE) >= _ACCUMULATION_CACHE_MAX:
+            _ACCUMULATION_CACHE.pop(next(iter(_ACCUMULATION_CACHE)))
+        _ACCUMULATION_CACHE[key] = hit
+    return hit
+
+
+def _solve_draw(profile: Profile, paths) -> float:
+    """D-39's draw for this (profile, paths). ONE number, shock-free, cached.
+
+    Sized on a DETERMINISTIC reference accumulation at draw_return_rate(paths),
+    not on the passed paths. Three things fall out of that and all three are
+    D-39's requirements rather than conveniences:
+
+      - ONE number. A bootstrap has 2,000 different roth_65 values and D-39 needs
+        one; the reference accumulation has exactly one by construction.
+      - SHOCK-FREE, trivially -- the reference path never sees a shock, so there
+        is no branch to forget. If the draw adapted to shocks, spending would
+        shrink to whatever the damaged balance could afford and ruin would never
+        fire, which defines away the thing Sprint 4 measures.
+      - ACCOUNT-BLIND. It is sized off the Roth whichever account was asked for,
+        because the Roth is the smaller and therefore binding account. Size it
+        off Traditional and the Roth runs out at 79, and every Roth-side
+        objective reports ruin -- the model would be measuring the spending
+        assumption instead of the tax question.
+
+    On a constant array the reference IS the passed path to within 1e-16, so the
+    deterministic gates reproduce exactly.
+    """
+    r = draw_return_rate(paths)
+    key = (profile, r)
+    hit = _DRAW_CACHE.get(key)
+    if hit is None:
+        reference = make_paths("constant", 1, profile.n_years, r)[0]
+        hit = retirement_draw(
+            accumulate(profile, reference).roth,
+            profile.n_decumulation_years,
+            r,
+        )
+        if len(_DRAW_CACHE) >= _ACCUMULATION_CACHE_MAX:
+            _DRAW_CACHE.pop(next(iter(_DRAW_CACHE)))
+        _DRAW_CACHE[key] = hit
+    return hit
+
+
+_DRAW_CACHE: dict = {}
+
+
+# --- Objectives ---------------------------------------------------------------
+OBJECTIVES = (1, 3, 4, 5)          # D-06. Two is cut and is not in this tuple.
+OBJECTIVE_NAMES = {
+    1: "mean after-tax terminal wealth",
+    3: "median after-tax terminal wealth",
+    4: "10th percentile of after-tax terminal wealth",
+    5: "P(not running out)",
+}
+
+
+def _reduce(objective: int, terminals, ruined) -> float:
+    """Collapse the paths axis to one float. FOUR reductions, one distribution.
+
+    D-22's argument is that objectives 1, 3, 4 and 5 are all MONOTONE
+    functionals of the after-tax terminal distribution, so wherever the two
+    accounts' distributions are positive scalar multiples of one another, all
+    four cross at the same rate. That is one property asserted, not four
+    coincidences measured -- and it is why they all have to point the SAME
+    DIRECTION. Objective 5 is therefore P(NOT running out), maximized like the
+    other three. D-22's prose names the same functional as `P(< 0)`, which is
+    its complement and is what Result.ruin carries.
+
+    At n_paths == 1 objectives 1, 3 and 4 return the identical single value --
+    D-22's collapse, which is why the deterministic headline is
+    objective-independent by construction. Objective 5 there is a step function
+    and will not bisect, so breakeven() rejects it; this function does not,
+    because a forward evaluation of it is perfectly well defined.
+    """
+    if objective == 2:
+        raise ValueError(
+            "objective 2 (max after-tax lifetime spending) is CUT -- D-39 made "
+            "spending a fixed common input, so under D-38 both accounts fund "
+            "identical spending and the difference is identically zero at every "
+            "t_later. Not small. Zero (D-06)"
+        )
+    if objective == 1:
+        return float(np.mean(terminals))
+    if objective == 3:
+        return float(np.median(terminals))
+    if objective == 4:
+        return float(np.percentile(terminals, 10))
+    if objective == 5:
+        return float(np.mean(~np.asarray(ruined, dtype=bool)))
+    raise ValueError(f"unknown objective {objective!r}: expected one of {OBJECTIVES}")
+
+
+# --- Decumulation -------------------------------------------------------------
+def _decumulate(balances, draw: float, decumulation_paths, t_later: float,
+                account: str, allowance=None) -> tuple:
+    """65 -> 99, vectorized across paths. Returns four arrays.
+
+        (after_tax_at_100, ruined, balance_at_100, allowance_left)
+
+    THE LAST TWO ARE RETURNED SO THE TESTS CAN APPLY D-26's REJECTED READINGS
+    WITHOUT THOSE READINGS EXISTING IN THIS FILE. The clamped form is the one a
+    careful reader writes first and D-38 forbids it, so it must be demonstrable
+    and absent at the same time.
+
+    CASH FLOWS LAND AT PERIOD END (D-20): balance = balance * (1+r) - gross.
+
+    THREE WITHDRAWAL RULES, and Traditional's lack of a fourth is the asymmetry:
+      trad                 gross = draw / (1 - t_later). Already ordinary income.
+      roth, rules hold     gross = draw. Tax free, no branch.
+      roth, under policy   the frozen allowance is spent FIRST and tax free; the
+                           remainder is ordinary income, so it grosses up. D-26
+                           models this gently -- allowance drawn first rather
+                           than pro-rated -- because D-10 already labels the
+                           policy as Roth's bet rather than a neutral scenario,
+                           and stacking the sub-choices would overstate it.
+
+    NO CLAMPING (D-38), AND THE ONE min() IN HERE IS NOT ONE. `minimum(rem,
+    draw)` asks how much of this year's spending the allowance covers; it is a
+    selection between two funding sources, and rem cannot go negative under it
+    because used <= rem by construction. The clamps D-38 prohibits are a FLOOR
+    ON A BALANCE -- which makes the terminal difference non-monotone so T1 passes
+    for the wrong reason -- and a max(0, ...) on the BEQUEST, which deletes the
+    58.4% crossing outright. Neither appears. Balances go negative and stay
+    negative; ruin is recorded, not enforced.
+
+    RUIN IS THE BALANCE'S SIGN, not the after-tax value's (Sprint 2B pin 2). It
+    is absorbing without being enforced: below zero, balance * (1+r) - gross is
+    strictly more negative every year, so "ever negative" and "negative at 100"
+    are the same set. Recording it is not clamping it.
+    """
+    if account not in ("roth", "trad"):
+        raise ValueError(f"account must be 'roth' or 'trad', got {account!r}")
+    bal = np.array(balances, dtype=float)
+    rem = None if allowance is None else np.array(allowance, dtype=float)
+    if account == "trad" and rem is not None:
+        raise AssertionError(
+            "Traditional takes no policy branch -- its withdrawals were already "
+            "ordinary income, and that absence in the code IS the asymmetry (D-26)"
+        )
+    ruined = np.zeros(bal.shape, dtype=bool)
+    for i in range(decumulation_paths.shape[1]):
+        if account == "trad":
+            gross = draw / (1.0 - t_later)
+        elif rem is None:
+            gross = draw
+        else:
+            used = np.minimum(rem, draw)          # funding source, not a floor
+            gross = used + (draw - used) / (1.0 - t_later)
+            rem = rem - used
+        bal = bal * (1.0 + decumulation_paths[:, i]) - gross
+        ruined |= bal < 0.0
+    if account == "trad":
+        after_tax = bal * (1.0 - t_later)
+    elif rem is None:
+        after_tax = bal.copy()
+    else:
+        # D-26, THE SIGNED FORM. No min(), no max(). Once the allowance is spent
+        # the Roth IS an ordinary-income account, so the terminal value scales by
+        # (1 - t_later) whatever its sign -- that is D-38's rule applied to the
+        # bequest instead of to the balance, and it is the same rule. Clamp it
+        # and the difference never changes sign: 58.4064% stops existing and
+        # breakeven() returns a sentinel 200 lines from the cause.
+        after_tax = rem + (bal - rem) * (1.0 - t_later)
+    return after_tax, ruined, bal, (rem if rem is not None else None)
+
+
+def _outcome_paths(profile, shocks, policy, paths, rate, account) -> tuple:
+    """The per-path work behind outcome(). Returns (after_tax, ruined).
+
+    PRIVATE, AND SPRINT 2C IS ITS SECOND CALLER. Result.ruin is defined per
+    account over the same run outcome() reduces, so populating it must not mean
+    running the decumulation twice with a different reduction bolted on. This is
+    also the seam T2 sweeps the draw through: Sec 5's outcome() signature has no
+    `draw` parameter and D-39 says the draw is computed rather than input, so the
+    draw-cancellation half of T2 is tested here rather than by widening a
+    published signature to accommodate a test.
+    """
+    paths = np.asarray(paths, dtype=float)
+    if paths.ndim != 2:
+        raise ValueError(f"paths must be 2-D (n_paths, n_years), got {paths.shape}")
+    if paths.shape[1] < profile.n_years:
+        raise ValueError(
+            f"paths has {paths.shape[1]} years, the run needs {profile.n_years} "
+            f"(D-20: accumulate {profile.n_accumulation_years}, decumulate "
+            f"{profile.n_decumulation_years})"
+        )
+    if not 0.0 < rate < 1.0:
+        raise ValueError(f"t_later {rate} outside (0, 1): it is a marginal TAX rate")
+
+    draw = _solve_draw(profile, paths)
+    accs = _accumulations(profile, paths, shocks)
+    balances = [a.roth if account == "roth" else a.trad for a in accs]
+
+    allowance = None
+    if policy is not None:
+        if account == "roth":
+            # Per path: D-26 snapshots YOUR balance at year N, and a shock before
+            # then is part of that history. Only Roth -- Traditional is unchanged.
+            allowance = [policy_allowance(a, policy) for a in accs]
+    decum = paths[:, profile.n_accumulation_years:profile.n_years]
+    after_tax, ruined, _, _ = _decumulate(
+        balances, draw, decum, rate, account, allowance
+    )
+    return after_tax, ruined
 
 
 def outcome(profile, objective, shocks, policy, paths, rate, account) -> float:
@@ -469,8 +855,31 @@ def outcome(profile, objective, shocks, policy, paths, rate, account) -> float:
     NO CLAMPING (D-38). Balances go negative. Ruin is recorded, not enforced.
     A floor makes the terminal difference non-monotone and T1 passes for the
     wrong reason.
+
+    THIS FUNCTION SOLVES FOR NOTHING. It is a forward evaluation at a GIVEN
+    t_later, which is what makes every Sprint 2B gate a scalar you can check
+    standing up. Bisection is 2C.
+
+    `objective` reduces the paths axis to one float -- see _reduce() and the
+    encoding block in the module docstring. `policy` is None or an int year N.
+    `rate` IS t_later, a TAX rate; the RETURN rate is read off `paths` by
+    draw_return_rate(). Two arguments named `rate` one screen apart used to mean
+    different things, and now only this one does.
+
+    A CONTRACT TENSION WORTH NAMING RATHER THAN TRIPPING OVER. Sprint 4's gate
+    table offers a fallback that reads objective 4 as the 10th percentile of the
+    after-tax terminal DIFFERENCE. Sec 5's signature cannot produce that: this
+    function takes `account` and returns one account's number, so the percentile
+    is taken per account and any difference is formed afterwards --
+    p10(trad) - p10(roth), which is not p10(trad - roth). The per-account reading
+    is what is implemented. If anyone ever takes that fallback it needs a
+    signature change, and a fallback that quietly changes the contract is not a
+    fallback.
     """
-    raise NotImplementedError   # Sprint 2B
+    after_tax, ruined = _outcome_paths(
+        profile, shocks, policy, paths, rate, account
+    )
+    return _reduce(objective, after_tax, ruined)
 
 
 def breakeven(profile, objective, shocks, policy, paths) -> Result:
@@ -523,6 +932,36 @@ def _selftest():
         f"{policy_allowance(a):,.0f} | preset trad {e.trad:,.0f} "
         f"roth {e.roth:,.0f} | D-15 proxy at {geo:.6%} -> T65 {proxy.trad:,.2f}, "
         f"gap {(a.trad - proxy.trad) / a.trad:.4%}"
+    )
+
+    # --- Sprint 2B ------------------------------------------------------------
+    draw = _solve_draw(ARCHETYPE, paths)
+    gross = tax.gross_for_net(draw)          # D-24, and this is the call site
+    marker = tax.effective_rate(gross)
+    assert round(draw) == 108_397, draw
+    assert round(gross) == 127_804, gross
+    assert round(marker, 3) == 0.152, marker
+
+    # T1 as a smoke check: at t_later == t_now the two accounts tie.
+    at_t_now = [
+        outcome(ARCHETYPE, 1, 0, None, paths, ARCHETYPE.t_now, acct)
+        for acct in ("trad", "roth")
+    ]
+    assert abs(at_t_now[0] - at_t_now[1]) <= 16 * np.spacing(a.roth) * 1.07 ** 35
+
+    # D-26's signed terminal rule: the difference changes sign between these two,
+    # which is the whole reason the 58.4% headline exists (D-40).
+    def _policy_gap(t_later):
+        return (outcome(ARCHETYPE, 1, 0, None, paths, t_later, "trad")
+                - outcome(ARCHETYPE, 1, 0, POLICY_YEAR, paths, t_later, "roth"))
+
+    assert (_policy_gap(0.50) > 0) != (_policy_gap(0.70) > 0), "D-26 sign change"
+    print(
+        f"engine.py 2B OK -- draw {draw:,.2f} (annuity-due misreading "
+        f"{draw / 1.07:,.0f}) | marker gross {gross:,.2f} at "
+        f"{marker:.4%} | tie at t_now {at_t_now[0]:,.2f} vs {at_t_now[1]:,.2f} "
+        f"| policy gap {_policy_gap(0.50):+,.0f} at 50% -> "
+        f"{_policy_gap(0.70):+,.0f} at 70%"
     )
 
 
