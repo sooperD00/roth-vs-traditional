@@ -422,7 +422,7 @@ def retirement_draw(roth_65: float, n_years: int, rate: float) -> float:
     RETURN rate, while `rate` in outcome() is t_later, the future marginal TAX
     rate. Sprint 2B should rename both at the point it implements this.
     """
-    raise NotImplementedError   # Sprint 2C
+    raise NotImplementedError   # Sprint 2B
 
 
 def marker_withdrawal(net_draw: float) -> float:
@@ -496,7 +496,7 @@ def breakeven(profile, objective, shocks, policy, paths) -> Result:
     Archetype, nevermind @ 20:  58.4%   (RIGHT of t*, not left -- D-40)
     Early-career preset:        12.0% -> 29.1%, and the verdict flips
     """
-    raise NotImplementedError   # Sprint 2B
+    raise NotImplementedError   # Sprint 2C
 
 
 def _selftest():

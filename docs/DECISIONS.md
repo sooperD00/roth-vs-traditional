@@ -775,11 +775,15 @@ would restart a container that exited zero, which is precisely what the
 `python app.py` fallback does — an unbounded loop of clean exits, reporting
 nothing.
 
-**`tests/test_deploy_config.py` guards those invariants before the push, and it
-names `app.py` nowhere.** All eight tests read the entry point out of the start
-command and assert that file exists, so Sprint 6's rewrite carries the guard
-forward instead of breaking it. The one file this sprint knows will be replaced
-is the one the tests refuse to hard-code.
+**`tests/test_deploy_config.py` guards those invariants before the push, and no
+assertion in it names `app.py`.** The one test that checks the entry file reads
+the name out of the start command and asserts that file exists; the other seven
+assert on the builder, the three server flags, the healthcheck path and the
+restart policy. So Sprint 6's rewrite carries the guard forward instead of
+breaking it. The one file this sprint knows will be replaced is the one the
+tests refuse to hard-code. *(The module docstring does name `app.py`, explaining
+the root-file scan. That is prose, not a check — a rename dates the paragraph
+and breaks nothing.)*
 
 **The 15-minute flag means something different now.** It is not *abandon
 Railway* — every fallback below costs more than fifteen minutes. It means **stop

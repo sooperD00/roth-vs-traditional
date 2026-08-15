@@ -43,7 +43,7 @@ Sprints 2B and 2C run it.
 | [Where the paths come from](#where-the-paths-come-from) | The return series, and a fudge factor that got measured |
 | [Shock timing and size](#shock-timing-and-size) | Three rungs, three code branches |
 | [Output — the cube](#output--the-cube) | 48 cells and what each one carries |
-| [Tests](#tests) | Two suites, and which claim each defends |
+| [Tests](#tests) | Three suites, and which claim each defends |
 
 ---
 
@@ -231,13 +231,16 @@ should not die on the interesting cases.
 
 # Tests
 
-Two suites, 89 tests. `tests/test_tax.py` — 35 tests, each defending a number
+Three suites, 97 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
 imported. `tests/test_engine.py` — opened at Sprint 2A, 54 tests over the
-profile, the ladder, contributions and accumulation.
+profile, the ladder, contributions and accumulation. `tests/test_deploy_config.py`
+— opened at P3a, 8 tests parsing `railway.toml`. Those eight guard the deploy
+config rather than the engine, and they are counted here because `uv run pytest`
+runs them; the eight numbered tests below are a different set entirely.
 
-Sprint 5 does not create that second file; it **collects and maps** T1–T8 into
-it. T1–T5 arrive across Sprints 2B and 2C, T6–T8 in Sprint 3. Each asserts a claim made
+Sprint 5 does not create `tests/test_engine.py`; it **collects and maps** T1–T8
+into it. T1–T5 arrive across Sprints 2B and 2C, T6–T8 in Sprint 3. Each asserts a claim made
 elsewhere in the docs:
 
 | Test | Defends |

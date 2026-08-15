@@ -14,9 +14,9 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 2A complete — 2 of 11 sprint units |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, 89 passing tests |
-| **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; `app.py` |
+| **Progress** | Sprint 2A complete — 2 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, the P3a deploy probe, 97 passing tests |
+| **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -110,9 +110,10 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 89 tests, all green
+uv run pytest                    # 97 tests, all green
 uv run python engine.py          # engine self-test — Sprint 2A's published scalars
 uv run python return_series.py   # return-series self-test
+uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
 ```
 
 Without uv:
@@ -126,7 +127,6 @@ Not yet runnable:
 
 ```bash
 uv run python spike_grid.py      # Sprint 4 — writes cube.json
-uv run streamlit run app.py      # Sprint 6
 ```
 
 ---
@@ -139,9 +139,12 @@ uv run streamlit run app.py      # Sprint 6
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
 | `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B, 2C and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
-| `spike_grid.py` | ⬜ | Sprint 4. Writes the 60-cell cube and prints the markdown grid |
+| `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
 | `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 5 collects T1–T8 into it rather than creating it; T1–T5 land across 2B and 2C, T6–T8 in Sprint 3 |
-| `app.py` | ⬜ | Sprint 6. Streamlit. Reads `cube.json`; contains no stochastic code |
+| `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
+| `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
+| `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
+| `tests/test_deploy_config.py` | ✅ | 8 tests on `railway.toml`. No assertion names the entry file — the one test that checks it reads the name out of the start command, so Sprint 6's rename keeps the guard |
 
 ---
 
@@ -256,7 +259,8 @@ asserted.
 | 4 | Design gate two | `prompt4.txt` | [`GATE-2.md`](docs/review/GATE-2.md) |
 | 5 | Sprint planning + Sprint 1 | `prompt5.txt` | [`docs/sprints/Sprint1.txt`](docs/sprints/Sprint1.txt) · _(link)_ |
 | 6 | Sprint 2A | `prompt5.txt` _(reused)_ | [`docs/sprints/Sprint2A.txt`](docs/sprints/Sprint2A.txt) · _(link)_ |
-| 7 | Docs assessment | `prompt6.txt` | _(link)_ |
+| 7 | P3a — Railway deploy | `prompt5.txt` _(reused)_ | [`docs/sprints/P3a.txt`](docs/sprints/P3a.txt) · _(link)_ |
+| 8 | Docs assessment | `prompt6.txt` | _(link)_ |
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three
