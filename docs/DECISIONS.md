@@ -57,9 +57,36 @@ else this file wins. Gate two's HoH correction landed in D-21 and in `tax.py` an
 did *not* land in Sprint 1's goal paragraph, where it then propagated forward into
 a sprint brief. That gap is what this row closes.
 
-Design deck (`*.PNG`) — working surface. This file wins. Where the deck carries a
-number that exists nowhere else, that number gets promoted into a decision rather
-than left in an image.
+`TRADEOFFS.md` is a **compressed restatement, not a source.** It reorganizes the
+option space against the brief's own Focus and Evaluation language so it can be
+read aloud. It restates rather than links because a presentation touchpoint that
+sends the reader to another file is not a touchpoint. **This file wins over it,
+and `CONTEXT.md` holds the fuller design-phase framing it was compressed from.**
+Where a compression drops a qualification that changes an answer, that is a
+defect and gets fixed here first.
+
+`ENGINE.md` is the **numerical specification** — the engine's contract, the five
+choices that change an answer, the return series, the shock branches, the cube
+and the tests. It is where the README's PoC essay went. This file still wins:
+§5 holds the contract and §6 holds the eight engine tests, and `ENGINE.md`
+explains them rather than defining them. **One exception worth naming:** the
+block-vs-IID measurement lives there in full, and D-05 carries the summary. If
+those two ever disagree, the measurement is the fact and D-05 is the stale copy.
+
+`DESIGN.md` is the **design rationale and the mockup gallery.** The five `*.PNG`
+files now live there with captions saying what each one decides and what moved
+afterwards. It is still a working surface and this file still wins — §7 remains
+the layout contract — but the deck is no longer loose: a mockup that disagrees
+with a decision now disagrees *in writing, next to the decision*, rather than
+inside an image nobody opened.
+
+Design deck (`*.PNG`) — working surface, captioned in `DESIGN.md` part 3. This
+file wins. Where the deck carries a number that exists nowhere else, that number
+gets promoted into a decision rather than left in an image. **Two have not been
+promoted and are labeled design-phase estimates in the gallery:** the income
+shape's *"ending at $200k costs Traditional 1.4 points"*, and the layout's *"$Y —
+about four times the account choice."* Neither is verifiable before Sprints 2 and
+4, and Sprint 4's third gate warns `$Y` may land near `$X`.
 
 Conflicts that markers can't express:
 
@@ -73,6 +100,9 @@ Conflicts that markers can't express:
 | DESIGN.md — tail visual "Pick 3, with 2 under it" | Cut. The $X/$Y sentence survives; the two-bar chart is a Scope & Branches row |
 | DESIGN.md — "Recommended output stack ≈ 75 min" | §8 |
 | DESIGN.md — the nine-stop resilience ladder | D-33. The ten-stop flowchart ladder replaces it |
+| DESIGN.md — flat file of design-phase notes | Restructured into four parts: insight, model, interface gallery, gate-two reversals. All superseded text and its banners are preserved |
+| README — the PoC/engine essay | Moved to `ENGINE.md`. README is now a standard repo README |
+| README — the four-lesson prose | Moved to `DESIGN.md`. The L1 identity stays in the README because it is five lines and everything rests on it |
 | Deck `withdrawal-rate-graphic` — second threshold at 14%, Roth wins | D-40. It is 58.4%, and the verdict does not flip at the archetype |
 | Deck `accordion-input` D7 — "all tax benefits go away" | D-09. Roth only. Traditional needs no branch, and that absence is the asymmetry |
 | Deck `fragility-graph` — "Rung 2", "Rung 3", eight rungs, 160 floats | D-16. Three rungs, named never numbered, 60 cells |

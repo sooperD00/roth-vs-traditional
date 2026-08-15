@@ -1,8 +1,38 @@
-# Insight
+# Design
 
-**The standard risk-tolerance ladder measures the wrong noun.** Ponzi → stocks → ETFs → bonds → CDs is an instrument ladder — it ranks the volatility of the thing you bought. Your ladder ranks the fragility of the person holding it. Same portfolio, two people, completely different risk. The instrument ladder can't see that. Yours can.
+**What this file is.** The reasoning behind the model and the interface, with the
+mockups that carry it. Four parts:
 
-A simple grid (worst / best / a few in between) as a scenario matrix. Rows = objective, columns = shock count. Cells = the break-even rate.
+| Part | Holds |
+|---|---|
+| **1 — The insight** | The claim the whole project rests on |
+| **2 — The model** | Objectives, the grid, the resilience ladder, and why shocks are correlated |
+| **3 — The interface** | Five mockups, what each one decides, and why |
+| **4 — What gate two overturned** | The design errors a cold read caught, and the algebra that caught them |
+
+The engine itself — the five choices that change an answer, the return series,
+the shock branches, the cube and the tests — is in [`ENGINE.md`](ENGINE.md). This
+file argues *why* the model has its shape; that one is *what it does*.
+
+**How to read the supersession banners.** Parts 1 and 2 keep their design-phase
+text. Where a decision later moved, a blockquote says so and names the decision
+that won. Nothing is silently rewritten — a superseded reason is evidence about
+the method, and deleting it would remove the only proof the method does anything.
+
+`DECISIONS.md` wins over this file on any disagreement.
+
+---
+
+# Part 1 — The insight
+
+**The standard risk-tolerance ladder measures the wrong noun.** Ponzi → stocks →
+ETFs → bonds → CDs is an instrument ladder — it ranks the volatility of the thing
+you bought. This ladder ranks the fragility of the person holding it. Same
+portfolio, two people, completely different risk. The instrument ladder can't see
+that. This one can.
+
+A simple grid (worst / best / a few in between) as a scenario matrix. Rows =
+objective, columns = shock count. Cells = the break-even rate.
 
 ## Objective ladder — "optimal" (row labels for the grid)
 
@@ -29,14 +59,6 @@ Cells = the break-even future marginal rate.
 | Max 10th percentile        |          |         |          |          |
 | P(not running out)         |          |         |          |          |
 
-<!-- Shape only. Expected pattern: rows 1-2 barely move across columns;
-     rows 4-5 move a lot. Expected-value objectives are nearly blind to
-     shocks because a halving and a doubling cancel in the mean. Tail
-     objectives see them immediately. That divergence is the demo: people
-     disagree about Roth vs Traditional not because of the math, but
-     because they are silently optimizing different things. -->
-
-
 ## How to read the grid
 
 | Read it… | And you learn |
@@ -46,34 +68,33 @@ Cells = the break-even future marginal rate.
 | Bottom-left vs. top-right | Whether the two forces compound or cancel |
 | Spread of the whole grid | The honest uncertainty statement — if X ranges 18–34%, "the optimal choice" was never a scalar |
 
-The pattern you should expect: rows 1–2 barely move across columns; rows 4–5 move a lot. Expected-value objectives are nearly blind to shocks, because a shock that halves your outcome and a boom that doubles it cancel in the mean. Tail objectives see them immediately. That divergence is your demo — it shows the audience that the reason people disagree about Roth vs. Traditional isn't the math, it's that they're silently optimizing different things.
+The pattern to expect: rows 1–2 barely move across columns; rows 4–5 move a lot.
+Expected-value objectives are nearly blind to shocks, because a shock that halves
+your outcome and a boom that doubles it cancel in the mean. Tail objectives see
+them immediately. That divergence is the demo — it shows the audience that the
+reason people disagree about Roth vs. Traditional isn't the math, it's that
+they're silently optimizing different things.
 
 ---
 
-# Design
+# Part 2 — The model
 
-> **Superseded by D-33.** This file gives the ladder twice — nine stops here, ten
-> below — and the README and the mockup each gave a third variant. The canonical
-> ladder is the **ten-stop flowchart ladder**: $400 · $2,000 · high-interest debt
-> · employer match · medium-interest (~8%) debt · 20% to 401k · max IRA · max
-> 401k · no mortgage · other assets, banded **Low 1–3 · Mid 4–6 · High 7–10**.
-> It maps to the shock mechanisms tighter than either list here, and note the
-> flowchart's own ordering: the employer match comes *before* clearing
-> medium-interest debt, because the match is free money.
+## The resilience ladder
 
-Define a resilience ladder for the chosen representative median user (someone
-who works as a software engineer in energy tech):
+> **Superseded by D-33.** This section originally gave the ladder twice — nine
+> stops in one place, ten in another — and the README and the mockup each gave a
+> third variant. The canonical ladder is the **ten-stop flowchart ladder**: $400
+> · $2,000 · high-interest debt · employer match · medium-interest (~8%) debt ·
+> 20% to 401k · max IRA · max 401k · no mortgage · other assets, banded **Low 1–3
+> · Mid 4–6 · High 7–10**. It maps to the shock mechanisms tighter than either
+> list did, and note the flowchart's own ordering: the employer match comes
+> *before* clearing medium-interest debt, because the match is free money.
 
-$400 → $2k → no high-interest debt → tax-advantaged → sinking funds → 
+Define a resilience ladder for the chosen representative median user (someone who
+works as a software engineer in energy tech):
+
+$400 → $2k → no high-interest debt → tax-advantaged → sinking funds →
 max contributions → backdoor Roth/529 → mortgage payoff → outside assets
-
-
-## Resilience ladder as a parameter (not a lecture)
-
-Rungs: $400 cash → $2k cash → no high-interest debt → tax-advantaged +
-employer match → sinking funds for intended big purchases → pay for those
-things → max 401k/IRA limits → backdoor Roth + 529 → mortgage payoff /
-no low-interest debt → assets outside the primary residence
 
 **Your rung determines whether a life event is a bump or a forced sale.**
 
@@ -83,13 +104,6 @@ no low-interest debt → assets outside the primary residence
 | Mid | Pauses contributions — you stop buying, keep holding |
 | High | Absorbed by cash — the portfolio never notices |
 
-<!-- One slider, ~8-10 stops, feeding shock severity instead of sitting in
-     the README. Converts the margin argument from a paragraph into a number
-     the user watches move. Also answers "who is this tool for" INSIDE the
-     tool: at rung 2 the app can say plainly that the 401k election is not
-     your binding constraint yet. -->
-
-
 > **Superseded by D-16 and D-32.** Not a slider and not eight stops. **Three
 > rungs**, each selecting a *code branch* rather than a severity — low sells at
 > the bottom, mid fails to buy at the bottom, high does neither. Eight would have
@@ -97,20 +111,19 @@ no low-interest debt → assets outside the primary residence
 > control is **ten checkboxes**, one per ladder stop, and the rung is the highest
 > *contiguous* stop cleared (D-37). A shock is $40,000 real (D-39).
 
-One slider, eight stops, and it feeds the shock model instead of sitting in a README. 
-That converts point 1 into a number the user can watch move.
+The argument the ladder makes:
 
 ```
-point 1: the vast majority of us are always borrowing on margin. We have not paid off our house, and we don't have "all the money we will ever need" —  we are in debt to
-our future needing to drink clean water and eat food. This means we are on the hook 
-for a call of that debt and that timing is not in our power.
+point 1: the vast majority of us are always borrowing on margin. We have not
+paid off our house, and we don't have "all the money we will ever need" — we
+are in debt to our future needing to drink clean water and eat food. This
+means we are on the hook for a call of that debt and that timing is not in
+our power.
 ```
 
 It also answers "who is this tool for" inside the tool without getting sensitive
-— set the slider to rung 2 and the app can say plainly: **the 401k election is not 
-your binding constraint yet.**
-
----
+— set the rung low and the app can say plainly: **the 401k election is not your
+binding constraint yet.**
 
 ## The mechanism that makes the tail fat
 
@@ -132,11 +145,9 @@ process that sets asset prices.
 > uncorrelated toggle scatters them randomly for contrast, which makes the tail
 > appear and disappear in one click.
 
-Energy analog: a financed solar customer who loses income in a
-downturn must default or sell at the moment resale value is lowest.
-Correlated exogenous timing, forced sale at the bottom. Same shape.
-
----
+Energy analog: a financed solar customer who loses income in a downturn must
+default or sell at the moment resale value is lowest. Correlated exogenous
+timing, forced sale at the bottom. Same shape.
 
 ## Tail visual — options, simplest → most complex
 
@@ -148,11 +159,34 @@ Correlated exogenous timing, forced sale at the bottom. Same shape.
 | 4 | Loss-side histogram only, upside truncated | Honest about what's fungible (upside) vs. what isn't (ruin) | Reads pessimistic; some will bounce off it |
 | 5 | Full regret surface / 2D heatmap | Complete | Over budget, over-reads |
 
-<!-- Pick 3, with 2 as the visual under it. #3 is the sentence a user
-     repeats to their spouse, which is the real test. -->
+DECISION: Pick 3, with 2 as the visual under it. #3 is the sentence a user
+repeats to their spouse, which is the real test.
 
-DECISION: Pick 3, with 2 as the visual under it. #3 is the sentence a user repeats 
-to their spouse, which is the real test.
+> **Partly superseded.** #3 survives as the $X/$Y sentence. The two-bar chart
+> under it was **cut** and is a Scope & Branches row — it teaches that outcomes
+> are left-skewed, which is adjacent to L3 rather than the same as it. The $X/$Y
+> sentence carries L3 alone.
+
+---
+
+## Where the model becomes an engine
+
+Everything above argues why the model has this shape. What the engine *does* with
+that shape — the five choices that change an answer, the return series, the three
+shock branches, the cube, and the tests — is in [`ENGINE.md`](ENGINE.md).
+
+Two of those choices hold up arguments on this page, so they are worth naming
+here even though they are specified there:
+
+| Choice | What it holds up |
+|---|---|
+| **Same pre-tax dollars** — $X into Traditional against $X·(1−t) into Roth | L1. The growth factor divides out only under this convention, so *the return rate never affects the choice* is a consequence of it rather than a separate fact |
+| **Nothing clamped at zero** — balances go negative, ruin is a recorded flag | The grid in part 1. Objectives 1–3 bisect on a difference between two terminal values, and that difference is monotone in the future rate only if the arithmetic is allowed to run |
+
+And one measurement from `ENGINE.md` belongs to the argument in this part: the
+block bootstrap was picked to fatten the tail, and **measurement showed it thins
+it.** The pick survives on a different channel. That is the row where this
+project's own methodology got tested on itself.
 
 ---
 
@@ -167,48 +201,161 @@ to their spouse, which is the real test.
 | **Certainty equivalent** | The guaranteed amount you'd accept instead of the gamble. Formal version of the exchange rate |
 | **Ergodicity** | Ensemble average ≠ time average when ruin is absorbing |
 
-Details worth having in the README:
+---
 
-- MARKOWITZ PREFERRED SEMI-VARIANCE AND SETTLED FOR VARIANCE. In Portfolio
-  Selection (1959) he says outright that downside-only risk is the better
-  measure, and picks variance because it was computationally tractable in
-  1959. The entire standard risk framework is a punch-card-era compute
-  compromise nobody revisited. The critique of the instrument ladder has a
-  65-year-old co-signer.
-- ERGODICITY. The expected value across 10,000 simulated households is not
-  what any one household experiences over a lifetime, because ruin is an
-  absorbing state — you don't get to average across parallel lives. Ole
-  Peters (and Kelly, earlier) is the formal reason "the low end is scarier
-  than the high end" is correct rather than merely cautious. Monte Carlo
-  tools report the ensemble average. You live the time average. -->
+# Part 3 — The interface
+
+Five mockups, drawn during the design phase. Each one decides something, and each
+caption says what it decides, why, and what moved afterwards.
+
+**Read these as working surfaces, not as specifications.** `DECISIONS.md` §7 is
+the layout contract. Where a mockup and a decision disagree, the decision wins —
+and several of them disagree, on purpose, because the disagreements are the
+record of what design review caught.
+
+## 3.1 — Full layout
+
+![UI design](design/ui-design.PNG)
+
+**What it decides.** Where everything sits, and therefore what the user compares
+against what.
+
+| Choice | Why |
+|---|---|
+| Return buttons sit **beside** the tax controls | L1 and L2 are taught by contrast. One set moves the answer, the other cannot, and adjacency is what makes that legible without a sentence |
+| **Both thresholds** on screen at once, never behind a click | Roth bets the treatment holds, Traditional bets the rates do. Showing one and hiding the other makes a bet look like a default (D-10) |
+| Ladder is the **left rail**, always visible | L3 claims fragility outranks the account choice. A control you have to scroll to cannot outrank anything |
+| **Three** dot panels, user's highlighted, other two dimmed but present | The collapse is the lesson, and a trend needs three points. Showing only the user's rung deletes the comparison that carries L3 |
+| Accordion at the **bottom, closed** | Progressive disclosure — one sentence up front, mechanism behind a toggle. The eight departures are evidence of completeness, not the first thing to read |
+| **Disabled** "Model (block bootstrap)" box with a tooltip listing all nine return models | The option space was mapped and two were built. Disabled rather than absent says so without implying the other seven exist |
+
+**What moved.** The threshold bar embedded in this mockup is **wrong** — see 3.5
+and part 4. The layout around it is current.
+
+**One number to treat with care.** The mockup reads *"moving from mid to high
+resiliency is worth ~$Y — about four times the account choice."* That ratio is a
+design-phase estimate and exists nowhere in `DECISIONS.md`. Sprint 4's third gate
+explicitly warns that `$Y` may come out near `$X`. If it does, that is a finding
+and gets reported; the dot plot carries L3 either way. **Do not quote the 4×
+until the cube runs.**
+
+## 3.2 — Income shape
+
+![Income shape design](design/income-shape-design.PNG)
+
+**What it decides.** D-19's four points — (35, $165,000) · (38, $75,000) ·
+(55, $200,000) · (65, $200,000), linearly interpolated.
+
+| Choice | Why |
+|---|---|
+| The curve is **draggable**, with click-into number boxes | A peak year is a high-bracket contribution year and a trough is a conversion window. Dragging is how a user discovers that without being told |
+| One peak, one trough, one start, one end | The MVP model. A real app can have more, and the README says so |
+| Trough at 38 = **parental leave** | `CONTEXT` part E derives it from a 12-week parental leave. It is this population's low-bracket window |
+| Ending **flat from the peak** rather than declining | Ending high is the *conservative* case — it raises retirement spending and narrows Traditional's lead. Take the harder case |
+| Income **suggests** a rung; the checkboxes **decide** it | Deriving fragility from income reintroduces the exact error part 1 names: income is a fourth instrument ladder. Two markers make the disagreement visible (D-31) |
+
+**What moved.** Nothing numeric. This is the one mockup that reproduces the
+decision exactly.
+
+**One number to treat with care.** The mockup states *"ending at $200k instead of
+declining to $165k costs Traditional 1.4 points of its advantage."* D-19 makes
+the qualitative claim but not the measurement, so 1.4 lives only in this picture.
+Treat it as a design-phase estimate pending Sprint 2.
+
+## 3.3 — Accordion of departures
+
+![Accordion input design](design/accordion-input-design.PNG)
+
+**What it decides.** The eight mechanisms that move the answer, which of them are
+modeled, and which are visible-but-grayed.
+
+| Choice | Why |
+|---|---|
+| All eight rows render, **including the grayed ones** | The grayed rows are the evidence of completeness. Deleting a scoped-out mechanism makes the model look smaller and less considered than it is |
+| D4 — retirement-state tax — **stays editable** when the rest goes read-only | It is the correction most users should apply to the default, and defaults are earn-taxed / retire-untaxed, the widest honest case (D-30) |
+| D3 and D8 grayed with visible `TODO` | Both are real effects. The taxable side account and the employer match are Traditional-flavored money that arrives whether or not you choose it, so almost nobody is a pure case. Saying that is worth more than modeling it badly |
+| Each row names its **lean**, not its verdict | A departure that leans Roth is not an argument for Roth. The threshold is the argument |
+
+**What moved.** D7's note in this mockup reads *"in year 20 all tax benefits go
+away."* D-09 narrowed it to **Roth only**, and that narrowing is the whole policy
+argument: Traditional needs no branch at all, because its withdrawals were
+already ordinary income, and **that absence in the code is the asymmetry.** Making
+it symmetric would delete it — and would still not flip the archetype toward
+Roth.
+
+That same phrase is the traceable origin of the error in 3.5. *All* benefits
+going away, including Traditional's deduction, could plausibly move the threshold
+down. Roth-only cannot.
+
+## 3.4 — Fragility panels
+
+![Fragility graph design](design/fragility-graph-design.PNG)
+
+**What it decides.** How L3 gets shown rather than asserted.
+
+The framing on this slide is the reason the panels exist at all: *"fragility
+matters more than this decision" is a comparison of magnitudes — and you can't
+see one magnitude beat another when only one of them is on the axis.*
+
+| Choice | Why |
+|---|---|
+| Emit a **cube**, not a table | Rungs × objectives × shock counts precomputed. The control becomes an array index, the app does no math, and the dots move instantly |
+| Row = shock count, color = objective family | Gray for expected-value objectives, orange for tail. Gray dots barely move down the rows while orange dots fan out — the expected-value-vs-tail divergence, free alongside L3 (D-34) |
+| **No jitter** | Rows already separate the dots. Overlap within a row means the objectives agree, which is information rather than clutter |
+| The collapse is the lesson | At a low rung the five definitions of "optimal" disagree across a wide span of tax points; at a high rung they converge. **Sprint 8 measures whether that actually happens.** If the dots don't collapse, L3 isn't landing, and it is better to find that out in the sprint than on stage |
+
+**What moved — most of the numbers on this slide.**
+
+| Mockup | Now |
+|---|---|
+| Eight rungs, 160 floats | **Three** rungs, 60 cells (D-16) |
+| A **slider** feeding shock severity | **Ten checkboxes**; the rung selects a code *branch*, not a severity (D-16, D-32) |
+| Panels labeled "Rung 2", "Rung 3" | **Named, never numbered** — Low, Mid, High |
+
+The slider is the substantive one. Eight stops would have meant inventing six
+intermediate severities with nothing behind them. Three rungs are three
+mechanisms: low sells at the bottom, mid fails to buy at the bottom, high does
+neither. Three real branches beat eight interpolated ones.
+
+## 3.5 — Withdrawal-rate graphic
+
+![Withdrawal rate graphic design](design/withdrawal-rate-graphic-design.PNG)
+
+**What it decides.** The headline. Two thresholds on one rate scale, so "which
+side am I on" is a spatial question rather than an arithmetic one.
+
+| Choice | Why |
+|---|---|
+| One shared axis for both thresholds and the marker | The gap between them *is* the lesson. Separate charts would hide it |
+| The marker is an **effective** rate; `t*` is a **marginal** rate | Different units on one axis, and the axis says so. You defer at marginal and withdraw across the whole structure from zero |
+| Bracket-rise needs no second model | It is already the axis. A higher future rate is a position to the right of `t*` |
+
+**What moved: every number on this slide, and the direction of the argument.**
+
+| Mockup | Now |
+|---|---|
+| Second threshold at **14%** | **58.4%** (D-40) |
+| **Roth wins** to the right of it | **Traditional** wins, by more |
+| Marker at **17%** | **15.2%** (D-24) |
+
+Part 4 is the algebra that forced the reversal.
 
 ---
 
-## Recommended output stack
+# Part 4 — What gate two overturned
 
-> **Superseded by the budget table in `remaining-sprints.md`,** which is now the
-> only one — DECISIONS §8 points at it. This ≈75-minute stack predates the cube
-> (D-14), the three rung mechanisms (D-16), and the ladder graphic (D-31–D-33).
-> The layer breakdown is still the right decomposition; the numbers are stale.
-> Note the exchange-rate row: the two-bar asymmetry chart under it was **cut**
-> and is a Scope & Branches row. The $X/$Y sentence carries L3 alone.
+Design gate two was a cold read: a fresh agent, no access to the design
+conversation, no memory of the project, given the five documents and the five
+mockups above. Acceptance test — reproduce `t*` = 32.5%, the today's-law marker,
+and the year-20 flip **from the documents alone.**
 
-| Layer | Artifact | Budget |
-|---|---|---|
-| Headline | Break-even rate — one number | 5 min |
-| Under it | Objective × events grid | 20 min |
-| Under that | Exchange rate sentence + two-bar asymmetry | 15 min |
-| Input driving all three | Resilience-rung slider → shock severity | 15 min |
-| README | Ladder figure, correlation argument, ergodicity note | 20 min |
+Two of three reproduced. The third is impossible as specified, and that is the
+most valuable thing the gate produced.
 
-Total ≈ 75 min, leaving room for the state-tax toggle and deploy.
----
+## The mechanism that does NOT make the tail fat
 
-# Gate-two note: the mechanism that does NOT make the tail fat
-
-The section above is right that correlated shock timing is what makes the tail
-fat. Gate two found the neighbouring claim — the one in the deck's
-withdrawal-rate graphic — was backwards.
+Part 2 is right that correlated shock timing is what makes the tail fat. Gate two
+found that the neighbouring claim — the one drawn in 3.5 — was backwards.
 
 A "nevermind" policy that harms only Roth **cannot** flip a Traditional verdict
 to Roth. Solving for the tie under D-26's frozen allowance `A`:
@@ -227,8 +374,31 @@ Roth safe is the one that widens Traditional's lead.* The flip is real, but it
 belongs to the low-bracket saver — the early-career preset reads 12.0% against a
 15.9% marker (Roth), then 29.1% once the rule moves (Traditional).
 
-**This is the same shape as the section above, one level up.** The instrument
+**The error is traceable, which is why it is worth writing down.** 3.3's D7 note
+said *all* tax benefits go away. All benefits — including Traditional's deduction
+— could plausibly move the threshold down. D-09 and D-26 narrowed it to Roth
+only, for a good reason, and **the graphic was never recomputed.** A decision
+moved and a picture didn't follow it.
+
+**This is the same shape as part 2's insight, one level up.** The instrument
 ladder can't see that two people holding the same portfolio face different risk.
-The policy toggle can't see that the same rule change lands on two savers in
+The policy toggle couldn't see that the same rule change lands on two savers in
 opposite directions. Both errors come from measuring the object instead of the
 person holding it.
+
+## The other two findings
+
+**80% replacement of final working income bankrupts both accounts** — Roth at 79,
+Traditional at 92. $160,000 a year against a $24,500 cap is not fundable at any
+return rate, and objective 1 returned $0 = $0 with no crossing. The draw is now
+sized off the Roth (D-39), and the honest consequence — 54% of final income — is
+published rather than hidden.
+
+**`t*` reproducing is less impressive than it looks.** Under D-01 the after-tax
+Traditional trajectory is the Roth trajectory scaled by `(1−t_later)`, so in the
+base case `t*` **is** `t_now`. The number is a definition, not a result, and the
+app says so: *at these settings the break-even is just your current combined
+rate; here is what moves it.*
+
+Full record in [`review/GATE-2.md`](review/GATE-2.md). Gate one is in
+[`review/GATE-1.md`](review/GATE-1.md).
