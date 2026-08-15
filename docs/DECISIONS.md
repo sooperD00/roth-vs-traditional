@@ -144,9 +144,46 @@ match.
 | D-11 | **One engine module, two entry points.** `spike_grid.py` and `app.py` both import `engine.py`. No duplicated math | The PoC is not throwaway. It is a script that imports a module and prints a table |
 | D-12 | **The app contains no stochastic code.** It reads `cube.json` | Deploys smaller, cannot be slow in front of a panel, no seed in production |
 | D-14 | **The cube is computed at the reference archetype, not at the user's profile** | It is precomputed. Consequence in D-15 |
-| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **~6.81%** — the historical series' own geometric mean, which `return_series.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars: 3.4%.** T65 is $2,108,867 at 7% against $2,038,611 at 6.81%. So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them about three points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series |
+| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **6.78%** — the historical series' own geometric mean, which `return_series.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars.** So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them a few points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series. **[SPRINT-2-CLEANUP] — the dollar figures in this row are stale and are deliberately not restated here; see the note below** |
 | D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received. **Supersedes D-13** | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting makes D-13's claim structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect, so the deterministic path must reject it. **Validation gate: the entire 0-shock slab (3 rungs × objectives 1–4) equals `t_now` exactly** |
 | D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance |
+
+### D-15 — [SPRINT-2-CLEANUP] the dollar side of the return-model mismatch
+
+**What was wrong.** D-15 published the bootstrap's compounding rate as ~6.81%.
+The series compounds at **6.7762%**, which is what `return_series.py` measures,
+what its self-test prints, and what the README carries. The row and the file
+disagreed by three basis points.
+
+**Where 6.81% came from, because it is not a typo.** Deflate the same 98 rows by
+*subtraction* — `nominal − cpi` — and the geometric mean is 6.8176%. D-27
+prohibits subtraction by name and `return_series.py` implements Fisher-exact,
+which is the entire reason it keeps `RAW` around. So 6.81% is a pre-D-27 number
+that outlived the convention that produced it. **Recording the provenance rather
+than the correction alone, on the same principle D-05 records a failed reason
+rather than quietly rewriting it.**
+
+**What is still stale, and why it is blank rather than guessed.** Two figures
+were computed off 6.81% and both are downstream of an engine that does not exist
+yet:
+
+| Figure | Published | Status |
+|---|---|---|
+| T65 under the bootstrap | $2,038,611 | **Withdrawn.** Recompute in Sprint 2 |
+| Dollar gap, deterministic vs. bootstrap | 3.4% | **Withdrawn.** Recompute in Sprint 2 |
+| T65 at 7% deterministic | $2,108,867 | Unaffected — not a bootstrap number |
+
+A level-contribution stream over 30 years lands about **3.9%** below the 7% case
+at 6.7762%, against 3.35% at 6.81%. That is an annuity approximation, not the
+model: the archetype's contributions are `min(0.20 × income, cap)` over D-19's
+four-point income shape, not a level stream. **It is here to say which direction
+the correction runs and roughly how far — not to be published.** Sprint 2's
+`outcome()` produces the real pair.
+
+**Consequence for Sprint 6.** Its done-when instructs a caption reading *dollar
+figures differ by about 3.4%*. That number is withdrawn; the caption is not.
+Write it from Sprint 2's output. The caption's job — telling a panelist the two
+return models are different on purpose — is unchanged and is still load-bearing.
 
 ### D-16 — Resilience rungs
 
@@ -205,11 +242,18 @@ getting answered.
 when the contribution stays inside one bracket. When it straddles, `marginal_rate`
 overstates `t_now` — and `t*` *is* `t_now`, so the error lands on the headline.
 
-| Straddle band (gross) | Edge | Bracket gap | Worst error |
-|---|---|---|---|
-| $66,500 – $83,125 | 12 → 22 | 10.0 | 9.92 pts |
-| $121,800 – $146,300 | 22 → 24 | 2.0 | 1.99 pts |
-| $217,875 – $242,375 | 24 → 32 | 8.0 | 7.99 pts |
+| Straddle band (gross) | Edge | Bracket gap **= worst error, approached not attained** | Tested at | Error there |
+|---|---|---|---|---|
+| $66,500 – $83,125 | 12 → 22 | 10.0 | $66,600 | 9.92 pts |
+| $121,800 – $146,300 | 22 → 24 | 2.0 | $121,900 | 1.99 pts |
+| $217,875 – $242,375 | 24 → 32 | 8.0 | $217,900 | 7.99 pts |
+
+The band endpoints here are **exact**; the tested grosses are the exact lower
+edge rounded up to the nearest $100, because *at* the edge the error is zero and
+there is nothing to measure. `tests/test_tax.py` uses the tested column, and
+`test_at_a_band_edge_the_two_methods_agree_exactly` pins the zero at $121,800.
+Splitting the two columns is what stops a reader taking 9.92 for the supremum:
+measured at edge + $1 the errors are 9.999, 2.000 and 8.000.
 
 **The mechanism is derivable, which means a panelist can check it without
 rerunning anything.** Just above the edge the whole contribution comes out of the
@@ -285,7 +329,7 @@ docstring at the call site.
 | D-36 | **`$Y` compares the user's rung to the next rung up, one step.** Undefined at High; the app says so rather than printing zero | One step is the smaller and more defensible claim, and with three rungs a two-step comparison only exists for Low |
 | D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family** — gray for expected-value (1, 2), neutral for median (3), orange for tail (4, 5). No jitter | The encoding renders DESIGN.md's stated prediction directly: gray dots barely move down the rows because expected value is blind to shocks, while orange dots fan out. The panel carries L3 and the expected-value-vs-tail divergence at the same time, and the second one is free. No jitter because rows already separate the dots; overlap within a row means the objectives agree, which is information rather than clutter |
 | D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links inward to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule |
-| D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `return_series.py`, a module-level list of annual real returns with a source comment. It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series is legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it. Sprint 3 does not start until the real series is in the file, and the stub must be obviously fake (a short repeating list) so that nobody ships it by accident |
+| D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `return_series.py`, a module-level list of annual real returns with a source comment. ~~It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3~~ — the stub period is OVER. The real series landed at gate two: 98 annual real returns, 1928–2025, Damodaran + CPI, Fisher-deflated on load, `STUB = False`, self-test passes. Sprint 3's gate is CLEARED (P4, R5)** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series was legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it — and the stub rule was that it be obviously fake (a short repeating list) so that nobody shipped it by accident. That rule is now spent: the file holds the real record, and what guards it instead is `_selftest()`, which pins the 1931 and 1954 anchors, the 26 negative years, the contiguity of 1928–2025, and the variance-drag identity. **`STUB` survives as the flag `make_paths("block", ...)` raises on, not as a description of the file's contents** |
 
 ---
 
@@ -375,7 +419,7 @@ branches, so three tests — a severity dial would have needed one.
 
 ## 7. App layout
 
-![App layout](ui-design.PNG)
+![App layout](design/ui-design.PNG)
 *Mockup, reconciled at gate two. The ladder's ten stops and its Low 1–3 / Mid 4–6
 / High 7–10 bands are correct as drawn. Superseded: the model box is now
 disabled, and notation `r` → `t*` (D-24).*
@@ -452,5 +496,5 @@ both the total and the order of cuts. Actuals go in the README.
 | R2 | Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker | Railway from GitHub. Flag at 15 minutes |
 | R3 | Objectives 4 and 5 may not cross in range | T4 |
 | R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in the README, not hidden |
-| R5 | **Return series must exist before Sprint 3** | D-41. Stub is obviously fake; Sprint 3 does not start without the real file |
+| R5 | ~~Return series must exist before Sprint 3~~ **CLOSED at gate two.** `return_series.py` holds 98 real annual returns, 1928–2025, `STUB = False`, and `python return_series.py` passes its self-test | D-41. Confirmed by P4 in `remaining-sprints.md` and by the Sprint 3 gate line, both of which read *cleared*. This row stayed open one pass longer than the fact did |
 | R6 | **The archetype's draw is 54% of final income**, below any published replacement band | D-39. Reported as an outcome with the reason stated: a $24,500 cap cannot fund 80% of a $200,000 income, and the gap is Social Security plus the grayed taxable account. If a panelist reads it as an error, that sentence is the answer |

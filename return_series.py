@@ -174,7 +174,7 @@ def _selftest():
     assert sum(1 for _, n, _ in RAW if n < 0) == 26, "negative-year count moved"
     assert min(n for _, n, _ in RAW) == -0.4384, "1931 anchor moved"
     assert max(n for _, n, _ in RAW) == 0.5256, "1954 anchor moved"
-    print(f"returns.py OK -- {len(RAW)} yrs {FIRST_YEAR}-{LAST_YEAR}, "
+    print(f"return_series.py OK -- {len(RAW)} yrs {FIRST_YEAR}-{LAST_YEAR}, "
           f"real geometric {geo:.2%}, arithmetic {ari:.2%}, sd {sd:.2%}")
 
 

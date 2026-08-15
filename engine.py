@@ -52,9 +52,13 @@ def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07):
     which kind it received, which is what keeps the headline and the cube from
     ever drifting apart.
 
-    kind="block" -> block bootstrap over returns.py, BLOCK_LENGTH=5. Bad years
-    must arrive in RUNS or the forced-liquidation argument is mechanical only.
-    GATED ON P4: returns.py must hold the real series before this path runs.
+    kind="block" -> block bootstrap over return_series.py, BLOCK_LENGTH=5. Bad
+    years must arrive in RUNS or the forced-liquidation argument is mechanical
+    only.
+
+    P4's gate is CLEARED (D-41, R5): return_series.py holds the real 98-year
+    series, STUB is False, and its self-test passes. The runtime guard that
+    remains is STUB itself -- this path raises while it is True.
     """
     raise NotImplementedError
 
