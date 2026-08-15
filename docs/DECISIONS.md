@@ -1,50 +1,89 @@
 # DECISIONS
 
-Status: design phase closed. This file is the build contract.
+Status: **design gate two closed.** This file is the build contract.
+
+---
+
+## Changelog — Gate 2
+
+Twenty-six defects found. Twenty-three resolved here, three were decisions and
+are recorded as such. Numbers in this file are now reproduced from a working
+deterministic engine rather than asserted.
+
+| # | Was | Now | What it breaks if you skip it |
+|---|---|---|---|
+| C1 | D-33 appeared **twice** with different ladders and different bands | One D-33. Flowchart ladder, Low 1–3 / Mid 4–6 / High 7–10 | Sprint 7 has no ladder to wire |
+| C2 | D-32 gave **six** checkboxes; D-37 and Sprint 7 assumed **ten** | Ten stops, ten checkboxes, defaults 1–6 on | The archetype cannot reach Mid — contiguity breaks at stop 1 |
+| C3 | `t_now` was **24%** in D-19/D-24/D-25 and **32.5%** in D-18/D-30 | 32.5% is live. D-24 relabeled *federal only* | Three dollar figures and both headline numbers |
+| C4 | D-25's $18,620 / $32,237 / "$763 spare" computed at 24% | Recomputed at 32.5%. **T3 moves to a $185,000 test profile** | T3's premise is false at the archetype — capacity $33,000 vs $36,296 needed |
+| C5 | D-19 gave the income shape's *shape* but no **values** | Four points in D-19, linear interpolation stated | The marker is unreproducible from this file |
+| C6 | D-28's 80% replacement **bankrupts both accounts** — Roth at 79, Traditional at 92 | D-28 rewritten: the draw is sized off the Roth (D-39) | Objective 1 returns $0 = $0 and the base case has no crossing |
+| C7 | The year-20 toggle was specified to **flip the verdict to Roth** | It cannot. The threshold moves *right*, to 58.4%. See D-40 | Sprint 2 and Sprint 6 both had unpassable done-whens |
+| C8 | No **shock magnitude** anywhere in any document | D-39: $40,000 real | Sprint 3 cannot run at all |
+| C9 | §5 held **one** `roth_dollars`/`trad_dollars` pair; D-17 needs two δ | `dollars` keyed by δ | Sprint 4's cross-δ invariant is uncheckable |
+| C10 | No **absorbing-floor** rule | D-38: no clamp. Ruin is a flag | The terminal difference stops being monotone and D-22's gate can't hold |
+| C11 | `seed`, `n_paths`, return series all unspecified | D-41 | The cube is not reproducible |
+| C12 | 8.5% state rate and the 10% penalty had no home | Both in `tax.py`, per D-21 | Sprint 1's "no tax number elsewhere" rule was unsatisfiable |
+| C13 | Return buttons were **7/10/12** in §1 and README, **7/9/12** in D-04a | 7 / 9 / 12 everywhere | — |
+| C14 | DoD said "the **four** tests in §6"; §6 has eight | Eight | — |
+| C15 | §8 budget (130) and remaining-sprints (160) disagreed, with different cut lists | One table, in remaining-sprints. §8 points at it | Two different cut #1s, one of which deletes L1's only gesture |
+| C16 | §7 caption said the mockup shows **8 rungs** | It shows ten, correctly banded | — |
+| C17 | §0's DESIGN.md grid-column row superseded nothing | Deleted | — |
+| C18 | README carried five stale numbers the panel would read | Propagated | §0 calls these defects, not notes |
+
+**The three that were decisions, not defects:**
+
+1. **The flip.** Kept, reversed, and moved to a preset. See D-40.
+2. **The draw rule.** Sized to what the Roth sustains. The published marker moves from ~17% to **15.2%**. See D-39.
+3. **The return series.** Stubbed for Sprints 1–2; real series is a gate on Sprint 3. See D-41.
+
+---
 
 ## 0. Precedence
 
 Where this file and `CONTEXT.md` disagree, **this file wins.** `CONTEXT.md` is
 the tradeoff reference — it records the option space that was considered, and its
-option tables now carry two marker sets: `← initial pick` for the choice made
-during synthesis, `← design-phase pick` for what survived design. Where a row
-carries both, the choice held.
+option tables carry two marker sets: `← initial pick` for the choice made during
+synthesis, `← design-phase pick` for what survived design.
 
-`README.md` is a working surface, not a source. It carries notes taken while
-thinking and is reconciled against this file at each design gate — so between
-gates it may disagree, and this file wins by default. Disagreements found in the
-README are treated as unreconciled notes rather than conflicts, **except** where
-the README states a number or a claim the panel will read, in which case the
-disagreement is a defect and gets fixed in the same pass. Both files are stale
-until a gate closes; this one is stale by omission, the README by draft.
+`README.md` is a working surface, not a source. It is reconciled against this
+file at each gate — so between gates it may disagree, and this file wins by
+default. **Except** where the README states a number or a claim the panel will
+read, in which case the disagreement is a defect and gets fixed in the same pass.
 
-Three conflicts remain that markers can't express, plus two in `DESIGN.md`:
+Design deck (`*.PNG`) — working surface. This file wins. Where the deck carries a
+number that exists nowhere else, that number gets promoted into a decision rather
+than left in an image.
+
+Conflicts that markers can't express:
 
 | Says | Superseded by |
 |---|---|
-| CONTEXT part B — PoC is "deliberately throwaway" | D-11. The PoC *is* the engine the app imports |
-| CONTEXT part B — "Cost in the budget" includes research and design | Section 8. Both are declared outside the implementation budget |
-| CONTEXT §G3 — model the employer match | D8 disposition. Grayed, `TODO` |
-| DESIGN.md — grid columns are a "shock count" | D-08. Columns are shock count; *timing* is correlated with drawdown |
-| DESIGN.md — rung slider, 8–10 stops, feeding shock severity | D-16. Three rungs, and the rung selects a *mechanism*, not a severity |
-| DESIGN.md — tail visual "Pick 3, with 2 as the visual under it" | Cut. The exchange-rate sentence survives as the $X/$Y sentence; the two-bar asymmetry chart is a Scope & Branches row |
-| DESIGN.md — "Recommended output stack ≈ 75 min" | Section 8. Predates the cube, the rung mechanisms, and the ladder graphic |
-
-Design deck — working surface, reconciled at gates. DECISIONS.md wins.
+| CONTEXT part B — PoC is "deliberately throwaway" | D-11. The PoC *is* the engine `app.py` imports |
+| CONTEXT part B — "Cost in the budget" includes research and design | §8. Both are outside the implementation budget |
+| CONTEXT part G3 — model the employer match | D8 disposition. Grayed, `TODO` |
+| CONTEXT part D — app buttons are 7 / 10 / 12 | D-04a. 7 / 9 / 12, all real |
+| DESIGN.md — rung slider, 8–10 stops, feeding shock *severity* | D-16. Three rungs; the rung selects a *mechanism* |
+| DESIGN.md — tail visual "Pick 3, with 2 under it" | Cut. The $X/$Y sentence survives; the two-bar chart is a Scope & Branches row |
+| DESIGN.md — "Recommended output stack ≈ 75 min" | §8 |
+| DESIGN.md — the nine-stop resilience ladder | D-33. The ten-stop flowchart ladder replaces it |
+| Deck `withdrawal-rate-graphic` — second threshold at 14%, Roth wins | D-40. It is 58.4%, and the verdict does not flip at the archetype |
+| Deck `accordion-input` D7 — "all tax benefits go away" | D-09. Roth only. Traditional needs no branch, and that absence is the asymmetry |
+| Deck `fragility-graph` — "Rung 2", "Rung 3", eight rungs, 160 floats | D-16. Three rungs, named never numbered, 60 cells |
 
 ---
 
 ## 1. What the user learns
 
-Four lessons. Every control on the page exists to deliver one of them. If a
-feature can't be traced to a row here, cut it.
+Four lessons. Every control on the page exists to deliver one. If a feature
+can't be traced to a row here, cut it.
 
 | # | Lesson | Delivered by | Mechanism |
 |---|---|---|---|
-| L1 | The return rate never affects Roth vs. Traditional | 7 / 10 / 12% buttons | The knob that doesn't work. Balance graph swings, headline number does not |
-| L2 | Tax rates do affect it | Income shape, state toggle, "nevermind" toggle | Headline number moves |
+| L1 | The return rate never affects Roth vs. Traditional | **7 / 9 / 12%** buttons | The knob that doesn't work. Balance graph swings, headline number does not |
+| L2 | Tax rates do affect it | Income shape, state toggles, the accordion | Headline number moves |
 | L3 | Fragility matters more than this decision, for most users | Rung control → three-panel dot plot; the $X/$Y sentence | Dots collapse as the rung rises. Dollar sentence puts both effects in one unit |
-| L4 | You are not in control of the tax law | "Nevermind" toggle + historical line | Roth's bet is named as a bet |
+| L4 | You are not in control of the tax law | "Nevermind" toggle + the early-career preset | Roth's bet is named as a bet, and priced |
 
 **L1 and L2 are taught by contrast.** The return-rate buttons sit physically
 beside the tax controls. One moves the answer, one can't.
@@ -55,16 +94,17 @@ beside the tax controls. One moves the answer, one can't.
 
 Shipped when all seven exist:
 
-1. `tax.py` — 2026 brackets and deferral limit, one module, source comment
+1. `tax.py` — 2026 brackets, deferral limit, state rate, early-withdrawal penalty. One module, source comments
 2. `engine.py` — pure functions, no Streamlit import
 3. `spike_grid.py` — CLI; writes `cube.json` and prints the markdown grid
-4. `test_engine.py` — the four tests in §6
+4. `test_engine.py` — **the eight tests in §6**
 5. `app.py` — Streamlit, layout per §7
 6. Deployed, reachable by URL
 7. `## Scope & Branches` in README — Cut / Why / What-it-would-take
 
-Not done, and labeled as such in the UI: historical sequence replay, spending
-model, RMDs, Social Security taxation, real per-state tax data.
+Not done, and labeled as such in the UI: historical sequence replay, a real
+spending model, RMDs, Social Security, real per-state tax data, the employer
+match.
 
 ---
 
@@ -74,119 +114,109 @@ model, RMDs, Social Security taxation, real per-state tax data.
 
 | ID | Decision | Why |
 |---|---|---|
-| D-01 | **Contribution convention: same pre-tax dollars.** $X to Traditional vs. $X·(1−t_now) to Roth | The identity is exact only under this convention, so L1 depends on it. Same-nominal-dollars silently favors Roth — that is the G4 trap. Name the convention in one sentence in the app |
-| D-02 | **Wash band: ±2 percentage points.** Inside it the headline reads "It's a wash"; outside it names the winner | The headline is the sentence the app exists to print |
-| D-03 | **Income shape is independent of the resilience rung.** The user sets both; the rung is a three-way pick, not a slider position — see D-16 | Deriving a rung from an income curve needs a savings model and a spending model. Neither is in budget. Also keeps L2 and L3 on separate controls |
+| D-01 | **Contribution convention: same pre-tax dollars.** $X to Traditional vs. $X·(1−`t_now`) to Roth | The identity is exact only under this convention, so L1 depends on it. Same-nominal-dollars silently favors Roth — that is the G4 trap. Name the convention in one sentence in the app |
+| D-02 | **Wash band: ±2 percentage points.** Inside it the headline reads "It's a wash"; outside it names the winner | The headline is the sentence the app exists to print. At the archetype the gap is 17.3 points, so the band is not load-bearing there — it exists for the profiles a panelist will type in |
+| D-03 | **Income shape is independent of the resilience rung.** The user sets both | Superseded reason — see D-31. The conclusion stands on the stronger argument: income is a fourth instrument ladder, and same income / different fragility is the entire project |
 
 ### Model
 
 | ID | Decision | Why |
 |---|---|---|
-| D-04 | **Return rate is a three-way choice: 7 / 10 / 12%, real.** Default 7% | These are the exact numbers people argue about. Clicking all three while the answer holds still *is* L1 |
-| D-05 | **Return path model: block bootstrap over a historical return series. Block length 5 years.** Shocks placed into each path's worst years by drawdown `argsort` | Bad years must arrive in *runs* or the forced-liquidation argument is mechanical only — you sell at the bottom and next year is fine. IID and lognormal both scatter them. Block length is stated, and its sensitivity at 3 and 10 goes in Scope & Branches: a measured fudge factor beats an unexamined distribution. `argsort` placement means no correlation coefficient to calibrate or defend |
+| D-04a | **Return buttons are 7 / 9 / 12%, all real.** Default 7%. Each labeled with its nominal equivalent; 12% is labeled implausible on purpose | D-27 puts the model in real dollars, so nominal buttons would misread. 7 and 10 collapse under conversion — 10% nominal *is* ~7% real — so a straight translation loses a button. The implausible button is the one a skeptic reaches for first, and watching `t*` hold still there is L1 at full force. Caption: *this input drives the picture, not the answer.* **Supersedes D-04** |
+| D-05 | **Block bootstrap over a historical real return series. Block length 5.** Shocks placed into each path's worst accumulation years by drawdown `argsort`. **The reason for this pick was measured at gate two and did not hold; the pick survives on a different one** | Block length 5 keeps history's own bad sequences intact as sequences — 1929–32, 1937–41, 1973–74 arrive as units, and the median path's worst five-year run lands exactly on history's own, −10.26% annualized. **What it does not do is fatten the tail.** Measured against an IID draw on the same series: median maximum drawdown −42.6% against −43.0%, p10 −59.7% against −64.3%. Block is the *thinner*-tailed, more conservative model here, which is the opposite of what this decision originally claimed. One number explains it — the lag-1 autocorrelation of annual US real returns is **−0.035**, so at annual frequency there is no persistence to preserve, and the crashes in this record came packaged with their own rebounds (1931 sits in a block with 1933, 1974 with 1975, 2008 with 2009). **The forced-liquidation mechanism survives through a different channel:** a Low-rung shock sells $40,000 at a depressed price and the cost is the compounding forgone, so a *faster* rebound makes that cost larger. Measured, the year after the worst year returns +17.0% under block against +9.5% under IID. Block length remains a stated fudge factor with sensitivity at 3 and 10 in Scope & Branches, and `argsort` placement still means no correlation coefficient to calibrate or defend. **This row is the project's own methodology applied to itself** — a named fudge factor got measured, its justification failed, and the failure is written down rather than the reason quietly rewritten |
 | D-06 | **`optimal` is a parameter, not a choice.** All five objectives ship as grid rows | Same inputs, swap the objective, watch the recommendation flip. This is the demo |
 | D-07 | **Common random numbers.** Draw the `(n_paths, n_years)` array once; reuse across every cell, both choices, every bisection step | The quantity of interest is a small difference between two large numbers. Pairing removes sampling noise from that difference, makes the cube reproducible from a seed, and makes 60 cells cheap |
-| D-08 | **Shock columns are a count (0–3); shock *timing* is correlated with drawdown.** Correlated is the default; an uncorrelated toggle exists for contrast | Forced liquidation lands when prices are worst. The toggle makes the fat tail appear and disappear in one click |
-| D-09 | **Policy scenario is "nevermind," prospective.** After year N (default 20), withdrawals are ordinary income regardless of account type — applied to growth after year N, not retroactively to existing balance | Simpler than a haircut: no rate parameter. Prospective is what actually tends to happen when rules move |
-| D-10 | **Both thresholds display, always. The headline holds two numbers: `t*` under current rules and `t*` with the "nevermind" policy applied.** Labeled: *Roth bets the treatment holds. Traditional bets the rates do. Neither is the neutral choice — pick which rule you'd rather be exposed to* | The toggle as originally specified showed only Roth's exposure, while the offsetting case — brackets rise, Roth wins — sat in a README branch nobody at a demo will read. That asymmetry is what makes a one-sided toggle read as a strawman. The correction costs nothing to model, because the bracket-rise case is *already on the axis*: a higher future rate is a position to the right of `t*`, and the user is being asked to locate themselves there regardless. Showing both thresholds applies the CONTEXT part C option-4 stance twice instead of once. Cost: one extra `breakeven()` call. Layout unchanged except the headline carries two numbers |
+| D-08 | **Shock columns are a count (0–3); shock *timing* is correlated with drawdown.** Correlated is the default; an uncorrelated toggle exists for contrast. Shocks land in the **accumulation phase only** (ages 35–64), placed at the `n` deepest drawdown years of each path | Forced liquidation lands when prices are worst. Restricting to accumulation is not a simplification of convenience: all three rung mechanisms are defined on a contribution stream, and Mid's "contributions pause" has nothing to pause after 65 |
+| D-09 | **Policy scenario is "nevermind," prospective and Roth-only.** After year N (default 20), Roth withdrawals above the frozen allowance are ordinary income. Traditional is unchanged | Simpler than a haircut: no rate parameter. Prospective is what actually tends to happen when rules move. The deck said "all tax benefits go away"; making it symmetric would delete the asymmetry that D-26 depends on |
+| D-10 | **Both thresholds display, always.** The headline holds `t*` under current rules and `t*` with the nevermind policy applied. Labeled: *Roth bets the treatment holds. Traditional bets the rates do. Neither is the neutral choice — pick which rule you'd rather be exposed to* | The toggle as originally specified showed only Roth's exposure while the offsetting case sat in a README branch nobody at a demo will read. The correction costs one extra `breakeven()` call, because the bracket-rise case is *already on the axis*: a higher future rate is a position to the right of `t*` |
 
 ### Architecture
 
 | ID | Decision | Why |
 |---|---|---|
-| D-11 | **One engine module, two entry points.** `spike_grid.py` and `app.py` both import `engine.py`. No duplicated math | The PoC is not throwaway. Reviewable-standalone-script value survives — it is a script that imports a module and prints a table |
+| D-11 | **One engine module, two entry points.** `spike_grid.py` and `app.py` both import `engine.py`. No duplicated math | The PoC is not throwaway. It is a script that imports a module and prints a table |
 | D-12 | **The app contains no stochastic code.** It reads `cube.json` | Deploys smaller, cannot be slow in front of a panel, no seed in production |
-| D-13 | **Deterministic path is the same function at `n_paths=1, sigma=0`** | The headline and the cube can never disagree about the underlying math |
 | D-14 | **The cube is computed at the reference archetype, not at the user's profile** | It is precomputed. Consequence in D-15 |
-| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled "modeled for the reference profile" | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized |
+| D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **~6.81%** — the historical series' own geometric mean, which `returns.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars: 3.4%.** T65 is $2,108,867 at 7% against $2,038,611 at 6.81%. So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them about three points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series |
+| D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received. **Supersedes D-13** | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting makes D-13's claim structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect, so the deterministic path must reject it. **Validation gate: the entire 0-shock slab (3 rungs × objectives 1–4) equals `t_now` exactly** |
+| D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance |
 
 ### D-16 — Resilience rungs
 
 **Three rungs, not eight.** `DESIGN.md` describes three *mechanisms*; eight would
-have meant inventing six intermediate severities with nothing behind them, and a
-reviewer asking what separates rung 5 from rung 6 would get a shrug.
+have meant inventing six intermediate severities with nothing behind them.
 
 **The rung selects which branch of the shock code runs.** It is not a multiplier.
 
 | Rung | What a shock does | Implementation |
 |---|---|---|
-| **Low** — no buffer | Forces liquidation | Sell at the shocked year's price to cover the gap. Traditional takes the early-withdrawal penalty; Roth basis comes out free |
-| **Mid** — some buffer | Pauses contributions | No sale. Contributions stop for the shock year, resume after. The cost is the shares not bought |
+| **Low** — no buffer | Forces liquidation | Sell $40,000 (D-39) at the shocked year's price. Traditional takes the 10% early-withdrawal penalty plus ordinary income; Roth basis comes out free |
+| **Mid** — some buffer | Pauses contributions | No sale. Contributions stop for the shock year and resume after. The cost is the shares not bought |
 | **High** — deep buffer | Absorbed by cash | Portfolio untouched. The control case |
 
-Mid is the one that carries the argument and the one a reviewer will look at
-first. Pausing contributions during a drawdown means you stop buying at exactly
-the moment prices are lowest — a real cost that appears nowhere on a statement.
-Low sells at the bottom; mid fails to buy at the bottom; high does neither.
+Mid carries the argument and is the branch a reviewer opens first. Pausing
+contributions during a drawdown means you stop buying at exactly the moment
+prices are lowest — a real cost that appears nowhere on a statement. Low sells at
+the bottom; mid fails to buy at the bottom; high does neither.
 
-Rungs are **named in the UI, never numbered.** The ladder figure in the left rail
-keeps all ten stops and marks which three are modeled: the figure is the
-argument, the three are the model.
+Rungs are **named in the UI, never numbered.** The ladder figure keeps all ten
+stops and marks which three bands are modeled: the figure is the argument, the
+three are the model.
 
-### GAPS SURFACED IN DESIGN REVIEW, CLOSED HERE
+### The archetype and the numbers that come out of it
 
-| D-17 | **Dollar fields are evaluated at `t* + δ`, δ = 10 percentage points**, not at the break-even. Emit `roth_dollars` / `trad_dollars` at δ ∈ {2, 10}; the app uses 10 and the README reports both. Null for non-crossing cells | At `t*` the two outcomes are equal by construction, so `$X` would be zero. δ is the assumed size of the miss, and it sets `$X` outright while leaving `$Y` nearly untouched — so it must be chosen *against* the L3 claim rather than for it. Ten points is about a bracket and a half, the generous case. The wash band was rejected as the anchor precisely because it minimizes `$X`. Sensitivity at 2 and 10 goes in Scope & Branches; δ is named in the app's sentence, not hidden |
+| ID | Decision | Why |
+|---|---|---|
+| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single. **Income shape, four points, linearly interpolated: (35, $165,000) · (38, $75,000) · (55, $200,000) · (65, $200,000).** Savings rate 20%. State: **taxed while working, untaxed in retirement** (D-30 defaults) | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes. The trough at 38 is parental leave, which CONTEXT part E already flags as this population's low-bracket window. The end point is flat from the peak rather than declining: ending high is the *conservative* case, since it raises retirement spending and narrows Traditional's lead. **Consequence: `t_now` = 24% federal with no bracket straddle, 32.5% combined** |
+| D-20 | **Horizon runs to age 100; `n_years = 100 − current_age`.** Two phases: accumulate 35→64, decumulate 65→99. All objectives evaluate at 100. Guard on `current_age >= 65` | Planning past median longevity is the standard convention, because outliving the money is the failure that matters. Splitting the phases is what puts `t*` where it belongs — in the withdrawal years. "Terminal wealth" therefore means bequest at 100, not balance at 65 |
+| D-21 | **`tax.py` implements SINGLE only:** 2026 bracket edges, seven rates, standard deduction $16,100, deferral cap $24,500, **state rate 8.5%**, **early-withdrawal penalty 10%**. MFJ and HoH are `TODO` stubs. **Over-65 deductions are DEFERRED, not omitted** | The deduction applies to withdrawals, so gross minus deduction gives taxable and the bracket table is read in taxable terms. **The state rate and the penalty live here too**: they are tax numbers, and Sprint 1's rule is that no tax number appears anywhere else in the repo. **R1 is CLOSED** — all seven single edges and the $16,100 deduction verified against IRS IR-2025-103 / Rev. Proc. 2025-32 on 2026-08-15, and corroborated by Tax Foundation's independent table. **HoH's reason changed:** the stub was justified by "overlapping edges at the 24/32 boundary," which the primary source does not support — the published HoH column is contiguous (24% ends $201,750, 32% begins $201,751). It stands on D-19's reason instead, which is the stronger one: the UI models one income curve and one age, so a household is something the controls cannot represent. **The two over-65 deductions are deferred with their cost measured** — the permanent $2,050 (IRC 63(f)) and the temporary, income-phased OBBB senior deduction of up to $6,000. Together they take the marker from 15.2% to 13.5%, which *widens* Traditional's lead, so omitting them understates the recommendation rather than inflating it. Neither changes a verdict; the preset's flip survives at 14.4% against a 12.0% threshold. Wiring the $2,050 is one conditional on age and is the honest one to do first; the $6,000 sunsets, and applying it across a 35-year retirement would assert something the statute does not say |
+| D-25 | **D-01 applies at `min(capacity, cap)` in PRE-TAX terms.** Base case: **$24,500 to Traditional, $16,538 to Roth** — the Roth deliberately under-fills. **D2 ON** fills the Roth to $24,500 after-tax, which costs **$36,296** pre-tax | The cap is denominated in nominal contribution dollars — pre-tax for Traditional, after-tax for Roth — so at the boundary the two choice sets differ and the convention has nothing to equalize. Reading D-01 as a comparison device rather than a behavior model resolves this: the base case isolates the *timing* effect, D2 adds the *capacity* effect back as a named step. Under-filling the Roth is artificial and is labeled so in the app |
+| D-42 | **T3 runs at a `$185,000` test profile, not the archetype.** The archetype's capacity is $33,000 against the $36,296 cost of maxing the Roth — **D2 ON is unaffordable there.** $185,000 gives $37,000 of capacity and stays inside the 24% bracket after the deferral | The earlier claim that "T3 exercises something the reference user experiences" was arithmetic done at 24% before the state toggle landed. Rather than move the archetype to rescue the test, the test gets its own profile and says so. **The archetype's inability to max a Roth is itself the D2 lesson from the other side** — the cap is denominated in dollars that cost you more, so it binds sooner than it looks — and that sentence belongs in the accordion's D2 row |
+| D-27 | **Everything is in real 2026 dollars. Brackets are treated as inflation-indexed**, so the 2026 table applies at every year of the run | Returns are declared real while the bracket table is nominal 2026. Running both unstated models a world where brackets never index — bracket creep would push the future rate up on its own and `t*` would be an artifact of the mismatch. Real throughout is internally consistent and matches the law. The return series must be real or deflated on load |
+| D-28 | **Spending stub: save 20% of income during accumulation.** Modeled contribution is `min(0.20 × income, cap)`; the remainder is out of model and displayed grayed. **The retirement draw is not a replacement rate — see D-39** | Source: BLS household budget data. The grayed excess ($8,500/yr at the archetype) shares a row with D3: both are money outside the 401k that the model does not follow. **The 80% replacement rate is deleted as an input.** It bankrupted both accounts — $160,000/yr net against a $24,500 cap is not fundable at any return, and objective 1 returned $0 = $0 with no crossing |
+| D-39 | **The retirement draw is the level real after-tax amount that leaves 15% of the *Roth's* age-65 balance at 100.** Computed, not input. Sized off the Roth because it is the smaller account and therefore the binding one. **Shock magnitude is $40,000 real per life event** | Two accounts are being compared as ways to fund *the same life*, so the spending path must be one both can afford. Size it off Traditional and the Roth runs out at 79 — every Roth-side objective then reports ruin and the comparison is measuring the spending assumption instead of the tax question. The 15% margin exists so the base case is not sitting exactly at zero, where any shock ruins every objective at once. **At the archetype: $108,397/yr, which is 54% of final working income** — reported as an outcome, with one sentence saying Social Security and the grayed taxable account cover the rest. $40,000 for a shock is a named fudge factor, 1.6× a contribution year, so Low's forced sale and Mid's skipped year are the same order of magnitude; sensitivity at $25k and $80k goes in Scope & Branches, the same treatment block length gets |
+| D-30 | **State tax is two booleans sharing one rate: 8.5%, DC's marginal rate at the archetype income.** Top strip — *State income tax, while working* — default **yes**. Accordion D4 — *You retire to a state that also taxes income* — default **no**. Added to the federal rate; real per-state data stays `TODO` | Split because the earning state and the retirement state are different assumptions and the gap between them is the whole effect. Defaults are earn-taxed / retire-untaxed, the widest honest case: **`t_now` = 32.5% against a 15.2% federal effective marker, Traditional by 17.3 points.** Turning the accordion half on narrows it back toward baseline — that is the correction most users should apply, so **D4's row is exempt from the accordion read-only cut.** 8.5% rather than a round 10 because DC's top rate applies above ~$1M and the panel files DC returns. **Simplification, quantified: the rate is additive to the federal rate, ignoring SALT deductibility.** For a filer who itemizes the true combined marginal rate is `0.24 + 0.085 × (1 − 0.24)` = **30.5%, not 32.5% — a 2.0-point overstatement of the headline itself**, in the direction that flatters Traditional. It bites only on itemizers: at the archetype, state income tax alone is $14,025 against a $16,100 standard deduction, so it takes roughly $2,075 more of mortgage interest, property tax or charity to cross — likely for an owner, not automatic for a renter. **This is the larger of the two known biases and it points opposite to the deferred over-65 deductions (D-21), so they roughly cancel.** `TODO` with real per-state data |
+| D-24 | **Departures do not perturb the deterministic headline. D1 is a reference marker, not a model change:** the app computes the effective rate today's brackets produce on the modeled withdrawal and draws it as a second line beside `t*`. Accordion-editable means the user overrides that computed number, not the bracket model | Under a flat future rate the after-tax Traditional trajectory is the Roth trajectory scaled by `(1−t_later)` — identical for any `r`, any income shape, any spending path. T2 therefore holds by construction. What breaks the scalar multiple is a mechanism that hits the accounts asymmetrically: the penalty, the cap, the rule change. D1 is not one of those. **The marker's withdrawal is defined non-circularly as the gross amount today's brackets require to fund D-39's net draw** — $127,804 gross for $108,397 net, an effective **15.2%**. Federal only at the defaults, since D4 is off. *(Read federal-only and with no state anywhere, the same comparison is 24% against 15.2% — Traditional by 8.8 points. That is the figure this decision originally carried and it was never the default.)* |
+| D-26 | **At year N, snapshot the Roth balance as a tax-free allowance in real dollars. It does not grow.** Retirement withdrawals draw it down first; everything past it is ordinary income at `t_later`. Traditional is unchanged. **Policy is not a cube axis** — the toggle moves the headline line, never the dots | D-09's "prospective, not retroactive to existing balance" is the harsher of two grandfathering readings and it is the one written down: freezing the balance rather than the account. Because D-10 already labels this as Roth's bet rather than a neutral scenario, the sub-choices are modeled gently — allowance drawn first rather than pro-rated — so the effect shown is real rather than stacked. One scalar to carry, and it matches basis-recovery mechanics. **At the archetype, N=20 lands at age 55 and the allowance is $607,475 against a $1,423,485 Roth balance at 65 — about six of thirty-five retirement years** |
+| D-40 | **The policy threshold moves RIGHT, not left. At the archetype it is 58.4% against `t*` = 32.5%, and the verdict does not flip.** The flip is carried by an **early-career preset** — income shape (35, $60,000) · (38, $54,000) · (55, $200,000) · (65, $200,000), neither state taxing — where `t*` = 12.0%, the marker is 15.9%, and the policy threshold is 29.1%: **Roth under current rules, Traditional once the rule moves** | The deck drew the second threshold at 14% with Roth winning to its right. The algebra cannot do that. A policy that harms only Roth strictly raises the rate at which Roth becomes worthwhile — `t*_policy = t_now·T₆₅ / (t_now·T₆₅ + allowance)`, which exceeds `t_now` whenever the allowance is smaller than the Roth balance, which it always is. So at the archetype the honest reading is the stronger one: *the scenario you were told makes Roth safe is the one that widens Traditional's lead.* The flip is real, but it belongs to the person the policy actually costs something — the low-bracket saver Roth was supposed to be for, which is precisely CONTEXT part E's recent-hire segment. **Two artifacts, not one: the default teaches that the bet is bigger than it looked, the preset teaches that it can reverse an answer** |
 
-| D-23 | **The $X / $Y sentence reads objective 4 (max 10th percentile) at 1 shock.** Rung comes from the user's control; $Y compares that rung to the next one up, same objective and shock count. **The README reports the pair at all five objectives.** The sentence names its objective in-line | Zero shocks makes $Y identically zero — the rung selects a shock branch, and with no shock all three branches run the same code. Expected value is the wrong gauge for fragility: a halving and a doubling cancel in the mean, and ruin is absorbing, so the ensemble average is not what any one household lives. Objective 4 is where fragility is visible and it keeps both magnitudes in dollars, which is the only reason the sentence works at all. It is also the choice that flatters L3 most — it shrinks $X and grows $Y — so the full five-objective spread is published rather than the single quoted pair. Objectives 2 and 5 need the spending model and cannot serve here |
+### Ladder and gates
 
-| D-27 | **Everything is in real 2026 dollars. Brackets are treated as inflation-indexed**, so the 2026 table applies at every year of the run | Returns are declared real (D-04) while the bracket table is nominal 2026. Running both unstated models a world where brackets never index — bracket creep would push the future rate up on its own and `t*` would be an artifact of the mismatch. Real throughout is internally consistent and matches the law. **R5's return series must be real or deflated on load.** The 7/10/12 buttons are labeled as the figures people quote, since 12% real is not a claim |
+| ID | Decision | Why |
+|---|---|---|
+| D-31 | **Income suggests a rung; the checkboxes set it.** Both render on the ladder — income as a faint marker, checkboxes as the solid one. **The actual rung is the checkbox marker** | Deriving the rung from income reintroduces the exact error DESIGN.md's insight paragraph names: income is a fourth instrument ladder. Two markers make the disagreement legible — when income says High and the checkboxes say Low, the graphic has drawn the boat and the giant house without the app asserting anything. That is the project's central claim rendered as a UI state, for the cost of one extra marker |
+| D-33 | **Canonical ladder is the ten-stop flowchart ladder.** Bottom to top: $400 · $2,000 · high-interest debt · employer match · medium-interest (~8%) debt · 20% to 401k · max IRA · max 401k · no mortgage · other assets. **Low = 1–3, Mid = 4–6, High = 7–10.** All ten stops are clickable | The flowchart ladder maps to the shock mechanisms tighter than DESIGN.md's list did. Low is the no-cash-plus-balance-owed band, where a shock forces a sale, and it is exactly D-35's suppression gates. **Mid is the contributing band** — employer match through 20% — which is what makes D-16's "contributions pause" land on the right stops. High is money outside the emergency path. Note the flowchart's own ordering: the employer match comes *before* clearing medium-interest debt, because the match is free money. **This is the only D-33; the earlier duplicate carrying DESIGN.md's list and a Low = 1–2 band is deleted** |
+| D-32 | **Ten checkboxes, one per stop. Stops 1–6 default checked, 7–10 unchecked** — the archetype lands at **Mid**, contiguously | The earlier six-gate version skipped stops 1, 7, 8 and 9, which broke D-37's contiguity rule at stop 1 and made the archetype unreachable at Mid by construction. One boolean per stop removes the special case. The flowchart's 15%-savings-rate guidance stays out of the model and appears only as a gate label: a rung-dependent contribution rate would couple L2 and L3, which is what keeping them on separate controls exists to prevent |
+| D-37 | **The rung is the highest CONTIGUOUS stop cleared.** Non-contiguous checks render top-heavy and the app names the gap: *"You have assets above a gap — the flowchart would prioritize [lowest unchecked stop] first"* | Ten independent booleans make the graphic show ordering, not just position. Assets checked with nothing beneath them is misallocation — capital parked above a gap it should be filling — and the shape says so without a sentence. Contiguity keeps the rung honest: a lone top stop still reads Low, because the shock mechanism depends on what is beneath you. Copy points at the flowchart rather than issuing advice, because the top stops are mostly illiquid or penalized — telling a 401k-heavy user to sell is the forced-liquidation branch this model treats as the bad outcome |
+| D-35 | **The verdict is suppressed when either of the first two gates is unchecked** ($400, $2,000). Copy names the binding gate. **`t*`, both thresholds, and the $X/$Y sentence all stay visible** — only the verdict line is replaced | Naming the gate is more useful than announcing a tier. Suppressing the verdict without hiding the numbers keeps the app from reading as a lockout. `$X` and `$Y` in particular must stay — at Low, `$Y` is large against a small `$X`, which is L3's demonstration, and hiding it would gut the lesson at the exact rung that proves it. High-interest debt (stop 3) gets its own copy: *paying it off beats either account, at any tax rate* — arithmetic, not advice, since no 401k election returns 20% guaranteed |
 
-| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single, no-income-tax state (D4 default), income $165,000 real, savings rate 20%, replacement rate 80%. Income shape has one start, one trough, one peak, one end | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes; the panel will reset income to their own the way part E predicts they will reset the state toggle. Consequences: `t_now` = 24% with no bracket straddle, and savings capacity ($33,000) just clears the cost of maxing a Roth ($32,237), so D2 and T3 are live at the archetype rather than hypothetical |
+### Cube, sentence, encoding
 
-| D-20 | **Horizon runs to age 100; `n_years = 100 − current_age`.** Two phases: accumulate to 65, decumulate 65→100. All objectives evaluate at 100 | Planning past median longevity is the standard convention, because outliving the money is the failure that matters. Retirement at 65 was already implicit in the income shape's right endpoint. Splitting the phases is what puts `t*` where it belongs — in the withdrawal years. "Terminal wealth" therefore means bequest at 100, not balance at 65, so all five objectives share one horizon. Guard needed for `current_age >= 65` |
-
-| D-21 | **`tax.py` implements SINGLE only: 2026 bracket edges, seven rates, standard deduction $16,100.** MFJ and HoH are `TODO` stubs with a source comment | Source: Tax Foundation / IRS 2026 release. Deduction applies to withdrawals, so gross minus deduction gives taxable and the bracket table is read in taxable terms. HoH is stubbed rather than half-entered because the published HoH column has overlapping edges at the 24/32 boundary. Additional standard deduction for filers over 65 is a `TODO` — it lowers the effective retirement rate and therefore moves `t*` slightly toward Traditional. **R1 closes when the single column and the deduction are verified by hand against irs.gov, not against a secondary source** |
-
-| D-28 | **Spending stub: save 20% of income during accumulation, spend 80% of final working income in retirement.** Modeled contribution is `min(0.20 × income, deferral cap)`; the remainder is declared out of model and displayed grayed | Source: BLS household budget data. One number serves both phases — savings rate on the way up, replacement rate on the way down — which is why one stub unlocks objectives 2 and 5. 80% sits at the conservative end of the 70–80% planning band. The grayed excess ($8,500 at the archetype) shares a row with D3: both are money outside the 401k that the model does not follow. **This voids D-03's stated reason** — a savings model and a spending model now exist, so the income-shape-to-rung question needs a new justification or a flip |
-
-| D-04a | **Return buttons are 7 / 9 / 12%, all real.** Each is labeled with what it corresponds to nominally; 12% is labeled implausible on purpose. Default 7% | D-27 puts the model in real dollars, so nominal buttons would misread. But 7 and 10 collapse under conversion — 10% nominal *is* ~7% real — so a straight translation loses a button. Keeping 12% real preserves D-04's reason (these are the figures people argue about) and improves on it: the implausible button is the one a skeptic reaches for first, and watching `t*` hold still there is L1 at full force. Caption under the row: *this input drives the picture, not the answer* |
-
-| D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule. Linking inward routes a curious reader to the nine-pair table |
-
-| D-24 | **Departures do not perturb the deterministic headline. D1 is reclassified from a model change to a reference marker:** the app computes the effective rate today's brackets produce on the modeled withdrawal and draws it as a second line beside `t*`. Accordion-editable means the user overrides that computed number, not the bracket model | Under a flat future rate the after-tax Traditional trajectory is the Roth trajectory scaled by `(1−t_later)` — identical for any `r`, any income shape, any spending path. T2 therefore holds by construction and needs no default to switch off. What breaks the scalar multiple is a mechanism that hits the accounts asymmetrically: the early-withdrawal penalty, the cap (D2), the rule change (D7). D1 is not one of those. As a marker it costs one function already needed, keeps `t*` a single interpretable scalar, and supplies D-18's operand at no extra input — preserving the CONTEXT part C option-4 stance. At the archetype it yields `t*` = 24% against ~17% effective under today's law: Traditional by ~7 points, because you defer at marginal and withdraw across the whole structure from zero |
-
-| D-25 | **D-01 applies at `min(capacity, cap)` in PRE-TAX terms.** Base case: $24,500 to Traditional, $18,620 to Roth — the Roth deliberately under-fills. **D2 ON** fills the Roth to $24,500 after-tax ($32,237 pre-tax) and is the only place the cap effect enters. T3 tests D2 ON | The cap is denominated in nominal contribution dollars, which are pre-tax for Traditional and after-tax for Roth, so at the boundary the two choice sets differ and the convention has nothing to equalize. Reading D-01 as a comparison device rather than a behavior model resolves this: the base case isolates the *timing* effect, D2 adds the *capacity* effect back as a named step. Under-filling the Roth is artificial and is labeled so in the app. **Correction to D-19:** the archetype's $33,000 capacity is ABOVE the $24,500 cap, so this is the base case, not an edge case. Capacity covers the $32,237 cost of maxing the Roth with $763 spare, so T3 exercises something the reference user experiences |
-
-| D-30 | **State tax is two booleans sharing one rate: 8.5%, DC's marginal rate at the archetype income.** Top strip — *"State income tax — while working,"* default **yes**. Accordion D4 — *"You retire to a state that also taxes income,"* default **no**. Rate is added to the federal marginal rate; real per-state data stays `TODO` | Split because the earning state and the retirement state are different assumptions and the gap between them is the whole effect. Defaults are earn-taxed / retire-untaxed, which is the widest honest case and the demo: `t_now` = 32.5% against ~17% federal effective, Traditional by ~15.5 points. Turning the accordion half on narrows it back toward baseline — that is the correction most users should apply, and it must stay reachable, so **D4's row is exempt from the accordion read-only cut**. 8.5% rather than a round 10 because DC's top rate applies above ~$1M and the panel files DC returns: a rate rounded up flatters the Traditional case by 1.5 points in a number they can check. Simplification: state tax is treated as additive to the federal marginal rate, ignoring SALT deductibility — `TODO`, and it slightly overstates the combined rate |
-
-| D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** Replaces D-13's `n_paths=1, sigma=0`. `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting keeps D-13's claim intact and makes it structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse to the same value, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect — the deterministic path must reject it. **Validation gate:** the entire 0-shock slab of the cube (3 rungs × objectives 1–4) must equal `t_now` exactly, since the scalar multiple holds per path and therefore under any objective |
-
-| D-26 | **At year N, snapshot the Roth balance as a tax-free allowance in real dollars. It does not grow. Retirement withdrawals draw it down first; everything past it is ordinary income at `t_later`.** Traditional is unchanged. Policy is not a cube axis — the toggle moves the headline line, never the dots | D-09's "growth after year N, not retroactively to existing balance" is the harsher of two grandfathering readings, and it is the one written down: freezing the balance rather than the account. Because D-10 already commits to labeling this as Roth's bet rather than a neutral scenario, the sub-choices are modeled gently — allowance drawn first rather than pro-rated — so the effect shown is real rather than stacked. One scalar to carry, and it matches basis-recovery mechanics. Traditional needs no branch at all: its withdrawals were already ordinary income, and that absence in the code is the asymmetry. At the archetype, N=20 lands at age 55, grandfathering ≈ $763k against a $1.76M balance at 65 — about six of thirty-five retirement years |
-
-| D-31 | **Income suggests a rung; six checkboxes set it. Both render on the ladder — income as a faint marker, checkboxes as the solid one, and the actual rung is the checkbox marker** | Deriving the rung from income would reintroduce the exact error DESIGN.md's insight paragraph names: income is a fourth instrument ladder, and same income / different fragility is the whole point. Two markers make the disagreement legible — when income says High and the checkboxes say Low, the graphic has drawn the boat and the giant house without the app asserting anything. That is the project's central claim rendered as a UI state rather than a paragraph, for the cost of one extra marker. **This supersedes D-03's stated reason**, which was voided by D-28 when the savings and spending stubs landed; the conclusion (rung is its own control) stands on the stronger reason |
-
-| D-32 | **Six gates, from the r/personalfinance flowchart. First four default checked, last two unchecked.** Unchecking either of the first two drops to Low; all four of the first set gives Mid; both of the last two gives High | The flowchart is a behavioral checklist, not a macro claim — it stays out of contested territory in a hiring artifact. It covers only the ladder's lower half, so all-cleared lands at Mid rather than High, which is correct: the archetype at $165k should start at Mid. That is the branch D-16 says carries the argument, `$Y` is defined there, and the dots have not yet collapsed. Gates: $2,000 saved · high-interest debt cleared · employer match captured · medium-interest (~8%) debt cleared · mortgage paid off · assets outside the primary residence |
-
-| D-33 | **Canonical ladder is the 10-stop list from DESIGN.md's "Resilience ladder as a parameter" section.** Low = stops 1–2, Mid = 3–6, High = 7–10 | DESIGN.md gives the ladder twice — 9 stops in one section, 10 in the other — and README and the mockup each give a third variant. The 10-stop version is the superset (it adds "pay for those things" after sinking funds), so it is the one D-16's "all ten stops" refers to. The spans line up with the mechanisms: the first two rungs are cash positions, so a shock forces a sale; the middle four are debt and sinking-fund positions, so a shock pauses contributions; the top four hold assets outside the emergency path, so a shock is absorbed |
-
-| D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family — gray for expected-value (1, 2), neutral for median (3), orange for tail (4, 5). No jitter** | The encoding renders DESIGN.md's stated prediction directly: gray dots barely move down the rows because expected value is blind to shocks — a halving and a doubling cancel in the mean — while orange dots fan out. So the panel carries L3 (collapse across rungs) and the expected-value-vs-tail divergence at the same time, and the second one is free. No jitter because rows already separate the dots; overlap within a row means the objectives agree, which is information rather than clutter |
-
-| D-18 | **The verdict compares `t*` against the today's-law effective rate marker from D-24.** Inside D-02's ±2-point band, "it's a wash"; outside, name the winner | D-02 defined a band with nothing to measure it against, and CONTEXT part C option 4 deliberately refuses to ask the user for a future-rate belief. The marker resolves this at no input cost: it is a computed fact — what today's brackets produce on the modeled withdrawal — not a prediction, so the threshold framing survives. At the archetype it yields 32.5% against ~17%, which is Traditional by ~15.5 points and well outside the band |
-
-| D-35 | **The verdict is suppressed when either of the first two gates is unchecked** ($2,000 saved, high-interest debt cleared) — the same condition as the Low rung under D-32, stated as the gate rather than the tier. Copy names the binding gate: *"You're carrying high-interest debt. Paying it off beats either account, at any tax rate."* **`t*`, both thresholds, and the $X/$Y sentence all stay visible** — only the verdict line is replaced | Naming the gate is more useful than announcing a tier, and the high-interest case is arithmetic rather than advice: no 401k election returns 20%+ guaranteed. Suppressing the verdict without hiding the numbers keeps the app from reading as a lockout. `$X`/`$Y` in particular must stay — at Low, `$Y` is large against a small `$X`, which is L3's demonstration, and hiding it would gut the lesson at the exact rung that proves it. The flowchart's 15%-savings-rate guidance stays out of the model and appears only as gate labels: a rung-dependent contribution rate would couple L2 and L3, which is what keeping them on separate controls exists to prevent |
-
-| D-36 | **`$Y` compares the user's rung to the next rung up, one step.** Undefined at High; the app says so rather than printing zero | README's "moving up two rungs" was stale. One step is the smaller and more defensible claim, and with three rungs a two-step comparison only exists for Low |
-
-| D-33 | **Canonical ladder is the ten-stop flowchart ladder, replacing DESIGN.md's list.** Bottom to top: $400 · $2,000 · high-interest debt · employer match · medium-interest (~8%) debt · 20% to 401k · max IRA · max 401k · no mortgage · other assets. **Low = 1–3, Mid = 4–6, High = 7–10.** All ten stops are clickable | The flowchart ladder maps to the shock mechanisms tighter than DESIGN.md's list did. Low is the no-cash-plus-balance-owed band, where a shock forces a sale, and it is exactly D-35's suppression gates. **Mid is the contributing band** — employer match through 20% — which is what makes D-16's "contributions pause" mechanism land on the right stops. High is money outside the emergency path. Note the flowchart's own ordering: employer match comes *before* clearing medium-interest debt, because the match is free money |
-
-| D-37 | **The rung is the highest CONTIGUOUS stop cleared. Non-contiguous checks render as a top-heavy shape, and the app names the gap:** *"You have assets above a gap — the flowchart would prioritize [lowest unchecked stop] first"* | Ten independent booleans make the graphic show ordering, not just position. Assets checked with nothing beneath them is misallocation — capital parked above a gap it should be filling — and the shape says so without a sentence. Contiguity keeps the rung honest: a lone top stop still reads Low, which is correct, because the shock mechanism depends on what is beneath you. Copy points at the flowchart rather than issuing advice, because the top stops here are mostly illiquid or penalized: telling a 401k-heavy user to sell is the forced-liquidation branch this model treats as the bad outcome. Cost is a contiguity check and one conditional line |
+| ID | Decision | Why |
+|---|---|---|
+| D-17 | **Dollar fields are evaluated at `t* + δ`, δ ∈ {2, 10} percentage points**, not at the break-even. The app uses 10; the README reports both. Null for non-crossing cells | At `t*` the two outcomes are equal by construction, so `$X` would be zero. δ is the assumed size of the miss, and it sets `$X` outright while leaving `$Y` nearly untouched — so it must be chosen *against* the L3 claim rather than for it. Ten points is about a bracket and a half, the generous case. The wash band was rejected as the anchor precisely because it minimizes `$X`. δ is named in the app's sentence, not hidden |
+| D-23 | **The $X / $Y sentence reads objective 4 (max 10th percentile) at 1 shock.** Rung comes from the user's control; `$Y` compares that rung to the next one up, same objective and shock count. **The README reports the pair at all five objectives** | Zero shocks makes `$Y` identically zero — with no shock all three branches run the same code. Expected value is the wrong gauge for fragility: a halving and a doubling cancel in the mean, and ruin is absorbing, so the ensemble average is not what any one household lives. Objective 4 is where fragility is visible and it keeps both magnitudes in dollars. It is also the choice that flatters L3 most, so the full five-objective spread is published rather than the single quoted pair |
+| D-36 | **`$Y` compares the user's rung to the next rung up, one step.** Undefined at High; the app says so rather than printing zero | One step is the smaller and more defensible claim, and with three rungs a two-step comparison only exists for Low |
+| D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family** — gray for expected-value (1, 2), neutral for median (3), orange for tail (4, 5). No jitter | The encoding renders DESIGN.md's stated prediction directly: gray dots barely move down the rows because expected value is blind to shocks, while orange dots fan out. The panel carries L3 and the expected-value-vs-tail divergence at the same time, and the second one is free. No jitter because rows already separate the dots; overlap within a row means the objectives agree, which is information rather than clutter |
+| D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links inward to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule |
+| D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `returns.py`, a module-level list of annual real returns with a source comment. It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series is legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it. Sprint 3 does not start until the real series is in the file, and the stub must be obviously fake (a short repeating list) so that nobody ships it by accident |
 
 ---
 
 ## 4. Departure dispositions
 
-The mechanisms behind the model. Accordion shows all eight; grayed rows show
+The mechanisms behind the model. The accordion shows all eight; grayed rows show
 what was scoped out and stay visible as evidence of completeness.
 
 | # | Departure | Leans | Disposition |
 |---|---|---|---|
-| D1 | You withdraw *across* brackets, not at one rate | Traditional | **Real.** Accordion, editable |
-| D2 | Contribution limit binds — Roth shelters more real money | Roth | **Real.** Hard-coded 2026 values, `TODO` source |
+| D1 | You withdraw *across* brackets, not at one rate | Traditional | **Real.** Reference marker per D-24. Accordion, editable |
+| D2 | Contribution limit binds — Roth shelters more real money | Roth | **Real.** Hard-coded 2026 values, `TODO` source. Row copy carries D-42: at the archetype the Roth cap is unaffordable, which is the same lesson from the other side |
 | D3 | Below the limit, the tax saving sits in a taxable side account | Roth | **Grayed.** `TODO`. See D-01 — the convention absorbs the trap without the model |
-| D4 | You retire to a state that also taxes income | Roth | **Boolean, 8.5%.** Paired with the top-strip "while working" toggle, per D-30. Stays editable when the accordion goes read-only. `TODO` real per-state data |
+| D4 | You retire to a state that also taxes income | Roth | **Boolean, 8.5%.** Paired with the top-strip toggle per D-30. Stays editable when the accordion goes read-only. `TODO` real per-state data |
 | D5 | Shock forces withdrawal — Traditional penalty vs. Roth basis | Roth | **Real, stochastic.** Becomes the correlated / uncorrelated toggle |
 | D6 | Objective isn't expected value | either | **Real, stochastic.** Always on. Grid rows |
-| D7 | The rule moves | either direction | **Real.** Top area, per D-09 |
+| D7 | The rule moves | either direction | **Real.** Top area, per D-09 and D-40 |
 | D8 | Employer match pushes withdrawals into higher brackets | Roth | **Grayed.** `TODO` |
 
 ---
@@ -195,58 +225,58 @@ what was scoped out and stay visible as evidence of completeness.
 
 ### `cube.json`
 
-Axes: `rung` (3, per D-16) × `objective` (5) × `shocks` (4) = 60 cells.
+Axes: `rung` (3) × `objective` (5) × `shocks` (4) = **60 cells.**
 
-Per cell, four fields:
+Per cell:
 
 | Field | Type | Notes |
 |---|---|---|
 | `breakeven` | `float \| null` | Break-even future marginal rate, as a percentage |
-| `status` | `"crosses" \| "always_roth" \| "always_trad"` | When not `"crosses"`, `breakeven` is `null`. Objectives 4 and 5 will not always cross inside a plausible range — this must not raise |
-| `roth_dollars` | `float` | Outcome under this cell's objective, Roth |
-| `trad_dollars` | `float` | Outcome under this cell's objective, Traditional |
+| `status` | `"crosses" \| "always_roth" \| "always_trad"` | When not `"crosses"`, `breakeven` is `null`. Objectives 4 and 5 will not always cross inside a plausible range — **this must not raise** |
+| `dollars` | `{"2": {...}, "10": {...}} \| null` | Keyed by δ. Each value is `{"roth": float, "trad": float}`. Null for non-crossing cells |
+| `ruin` | `{"roth": float, "trad": float}` | Fraction of paths where the after-tax balance went negative before 100. Recorded, never clamped (D-38) |
 
-Header block alongside the cells: `seed`, `n_paths`, `return_rate`, `profile`,
+Header block: `seed`, `n_paths`, `return_rate`, `profile`, `deltas`,
 `generated_at`, `engine_version`.
 
 **The dollar fields are what the headline sentence is made of:**
 
-- `$X` = `abs(roth_dollars − trad_dollars)` at the user's current rung
+- `$X` = `abs(roth − trad)` at δ = 10, at the user's current rung
 - `$Y` = change in the better choice's outcome between the user's rung and the
   next rung up, same objective and shock count. Undefined at High — the app says
   so rather than printing a zero
 
 Sentence: *getting this right is worth about $X; moving from mid to high is worth
 about $Y.* This is the only place on the page where fragility and the
-Roth/Traditional decision appear in comparable units. **L3 lives here.** The
-dollar fields must be in the contract before the PoC is written — retrofitting
-them means re-running everything.
+Roth/Traditional decision appear in comparable units. **L3 lives here.**
 
 ### `engine.py`
 
 ```
 breakeven(profile, objective, shocks, policy, paths) -> Result
+outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 ```
 
 - `paths` is passed in, never drawn inside — that is what makes D-07 hold
+- `outcome` is public; `spike_grid` calls it directly for the dollar fields
 - Solve by bisection over the future marginal rate
+- **No clamping** (D-38)
 - Returns the `Result` shape above
 
 ---
 
 ## 6. Tests
 
-Eight. Each asserts a claim made elsewhere in the docs, which is the point of
-having them.
+Eight. Each asserts a claim made elsewhere in the docs, which is the point.
 
 | # | Test | Claim it defends |
 |---|---|---|
 | T1 | `t_now == t_later` → the two outcomes are equal under D-01 | The identity is real |
-| T2 | `t*` is unchanged across `r ∈ {4, 7, 10, 12}%`, **and** the after-tax Traditional path equals the Roth path scaled by `(1−t_later)` at every year | **L1.** The scalar-multiple assertion is why it holds for any `r`, not only the four sampled |
-| T3 | With D2 ON, Roth shelters strictly more real dollars than Traditional, and the cell returns `always_roth` | D2, the G4 trap, and D-25's scoping of D-01 |
+| T2 | `t*` unchanged across `r ∈ {4, 7, 9, 12}%`, **and** the after-tax Traditional path equals the Roth path scaled by `(1−t_later)` at every year | **L1.** The scalar-multiple assertion is why it holds for any `r`, not only the four sampled |
+| T3 | At the **$185,000 test profile** (D-42) with D2 ON, Roth shelters strictly more real dollars and the cell returns `always_roth` | D2, the G4 trap, and D-25's scoping of D-01 |
 | T4 | A no-crossing cell returns its sentinel and does not raise | R3. T3's cell is one, so this is exercised rather than hypothetical |
-| T5 | In the base case, the today's-law effective rate is strictly below `t*` | The headline sentence — you defer at your marginal rate and withdraw across the whole bracket structure from zero |
-| T6 | Low rung: a shock realizes a sale, and Traditional takes the early-withdrawal penalty while Roth basis comes out free | D-16 low branch, D5 |
+| T5 | In the base case, the today's-law effective marker is strictly below `t*` | The headline sentence — you defer at marginal and withdraw across the whole structure from zero |
+| T6 | Low rung: a shock realizes a $40,000 sale; Traditional takes the penalty while Roth basis comes out free | D-16 low branch, D5, D-39 |
 | T7 | Mid rung: a shock skips the contribution year and the balance is never sold | D-16 mid branch — the shares not bought |
 | T8 | High rung: a shock leaves the portfolio untouched | D-16 high branch, the control case |
 
@@ -258,29 +288,28 @@ branches, so three tests — a severity dial would have needed one.
 ## 7. App layout
 
 ![App layout](ui-design.PNG)
-*Mockup, post-design-gate. Superseded: ladder shows 8 rungs (D-16: three),
-model box is now disabled per section 7, notation `r` → `t*` (D-24).*
+*Mockup, reconciled at gate two. The ladder's ten stops and its Low 1–3 / Mid 4–6
+/ High 7–10 bands are correct as drawn. Superseded: the model box is now
+disabled, and notation `r` → `t*` (D-24).*
 
 Top strip, left to right: current income · income shape · **state income tax
-(while working)** · return rate buttons · "nevermind" toggle + year.
+(while working)** · return-rate buttons · nevermind toggle + year · early-career
+preset button.
 
 Caption under the state toggle: *default assumes you earn in a taxing state and
 retire in one that doesn't. Both are toggles.*
-
-The return-rate buttons sit beside the tax controls deliberately (L1 × L2
-contrast). Caption under them: *this input drives the picture, not the answer.*
+Caption under the return buttons: *this input drives the picture, not the answer.*
 
 | Region | Contents |
 |---|---|
-| Left rail | Resilience ladder figure, all ten stops, with the three modeled rungs marked + a three-position control: low / mid / high |
-| Headline | **Two break-even rates side by side: rules hold / treatment moves at year N.** Verdict beneath, measured against the today's-law effective marker (D-24). **At the low rung the verdict is replaced by:** *this election is not your binding constraint yet* |
-| Under headline | The $X / $Y sentence |
+| Left rail | Resilience ladder, ten stops, three bands marked, plus the three-position rung control |
+| Headline | **Two break-even rates side by side: rules hold / treatment moves at year N.** Verdict beneath, measured against the today's-law effective marker. **At the Low rung the verdict is replaced by** *this election is not your binding constraint yet* |
+| Under headline | The $X / $Y sentence, naming δ and its objective |
 | Under that | Balance graph — two curves diverging during saving, landing together after tax |
 | Personalize | Accordion, all eight departures, grayed where scoped out |
-| Model | Three dot-plot panels in a row — low, mid, high. The user's rung is highlighted, the other two dimmed but **always visible**: the collapse is the lesson, and a trend needs three points. Each panel is a cube slice |
-| Numbers behind the picture | The objective × events grid, same data as the dot plot |
+| Model | Three dot-plot panels — low, mid, high. The user's rung highlighted, the other two dimmed but **always visible**: the collapse is the lesson, and a trend needs three points |
 
-Beside the "nevermind" toggle:
+Beside the nevermind toggle:
 
 **You can still contribute — it just stops being worth it.**
 
@@ -289,57 +318,39 @@ has repeatedly happened instead is that tax-free money stops being invisible —
 counted toward a Medicare premium, the taxable share of Social Security, or an
 ACA subsidy. The money stays untaxed and costs you anyway, one layer over.*
 
-Poland 2013 · Ireland 2011 · US SECURE Act 2019 — the rule moved under people
-who had already committed.
+Poland 2013 · Ireland 2011 · US SECURE Act 2019.
 
-**Notation:** `t*` is the break-even future marginal rate. `r` is the market
-return. Do not reuse `r` for both.
+**Notation:** `t*` is the break-even future **marginal** rate. The today's-law
+marker is an **effective** rate. They share an axis and the axis says so, because
+the gap between them is the lesson.
 
-Top-right of the strip: a DISABLED control labeled **Model (block bootstrap)**.
-Tooltip lists all nine return models from CONTEXT part D and marks the two that
-are implemented — #2 fixed real rate (app headline), #6 block bootstrap (cube).
-Disabled rather than absent: the option space was mapped, two were built, and
-the control says so without implying the other seven exist.
+**Under the axis, in prose, not a legend** — this is the hardest idea on the page
+and the one an informed non-expert most needs:
+
+> **You defer at 32.5 cents on the dollar. You withdraw at an average of 15.2.**
+> Those are different rates because contributions come off the top of your
+> income and withdrawals fill the brackets from zero.
+
+Both figures are computed, so the sentence re-renders with the controls. Without
+it the natural misreading is *my rate is 15.2%, the break-even is 32.5%, so I
+need my taxes to double* — which is wrong, and it is the reading a careful
+non-expert will arrive at on their own. `r` is the market return; do not reuse
+it for either rate.
+
+Top-right: a DISABLED control labeled **Model (block bootstrap)**. Tooltip lists
+all nine return models from CONTEXT part D and marks the two implemented — #2
+fixed real rate (app headline), #6 block bootstrap (cube). Disabled rather than
+absent: the option space was mapped, two were built, and the control says so
+without implying the other seven exist.
 
 ---
 
 ## 8. Budget
 
-A fixed implementation budget. Research, design, and README are declared
-outside it and reported separately. Actuals go in the README.
-
-| Item | Est. |
-|---|---|
-| `tax.py` + deterministic break-even | 20 |
-| PoC engine, cube emit | 30 |
-| Three rung mechanisms (D-16) | 15 |
-| Tests | 10 |
-| Streamlit app | 30 |
-| Ladder graphic | 20 |
-| "Nevermind" toggle | 10 |
-| Deploy | 15 |
-| | **130 — over by 10, slack is gone** |
-
-The PoC line carries 5 minutes for the block resampler over a parametric draw.
-Sourcing the return series is *not* in here — it belongs to the research phase,
-which is declared outside the 120. That accounting is legitimate but it has a
-condition: the data must exist before the clock starts (R5).
-
-Cuts, in order, recovering roughly 26:
-
-1. The "numbers behind the picture" grid — section 7 already calls it the same
-   data as the dot plot (~8)
-2. Accordion read-only — **except D4's row**, which stays editable per D-30 (~8)
-3. Ladder color bands → single neutral rail, both markers kept (~5)
-4. Income's suggested marker → checkbox marker only (~5)
-
-Cut 4 costs the boat, so it is last. **Do not cut the state toggle** — CONTEXT
-part E is right that every panelist sets it to their own state first.
-**Do not cut to two rungs.** It saves 5 minutes and costs L3, which needs three
-points to read as a trend.
-
-**Do not cut to two rungs.** It saves 5 minutes and costs L3, which needs three
-points to read as a trend.
+A fixed implementation budget. Research, design, and README are outside it and
+reported separately. **The single budget table and the cut ladder live in
+`remaining-sprints.md`** — the earlier per-item table here disagreed with it on
+both the total and the order of cuts. Actuals go in the README.
 
 ---
 
@@ -347,8 +358,11 @@ points to read as a trend.
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R1 | **2026 bracket edges and deferral limit are unverified.** They are the one thing declared real rather than stubbed | Single module, source comment, verified by hand before build |
-| R2 | Deploy. Repo is private, which rules out Streamlit Cloud; no local Docker | Railway from GitHub, known-good path. Flag at 15 minutes |
+| R1 | ~~2026 bracket edges, deduction and deferral limit are unverified~~ **CLOSED 2026-08-15.** Verified against IRS IR-2025-103 / Rev. Proc. 2025-32, the primary source, and corroborated independently by Tax Foundation | Source comment in `tax.py` carries both URLs and the verification date |
+| R7 | **Two known biases, both deferred, pointing opposite ways.** SALT deductibility ignored (overstates Traditional by up to 2.0 points on `t*`); over-65 deductions omitted (understates Traditional by 1.7 points on the marker) | Both are stated with their size and direction in the README, and neither changes a verdict. Roughly cancelling is not the defense — knowing which way each one bends the answer is |
+| R8 | **The block bootstrap's stated reason failed measurement.** It does not fatten the tail relative to an IID draw; it thins it slightly. A reviewer who knows time-series work may reach for this | Owned, not hidden. D-05 carries the measurement, the README has a section on it, and the pick survives on the recovery-forgone channel. `n ≈ 19.6` independent blocks is the same critique the README already makes of Bengen — say it first |
+| R2 | Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker | Railway from GitHub. Flag at 15 minutes |
 | R3 | Objectives 4 and 5 may not cross in range | T4 |
-| R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in README, not hidden |
-| R5 | Return series for D-05 must exist before the clock starts | Source it in the research phase, which is outside the implementation budget. **Not the same size as R1:** a wrong deferral limit breaks test T3 and a stated claim; a slightly-off 1937 return is one card in a resampling deck and breaks nothing |
+| R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in the README, not hidden |
+| R5 | **Return series must exist before Sprint 3** | D-41. Stub is obviously fake; Sprint 3 does not start without the real file |
+| R6 | **The archetype's draw is 54% of final income**, below any published replacement band | D-39. Reported as an outcome with the reason stated: a $24,500 cap cannot fund 80% of a $200,000 income, and the gap is Social Security plus the grayed taxable account. If a panelist reads it as an error, that sentence is the answer |

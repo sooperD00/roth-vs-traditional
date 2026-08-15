@@ -52,6 +52,15 @@ The pattern you should expect: rows 1–2 barely move across columns; rows 4–5
 
 # Design
 
+> **Superseded by D-33.** This file gives the ladder twice — nine stops here, ten
+> below — and the README and the mockup each gave a third variant. The canonical
+> ladder is the **ten-stop flowchart ladder**: $400 · $2,000 · high-interest debt
+> · employer match · medium-interest (~8%) debt · 20% to 401k · max IRA · max
+> 401k · no mortgage · other assets, banded **Low 1–3 · Mid 4–6 · High 7–10**.
+> It maps to the shock mechanisms tighter than either list here, and note the
+> flowchart's own ordering: the employer match comes *before* clearing
+> medium-interest debt, because the match is free money.
+
 Define a resilience ladder for the chosen representative median user (someone
 who works as a software engineer in energy tech):
 
@@ -80,6 +89,13 @@ no low-interest debt → assets outside the primary residence
      tool: at rung 2 the app can say plainly that the 401k election is not
      your binding constraint yet. -->
 
+
+> **Superseded by D-16 and D-32.** Not a slider and not eight stops. **Three
+> rungs**, each selecting a *code branch* rather than a severity — low sells at
+> the bottom, mid fails to buy at the bottom, high does neither. Eight would have
+> meant inventing six intermediate severities with nothing behind them. The
+> control is **ten checkboxes**, one per ladder stop, and the rung is the highest
+> *contiguous* stop cleared (D-37). A shock is $40,000 real (D-39).
 
 One slider, eight stops, and it feeds the shock model instead of sitting in a README. 
 That converts point 1 into a number the user can watch move.
@@ -170,9 +186,12 @@ Details worth having in the README:
 
 ## Recommended output stack
 
-> **Superseded by DECISIONS section 8.** This ≈75-minute stack predates the cube
+> **Superseded by the budget table in `remaining-sprints.md`,** which is now the
+> only one — DECISIONS §8 points at it. This ≈75-minute stack predates the cube
 > (D-14), the three rung mechanisms (D-16), and the ladder graphic (D-31–D-33).
 > The layer breakdown is still the right decomposition; the numbers are stale.
+> Note the exchange-rate row: the two-bar asymmetry chart under it was **cut**
+> and is a Scope & Branches row. The $X/$Y sentence carries L3 alone.
 
 | Layer | Artifact | Budget |
 |---|---|---|
@@ -183,3 +202,33 @@ Details worth having in the README:
 | README | Ladder figure, correlation argument, ergodicity note | 20 min |
 
 Total ≈ 75 min, leaving room for the state-tax toggle and deploy.
+---
+
+# Gate-two note: the mechanism that does NOT make the tail fat
+
+The section above is right that correlated shock timing is what makes the tail
+fat. Gate two found the neighbouring claim — the one in the deck's
+withdrawal-rate graphic — was backwards.
+
+A "nevermind" policy that harms only Roth **cannot** flip a Traditional verdict
+to Roth. Solving for the tie under D-26's frozen allowance `A`:
+
+```
+t*_policy  =  t_now · T₆₅  /  ( t_now · T₆₅ + A )
+```
+
+which exceeds `t_now` whenever `A < R₆₅` — and `A` is the Roth balance ten years
+before 65, so it always is. The threshold moves **right**, away from the marker.
+At the reference archetype: 32.5% under current rules, 58.4% once the treatment
+moves, against a 15.2% marker.
+
+So the archetype's lesson is the honest one: *the scenario you were told makes
+Roth safe is the one that widens Traditional's lead.* The flip is real, but it
+belongs to the low-bracket saver — the early-career preset reads 12.0% against a
+15.9% marker (Roth), then 29.1% once the rule moves (Traditional).
+
+**This is the same shape as the section above, one level up.** The instrument
+ladder can't see that two people holding the same portfolio face different risk.
+The policy toggle can't see that the same rule change lands on two savers in
+opposite directions. Both errors come from measuring the object instead of the
+person holding it.
