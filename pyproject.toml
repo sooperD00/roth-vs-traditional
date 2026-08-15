@@ -1,0 +1,17 @@
+[project]
+name = "roth-vs-traditional"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4.6",
+    "streamlit>=1.61.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

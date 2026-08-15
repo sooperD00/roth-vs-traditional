@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Tool caches
+.pytest_cache/
+
+# uv writes .venv/.gitignore containing "*", so the venv already self-ignores.
+# Listed anyway -- explicit beats relying on another tool's internals.
+.venv/
+
+# Streamlit: config.toml IS COMMITTED (Sprint 6 needs the dark theme there).
+# Only secrets are ignored.
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DELIBERATELY NOT IGNORED -- do not "tidy" these in later:
+#   uv.lock          Railway builds with `uv sync --locked` and fails without it
+#   cube.json        Sprint 9 requires it committed; the app must not compute it
+#   .python-version  uv and Railpack both read it
