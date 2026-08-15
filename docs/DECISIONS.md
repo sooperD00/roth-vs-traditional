@@ -737,8 +737,68 @@ both the total and the order of cuts. Actuals go in the README.
 | R7 | **Two known biases, both deferred, pointing opposite ways.** SALT deductibility ignored (overstates Traditional by up to 2.0 points on `t*`); over-65 deductions omitted (understates Traditional by 1.7 points on the marker) | Both are stated with their size and direction in the README, and neither changes a verdict. Roughly cancelling is not the defense — knowing which way each one bends the answer is |
 | R8 | **The block bootstrap's stated reason failed measurement.** It does not fatten the tail relative to an IID draw; it thins it slightly. A reviewer who knows time-series work may reach for this | Owned, not hidden. D-05 carries the measurement, the README has a section on it, and the pick survives on the recovery-forgone channel. `n ≈ 19.6` independent blocks is the same critique the README already makes of Bengen — say it first |
 | R9 | **The 0-shock slab ruins about half the time under the bootstrap** — 53.1% measured, shock-free, draw at the deterministic solve. Sprint 4's *ruin is 0.0* gate cannot pass as written, and D-39's 15% margin cannot be raised far enough to save it | D-39's subsection carries the measurement and four options with their costs. **Decide at Sprint 3**, before Sprint 4 builds the cube on the assumption |
-| R2 | Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker | Railway from GitHub. Flag at 15 minutes. **P3a is now a scheduled hard gate on Sprint 6 rather than a floating pre-flight** — it needs no project code, so it runs in parallel with Sprints 2A–5. Railpack's framework detection does not cover Streamlit, so expect to set the start command explicitly |
+| R2 | ~~Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker~~ **CLOSED at P3a, 2026-08-15 — the probe is live.** Railway from GitHub, start command set explicitly in a committed `railway.toml`, guarded by `tests/test_deploy_config.py` | P3a ran as a scheduled hard gate on Sprint 6 rather than a floating pre-flight — it needed no project code, so it ran in parallel with Sprints 2A–5. **The framework-detection gap is the smaller half of this risk; see the subsection below for the half that fails silently.** **Scope of the closure:** the mechanism is proven and Sprint 9's five-minute budget now rests on a deploy that has stood up once. Sprint 6 still replaces `app.py` wholesale, and that rename is the one live exposure left |
 | R3 | Objectives 4 and 5 may not cross in range | T4 |
 | R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in the README, not hidden |
 | R5 | ~~Return series must exist before Sprint 3~~ **CLOSED at gate two.** `return_series.py` holds 98 real annual returns, 1928–2025, `STUB = False`, and `python return_series.py` passes its self-test | D-41. Confirmed by P4 in `remaining-sprints.md` and by the Sprint 3 gate line, both of which read *cleared*. This row stayed open one pass longer than the fact did |
 | R6 | **The archetype's draw is 54% of final income**, below any published replacement band | D-39. Reported as an outcome with the reason stated: a $24,500 cap cannot fund 80% of a $200,000 income, and the gap is Social Security plus the grayed taxable account. If a panelist reads it as an error, that sentence is the answer |
+
+### R2 — the half of the deploy risk that fails silently
+
+**What P3a found, and it is not the framework list.** Railpack's Python provider
+resolves a start command in two steps. First it looks for a framework it knows —
+FastHTML, Flask, FastAPI, Django. Streamlit is not one of them, which is the
+gap this file already named. Second, and undocumented here until now, **failing
+that it scans the repo root for a main file, in this order:**
+
+```
+main.py, app.py, start.py, bot.py, hello.py, server.py
+```
+
+**Our entry point is `app.py`. It is the second name on that list.**
+
+So a missing or mistyped start command does not raise. Railpack runs
+`python app.py`, and a Streamlit script invoked that way prints two warnings to
+stderr, starts no server, and **exits zero**. Build green. Deploy green.
+Container gone. No error line anywhere. Measured against this repo's own
+`app.py` during P3a, not assumed: exit code 0, nothing listening.
+
+That is the same defect shape D-06 and D-38 exist to prevent one layer down — a
+degenerate state returning something plausible instead of raising.
+
+**The guard is `healthcheckPath = "/_stcore/health"` in `railway.toml`.** With
+it, nothing listens, the check fails, and Railway marks the deployment FAILED
+with a named reason. Without it, a container that exits zero reads as success.
+The healthcheck is the deliverable; the start command is only the happy path.
+`restartPolicyType = "ON_FAILURE"` is the same argument once more: `ALWAYS`
+would restart a container that exited zero, which is precisely what the
+`python app.py` fallback does — an unbounded loop of clean exits, reporting
+nothing.
+
+**`tests/test_deploy_config.py` guards those invariants before the push, and it
+names `app.py` nowhere.** All eight tests read the entry point out of the start
+command and assert that file exists, so Sprint 6's rewrite carries the guard
+forward instead of breaking it. The one file this sprint knows will be replaced
+is the one the tests refuse to hard-code.
+
+**The 15-minute flag means something different now.** It is not *abandon
+Railway* — every fallback below costs more than fifteen minutes. It means **stop
+guessing and open the deployment details pane**, which shows which setting came
+from which line of `railway.toml`.
+
+**Fallback ladder, replacing CONTEXT part D's.** That note predates Sprints 6–8,
+which specify sixty-five minutes of Streamlit-native UI. Option 4 there is no
+longer a fallback; it is a rewrite.
+
+| | Fallback | Cost | Closes R2? |
+|---|---|---|---|
+| F1 | `railway.toml` with an explicit start command | the plan | — |
+| F2 | Railway + `Dockerfile` | Blind iteration — no local Docker to test against | No |
+| F3 | Public repo → Streamlit Community Cloud | **Rejected.** Sleeps after 12h with no traffic and shows a visitor a *"Yes, get this app back up!"* button — the first thing a panelist would see. Also wants a `requirements.txt`, a second source of truth against `uv.lock` | Yes, at the cost of the demo |
+| F4 | Hugging Face Spaces — Streamlit-native, private repos on the free tier | ~15 min | Mostly |
+| F5 | Render / Fly | Same work as Railway, no advantage | No |
+| ~~F6~~ | ~~Single-file HTML + JS (CONTEXT part D option 4)~~ | Deletes Sprints 6–8 | Not credible |
+
+**F1 ran and it held.** The rest of the ladder stays written down anyway: it
+costs nothing to keep, and it is the answer if Sprint 6's real app fails where
+the probe did not.
