@@ -18,7 +18,18 @@ __pycache__/
 Thumbs.db
 
 # DELIBERATELY NOT IGNORED -- do not "tidy" these in later:
-#   uv.lock          Railway builds with `uv sync --locked` and fails without it
+#   uv.lock          Railway builds with `uv sync --locked --no-dev
+#                    --no-install-project` and fails without it. Two
+#                    consequences worth knowing: --no-dev means pytest is NOT
+#                    in the image (intended), and --no-install-project means
+#                    the project is NOT installed as a package -- tax.py and
+#                    engine.py import only because `streamlit run` puts the
+#                    script's directory on sys.path. P3a proves that in the
+#                    container rather than leaving it to Sprint 6 to discover.
+#                    --locked also means: hand-edit pyproject.toml without
+#                    re-running uv lock and the BUILD fails, not the app.
+#   railway.toml     Start command, healthcheck, restart policy. Config-as-code
+#                    overrides the dashboard, so this file wins.
 #   cube.json        Sprint 9 requires it committed; the app must not compute it
 #   .python-version  uv and Railpack both read it
 

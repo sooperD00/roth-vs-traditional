@@ -13,7 +13,7 @@ Built as a design spike for an energy-analytics panel. The brief is in
 
 | | |
 |---|---|
-| **Live demo** | _Sprint 9 — URL pending_ |
+| **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
 | **Progress** | Sprint 2A complete — 2 of 11 sprint units |
 | **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, 89 passing tests |
 | **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; `app.py` |
