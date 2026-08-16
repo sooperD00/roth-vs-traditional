@@ -25,10 +25,13 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: two layers implemented, four functions still raising.** Sprint 2A
+**Status: three layers implemented, one function still raising.** Sprint 2A
 landed the profile, the income curve, contributions, accumulation, the D-33
-ladder and the constant-path builder. `retirement_draw`, `outcome`, `breakeven`
-and `marker_withdrawal` are Sprints 2B, 2C and 3.
+ladder and the constant-path builder. Sprint 2B landed the retirement draw, both
+decumulation loops, the D-26 policy branch, the four objective reductions, ruin
+detection and `outcome()`; it deleted `marker_withdrawal`, which was a pure
+alias for `tax.gross_for_net`. **`breakeven()` is Sprint 2C**, and the block
+bootstrap inside `make_paths` is Sprint 3.
 
 **The accumulation figures in this file now come out of this repo.** The four
 age-65 balances, `t_now`, the year-20 allowances and D-15's proxy all reproduce
@@ -231,18 +234,20 @@ should not die on the interesting cases.
 
 # Tests
 
-Three suites, 97 tests. `tests/test_tax.py` — 35 tests, each defending a number
+Three suites, 147 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` — opened at Sprint 2A, 54 tests over the
-profile, the ladder, contributions and accumulation. `tests/test_deploy_config.py`
-— opened at P3a, 8 tests parsing `railway.toml`. Those eight guard the deploy
-config rather than the engine, and they are counted here because `uv run pytest`
-runs them; the eight numbered tests below are a different set entirely.
+imported. `tests/test_engine.py` — opened at Sprint 2A, 104 tests: 54 over the
+profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
+the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
+and 3 added post-2B over `geometric_mean`'s overflow (D-39). `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
+`railway.toml`. Those eight guard the deploy config rather than the engine, and
+they are counted here because `uv run pytest` runs them; the eight numbered
+tests below are a different set entirely.
 
 No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4 closes
 by collecting and mapping** T1–T8 into it, each docstring naming the sentence it
-protects. T1 and T2 arrive in Sprint 2B, T3–T5 in 2C, T6–T8 in Sprint 3. Each
-asserts a claim made elsewhere in the docs:
+protects. **T1 and T2 are green as of Sprint 2B**; T3–T5 are 2C, T6–T8 are
+Sprint 3. Each asserts a claim made elsewhere in the docs:
 
 | Test | Defends |
 |---|---|

@@ -14,9 +14,9 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 2A complete — 2 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` accumulation, the P3a deploy probe, 97 passing tests |
-| **Not yet written** | `engine.py`'s decumulation, marker and breakeven; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
+| **Progress** | Sprint 2B complete — 3 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `outcome()` — accumulation, the retirement draw, both decumulation loops, the policy branch and the four objective reductions — the P3a deploy probe, 147 passing tests |
+| **Not yet written** | `engine.py`'s `breakeven()` and its block bootstrap; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -24,12 +24,14 @@ headline figures from the documents alone. It reproduced two of three, built a
 working deterministic engine to do it, and found the third impossible as
 specified. Every figure below came out of that engine.
 
-**Sprint 2A has since brought the accumulation half into this repo.** The four
-age-65 balances, `t_now`, both year-20 allowances and D-15's proxy reproduce from
-`uv run python engine.py` and are asserted by tests. The modeled draw, the
-today's-law marker and both thresholds are still gate-two figures, pending Sprint
-2B. Two figures were withdrawn during review and restored in 2A as labeled
-proxies; the bootstrap values they stand in for are owed by Sprint 3.
+**Sprints 2A and 2B have since brought the engine into this repo.** The four
+age-65 balances, `t_now`, both year-20 allowances, D-15's proxy, the modeled draw
+and the today's-law marker all reproduce from `uv run python engine.py` and are
+asserted by tests. Both thresholds fall out of hand-bisecting 2B's `outcome()`,
+at 58.4064% and 29.1% — but the search itself is Sprint 2C's, so they stay
+gate-two figures until it ships. Two figures were withdrawn during review and
+restored in 2A as labeled proxies; the bootstrap values they stand in for are
+owed by Sprint 3.
 
 ---
 
@@ -110,8 +112,8 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 97 tests, all green
-uv run python engine.py          # engine self-test — Sprint 2A's published scalars
+uv run pytest                    # 147 tests, all green
+uv run python engine.py          # engine self-test — 2A and 2B's published scalars
 uv run python return_series.py   # return-series self-test
 uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
 ```
@@ -138,9 +140,9 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | `tax.py` | ✅ | Every number that came from outside the model — 2026 single-filer brackets, standard deduction, deferral cap, state rate, early-withdrawal penalty. No tax number appears anywhere else in the repo, and `tests/` is the one stated exemption |
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
-| `engine.py` | 🟡 | Profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder — all landed at Sprint 2A and tested. `retirement_draw`, `outcome`, `breakeven` and `marker_withdrawal` still raise; Sprints 2B, 2C and 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
+| `engine.py` | 🟡 | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. **`breakeven()` is Sprint 2C**; the block bootstrap inside `make_paths` is Sprint 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 54 tests over the profile, ladder, contributions and accumulation. Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; T1–T2 land in 2B, T3–T5 in 2C, T6–T8 in Sprint 3 |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 104 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, and 3 added post-2B over `geometric_mean`'s overflow (D-39). Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green**, T3–T5 are 2C, T6–T8 are Sprint 3 |
 | `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
 | `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
@@ -204,6 +206,54 @@ costs the low-bracket saver Roth was supposed to be for.**
 
 ---
 
+## Results
+
+Claims the design made, measured against the built engine, that did not survive.
+Recorded here rather than quietly rewritten — the convention is the project's own
+and D-05 and D-15 are the earlier instances.
+
+**The income shape's end point never reaches the archetype.** The design deck's
+income mockup states that ending flat at $200,000 rather than declining to
+$165,000 *"costs Traditional 1.4 points of its advantage,"* and D-19 carried the
+qualitative half of it: ending high raises retirement spending and narrows
+Traditional's lead, so it is the conservative case. Measured at Sprint 2B, both
+shapes return `t_now` 32.50%, a 15.18% marker, a 17.32-point advantage and a
+$108,397 draw — identical to the dollar, with the policy threshold at 58.4064%
+either way. **The deferral cap is the reason.** A 20% savings rate passes $24,500
+above an income of $122,500, and the declining profile is still earning $168,500
+at age 64, with $33,700 of capacity against a $24,500 cap. Every year of the
+55→65 leg is capped under both shapes, so the terminal income cannot reach the
+balance at 65 and nothing downstream of it can move. The estimate was not wrong
+by 1.4 points; the mechanism it named is invisible at this income. **Nor does the
+early-career preset rescue it** — the preset starts under the cap but ends at
+$200,000, so its end point is capped too and moves nothing either. The effect
+needs a profile whose *final* leg stays under $122,500, and there it is a
+fraction of the claimed size: ending at $90,000 rather than $110,000 moves the
+marker by **0.13 points**. That is the correction, rather than a defense of the
+original number.
+
+**A named margin was measured and its justification did not survive.** D-39 sizes
+the retirement draw to leave 15% of the Roth's age-65 balance at 100, so the base
+case is not sitting exactly at zero where any shock ruins every objective at
+once. Over 2,000 block-bootstrap paths, shock-free, **1,062 of 2,000 Roth paths
+go negative before 100 — 53.1%.** That is sequence risk rather than a tuning
+error: a level real draw against a 19.30% standard deviation over 35 years ruins
+about half the time by construction, and no plausible margin closes it. Sprint
+4's gate reads *ruin is 0.0 across the 0-shock slab* and cannot pass as written;
+the four options and their costs are in D-39, and the choice is Sprint 3's, taken
+deliberately rather than discovered. **The figure is itself owed a
+re-measurement** — it was taken with the draw sized at the 7% deterministic solve,
+and Sprint 2B pinned the bootstrap draw at the series' own 6.776%, which is
+smaller and therefore less ruin. The direction is favorable, which is precisely
+why it gets re-measured rather than assumed to hold.
+
+**The block bootstrap was picked for a reason that failed measurement.** It was
+chosen to fatten the tail against an IID draw and it thins it slightly — p10
+drawdown −59.7% against −64.3%. It survives on a different argument than the one
+it was picked for, which Scope & Branches below states in full.
+
+---
+
 ## Two known biases, both deferred, both measured
 
 Neither changes a verdict. What matters is that each one's size and direction are
@@ -261,6 +311,7 @@ asserted.
 | 6 | Sprint 2A | `prompt5.txt` _(reused)_ | [`docs/sprints/Sprint2A.txt`](docs/sprints/Sprint2A.txt) · _(link)_ |
 | 7 | P3a — Railway deploy | `prompt5.txt` _(reused)_ | [`docs/sprints/P3a.txt`](docs/sprints/P3a.txt) · _(link)_ |
 | 8 | Docs assessment | `prompt6.txt` | _(link)_ |
+| 9 | Sprint 2B | `reading-list-sprint-2B.txt` | [`docs/sprints/Sprint2B.txt`](docs/sprints/Sprint2B.txt) · _(link)_ |
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three

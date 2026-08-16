@@ -263,8 +263,25 @@ decision exactly.
 
 **One number to treat with care.** The mockup states *"ending at $200k instead of
 declining to $165k costs Traditional 1.4 points of its advantage."* D-19 makes
-the qualitative claim but not the measurement, so 1.4 lives only in this picture.
-Treat it as a design-phase estimate pending Sprint 2A, which builds the income curve and can measure it directly.
+the qualitative claim but not the measurement, so 1.4 lived only in this picture.
+~~Treat it as a design-phase estimate pending Sprint 2A, which builds the income
+curve and can measure it directly.~~
+
+**MEASURED AT SPRINT 2B, AND IT IS 0.0.** The income curve landed at 2A and the
+draw at 2B, so the claim is checkable end to end. Both shapes return `t_now`
+32.50%, a 15.18% marker, a 17.32-point advantage and a $108,397 draw — identical
+to the dollar, with the policy threshold at 58.4064% either way. **The deferral
+cap is the reason.** A 20% savings rate passes $24,500 above an income of
+$122,500; the declining profile is still earning $168,500 at age 64, with $33,700
+of capacity against a $24,500 cap. Every year of the 55→65 leg is capped under
+both shapes, so the terminal income cannot reach the balance at 65 and nothing
+downstream of it can move. The estimate was not wrong by 1.4 points — the
+mechanism it named is invisible at this income. **The early-career preset does
+not rescue it either:** it starts under the cap but ends at $200,000, so its end
+point is capped as well. The effect needs a profile whose *final* leg stays under
+$122,500, and there it is a fraction of the claimed size — ending at $90,000
+rather than $110,000 moves the marker by 0.13 points. D-19 carries the
+correction and the README's `## Results` carries the finding.
 
 ## 3.3 — Accordion of departures
 

@@ -238,9 +238,13 @@ return models are different on purpose — is unchanged and is still load-bearin
 
 **One fact, applied four times.** Objectives 1, 3, 4 and 5 are all monotone
 functionals of the after-tax terminal *distribution* — mean, median, 10th
-percentile, `P(< 0)`. When the Traditional and Roth after-tax distributions are
-related by a positive scalar `(1−t_later)/(1−t_now)`, every one of them crosses
-where that scalar equals 1. That is not four coincidences to be measured; it is
+percentile, `P(≥ 0)`. **Corrected at Sprint 2B: objective 5 is `P(NOT running
+out)`, maximized like the other three, and `Result.ruin` is its complement.**
+Written as `P(< 0)` this row named the one functional that decreases where the
+others increase, and `breakeven()` needs them all pointing the same way to have
+a monotone difference to bracket. When the Traditional and Roth after-tax
+distributions are related by a positive scalar `(1−t_later)/(1−t_now)`, every
+one of them crosses where that scalar equals 1. That is not four coincidences to be measured; it is
 one property to be asserted.
 
 **Where the multiple survives:**
@@ -323,7 +327,7 @@ reuses `tax.py` and adds no new tax number.
 
 | ID | Decision | Why |
 |---|---|---|
-| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single. **Income shape, four points, linearly interpolated: (35, $165,000) · (38, $75,000) · (55, $200,000) · (65, $200,000).** Savings rate 20%. State: **taxed while working, untaxed in retirement** (D-30 defaults) | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes. The trough at 38 is parental leave, which CONTEXT part E already flags as this population's low-bracket window. The end point is flat from the peak rather than declining: ending high is the *conservative* case, since it raises retirement spending and narrows Traditional's lead. **Consequence: `t_now` = 24% federal, 32.5% combined. The absence of a bracket straddle is no longer an assumption** — `deferral_rate` and `marginal_rate` agree exactly at $165,000, and `tests/test_tax.py` asserts it. See the D-21 subsection for the three incomes where they do not |
+| D-19 | **Reference archetype:** age 35, retires 65, dies 100, filing single. **Income shape, four points, linearly interpolated: (35, $165,000) · (38, $75,000) · (55, $200,000) · (65, $200,000).** Savings rate 20%. State: **taxed while working, untaxed in retirement** (D-30 defaults) | Filing single because the UI models one income curve and one age — an MFJ archetype is a household the controls cannot represent. $165k is what a Staff SWE recognizes. The trough at 38 is parental leave, which CONTEXT part E already flags as this population's low-bracket window. The end point is flat from the peak rather than declining. **THAT CHOICE'S REASON DID NOT SURVIVE MEASUREMENT, Sprint 2B.** It read *ending high is the conservative case, since it raises retirement spending and narrows Traditional's lead* — and at this archetype it does neither. The deferral cap binds on every year of the 55→65 leg under both shapes, so the two profiles return the same age-65 balances, the same $108,397 draw, the same 15.18% marker and the same 58.4064% policy threshold. The flat end point keeps the weaker claim it can support, that it asserts less than a declining one, and the failed reason is recorded rather than rewritten — the same treatment D-05 and D-15 get. DESIGN.md 3.2 and the README's `## Results` carry the measurement. **Consequence: `t_now` = 24% federal, 32.5% combined. The absence of a bracket straddle is no longer an assumption** — `deferral_rate` and `marginal_rate` agree exactly at $165,000, and `tests/test_tax.py` asserts it. See the D-21 subsection for the three incomes where they do not |
 | D-20 | **Horizon runs to age 100; `n_years = 100 − current_age`.** Two phases: accumulate 35→64, decumulate 65→99. All objectives evaluate at 100. Guard on `current_age >= 65` | Planning past median longevity is the standard convention, because outliving the money is the failure that matters. Splitting the phases is what puts `t*` where it belongs — in the withdrawal years. "Terminal wealth" therefore means bequest at 100, not balance at 65. **Cash flows land at PERIOD END in both phases:** accumulation is `balance = balance × (1+r) + contribution`, so a contribution earns no return in the year it is made, and decumulation is `balance = balance × (1+r) − draw`. Stated because it is not free — the annuity-due reading puts Traditional at 65 at $2,256,487 instead of $2,108,867 (**+7.0%**) and the draw at $101,305 instead of $108,397 (**−6.5%**). Close enough to read as an interpolation bug, far enough to fail every published gate |
 | D-21 | **`tax.py` implements SINGLE only:** 2026 bracket edges, seven rates, standard deduction $16,100, deferral cap $24,500, **state rate 8.5%**, **early-withdrawal penalty 10%**. MFJ and HoH are `TODO` stubs. **Over-65 deductions are DEFERRED, not omitted. `t_now` is a deferral rate, not a bracket lookup — see the subsection below** | The deduction applies to withdrawals, so gross minus deduction gives taxable and the bracket table is read in taxable terms. **The state rate and the penalty live here too**: they are tax numbers, and Sprint 1's rule is that no tax number appears anywhere else in the repo. **`tests/` is the one exemption**, stated in the module docstring, because a hand-verification that imports the constant it is verifying tests nothing. **R1 is CLOSED** — all seven single edges and the $16,100 deduction verified against IRS IR-2025-103 / Rev. Proc. 2025-32 on 2026-08-15, and corroborated by Tax Foundation's independent table. **HoH's reason changed:** the stub was justified by "overlapping edges at the 24/32 boundary," which the primary source does not support — the published HoH column is contiguous (24% ends $201,750, 32% begins $201,751). It stands on D-19's reason instead, which is the stronger one: the UI models one income curve and one age, so a household is something the controls cannot represent. **The two over-65 deductions are deferred with their cost measured** — the permanent $2,050 (IRC 63(f)) and the temporary, income-phased OBBB senior deduction of up to $6,000. Together they take the marker from 15.2% to 13.5%, which *widens* Traditional's lead, so omitting them understates the recommendation rather than inflating it. **That 13.5% carries a convention and the constants' comment must name it: the gross is RE-SOLVED to hold D-39's net draw at $108,397, falling to ~$125,380, and the $6,000 is taken IN FULL.** Holding gross fixed at $127,804 instead gives 13.7%; applying the OBBB phaseout gives ~14.1%. Neither changes a verdict; the preset's flip survives at 14.4% against a 12.0% threshold. Wiring the $2,050 is one conditional on age and is the honest one to do first; the $6,000 sunsets, and applying it across a 35-year retirement would assert something the statute does not say |
 | D-25 | **D-01 applies at `min(capacity, cap)` in PRE-TAX terms.** Base case: **$24,500 to Traditional, $16,538 to Roth** — the Roth deliberately under-fills. **D2 ON** fills the Roth to $24,500 after-tax, which costs **$36,296** pre-tax | The cap is denominated in nominal contribution dollars — pre-tax for Traditional, after-tax for Roth — so at the boundary the two choice sets differ and the convention has nothing to equalize. Reading D-01 as a comparison device rather than a behavior model resolves this: the base case isolates the *timing* effect, D2 adds the *capacity* effect back as a named step. Under-filling the Roth is artificial and is labeled so in the app. **THE RULE AS CODE, since T3 needs it and no row stated it.** Let `capacity = savings_rate × income(age)`. D2 **OFF**: `trad = min(capacity, cap)` and `roth = trad × (1 − t_now)` — same pre-tax dollars, D-01. D2 **ON**: `trad` is unchanged at `min(capacity, cap)` — it cannot go higher, the cap binds — while `roth = min(cap, capacity × (1 − t_now))` in AFTER-TAX dollars. **D2 deliberately breaks D-01's same-pre-tax-dollars convention, and that break IS the asymmetric mechanism** D-22 counts alongside Low's penalty. **The unaffordable case degrades rather than raising:** at the archetype the second term binds at $22,275 against the $24,500 cap, which is D-42's lesson rendered as arithmetic instead of as an exception — the cap is denominated in dollars that cost you more, so it binds before it looks like it should |
@@ -488,9 +492,44 @@ moves ruin:
 | The 7% deterministic default (D-04a) | Sized above what the median bootstrap path sustains — the series compounds at 6.776% (D-15) |
 | The series' own geometric mean, 6.776% | Consistent with the dots, inconsistent with the balance graph's 7% line |
 
-**Pin it in Sprint 2B while the function is being written**, not in Sprint 3 when
-the paths arrive. Either way the draw stays ONE number across all paths; that
-half of D-39 is not in question.
+**PINNED AT SPRINT 2B, and neither candidate was picked — one expression returns
+both.** The draw is sized at `draw_return_rate(paths)`, the geometric mean of
+whatever array the engine was handed, on a **deterministic reference
+accumulation at that rate**. On a constant array that returns the constant
+itself (measured error 5.6e-17, so `$108,397` is bit-identical); on a bootstrap
+it returns the series' own compounded rate. The reference accumulation supplies
+the single `roth₆₅` a bootstrap otherwise lacks, and supplies it shock-free by
+construction rather than by a branch someone can forget.
+
+**No branch on array kind**, which is the point: reading `paths[0][0]`, or
+testing whether every element is equal, reintroduces exactly the flag D-22
+deleted when it made deterministic mode a *shape*.
+
+**POST-CLOSE CORRECTION, AND IT WOULD HAVE TAKEN SPRINT 3 DOWN.** As shipped at
+2B, `geometric_mean()` accumulated a running product one element at a time.
+`draw_return_rate()` flattens the whole array, and a `(2000, 65)` bootstrap is
+130,000 factors averaging about 1.068 — float64 overflows at roughly 10,800 of
+them, so **any `n_paths` above ~166 returned `inf`.** It did not raise:
+`_solve_draw` returned `nan`, `outcome()` returned `nan` on objectives 1, 3 and
+4, and **objective 5 returned 1.0 — zero ruin**, because `nan < 0` is False so no
+path counted as ruined. That is exactly the number Sprint 4's 0-shock gate is
+looking for, arriving from a run in which every other value was `nan`; the same
+shape D-06 and D-38 exist to prevent one layer down, and the same shape as R2's
+Railway defect. Fixed in log space — `exp(mean(log1p(x))) − 1` — which is
+**bit-identical on both arrays that carry a published figure**: the 7% constant
+array returns `0.07000000000000006` either way, the 98-year series returns
+`0.06776229488593666` either way, and D-15's proxy does not move to the
+nanodollar. **2B's own tests could not have caught it.** Both `draw_return_rate`
+tests run single-row arrays and `make_paths("block", ...)` raises, so no
+multi-row array existed in the suite — a gate whose failing input cannot yet be
+constructed, which is the streamlit-grep shape a third time.
+
+**OWED TO SPRINT 3, AND IT IS THIS SUBSECTION'S OWN MEASUREMENT.** R9's 53.1%
+was taken with the draw sized at the **7% deterministic solve**. Under this rule
+a bootstrap draws at 6.776%, which is a smaller draw and therefore *less* ruin.
+That figure needs re-measuring before Sprint 3 chooses among the four options
+below — and the favorable direction is precisely why it must be re-measured
+rather than assumed to still hold.
 
 **2. The 15% margin does not survive volatility, and Sprint 4's ruin gate rests
 on it.** The margin was sized against a deterministic 7% path. Measured at the
@@ -572,7 +611,7 @@ Per cell:
 | `breakeven` | `float \| null` | Break-even future marginal rate, as a percentage |
 | `status` | `"crosses" \| "always_roth" \| "always_trad"` | When not `"crosses"`, `breakeven` is `null`. Objectives 4 and 5 will not always cross inside a plausible range — **this must not raise**. There is deliberately **no status for a degenerate cell** where the difference is flat everywhere: `breakeven()` guards against that before bisecting rather than encoding it, because a difference that never varies is a modeling error, not a result. Objective 2 was the only known instance and it is cut (D-06) |
 | `dollars` | `{"2": {...}, "10": {...}} \| null` | Keyed by δ. Each value is `{"roth": float, "trad": float}`. Null for non-crossing cells |
-| `ruin` | `{"roth": float, "trad": float}` | Fraction of paths where the after-tax balance went negative before 100. Recorded, never clamped (D-38) |
+| `ruin` | `{"roth": float, "trad": float}` | Fraction of paths where the **account balance** went negative during decumulation. Recorded, never clamped (D-38). **Pinned at Sprint 2B:** the operand is the balance, not its after-tax value. The two agree in sign for Traditional and for Roth under current rules, since `(1 − t_later) > 0`; they can disagree for **Roth under the policy**, where `rem` is a tax attribute rather than money you can spend. "Before 100" is inclusive of the terminal, and costs nothing to read that way — below zero the recurrence is strictly more negative each year, so *ever negative* and *negative at 100* are the same set. Ruin is absorbing without being enforced |
 
 Header block: `seed`, `n_paths`, `return_rate`, `profile`, `deltas`,
 `generated_at`, `engine_version`.
@@ -594,6 +633,33 @@ Roth/Traditional decision appear in comparable units. **L3 lives here.**
 breakeven(profile, objective, shocks, policy, paths) -> Result
 outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 ```
+
+**The four objectives, promoted from `CONTEXT.md` part C (Sprint 2B).** CONTEXT
+records the option space and is not the contract, so the definitions live here.
+Encoded as ints; `2` is not one of them.
+
+| `objective` | Reduction over the after-tax terminal distribution | CONTEXT part C |
+|---|---|---|
+| `1` | **mean** | Max expected after-tax terminal wealth |
+| `3` | **median** | Max median outcome |
+| `4` | **10th percentile** | Max 10th percentile (regret-minimizing) |
+| `5` | **P(not running out)** — the fraction of paths that did NOT go negative | P(not running out) |
+| `2` | **REJECTED**, raises | Max after-tax lifetime spending — cut at D-06 |
+
+**All four increase in the same direction**, and that is a requirement rather
+than a coincidence: `breakeven()` bisects on a difference that must be monotone
+in `t_later`. Objective 5 is therefore `P(not running out)` and is the
+**complement of `Result.ruin`**, not the same quantity.
+
+**`policy` is `None` or an int year `N`**, not a boolean — `N` is D-26's snapshot
+index and defaults to 20.
+
+**The draw's return rate is read off `paths`, not passed** (D-39's pin, Sprint
+2B). `outcome()`'s own `rate` argument is `t_later`, a tax rate.
+`draw_return_rate(paths)` returns the geometric mean of the array, which is the
+constant itself on a constant array and the series' own compounded rate on a
+bootstrap — so D-39's two candidates are the same expression evaluated on two
+inputs, and no branch on array kind enters the engine (D-22).
 
 **`Profile`, published because Sprint 2A had to invent it and three later sprints
 read it.** Fields: `income_points` (four `(age, gross)` pairs, D-19), `savings_rate`
@@ -629,6 +695,15 @@ read it.** Fields: `income_points` (four `(age, gross)` pairs, D-19), `savings_r
 - `n_years = 100 − current_age` (D-20). Accumulation is `65 − current_age` years,
   decumulation is a flat 35.
 
+- **`accumulate(profile, path, shocks=0)`** — the parameter landed at Sprint 2B,
+  the branch is Sprint 3's. Defaulted so 2A's 54 tests pass untouched, which is
+  the whole point: the two routes it replaces were changing a published
+  signature underneath them, or duplicating the accumulation loop inside
+  `outcome()`. **It raises above zero rather than returning the 0-shock answer**
+  — the same refusal `make_paths("block", ...)` makes, and for the same reason:
+  a silent fallback would have the cube's 12 informative cells report the 36
+  uninformative ones' number.
+
 - `paths` is passed in, never drawn inside — that is what makes D-07 hold
 - `outcome` is public; `spike_grid` calls it directly for the dollar fields
 - **Guard before bisecting.** Evaluate the difference at both bracket endpoints and assert it is non-constant. Two evaluations, one assertion. A difference that is identically zero otherwise returns whichever endpoint bisection started nearest, **silently** — worse than the no-crossing case T4 covers, which at least has a sentinel. This guard would have caught objective 2 in Sprint 2C instead of Sprint 4
@@ -646,8 +721,8 @@ docs, which is the point. Sprint 1's assertions are not among them — they live
 
 | # | Test | Claim it defends |
 |---|---|---|
-| T1 | `t_now == t_later` → the two outcomes are equal under D-01 | The identity is real |
-| T2 | `t*` unchanged across `r ∈ {4, 7, 9, 12}%`, **and the common draw CANCELS out of the difference**: `after_tax_trad(100) − roth(100)` is identical at draw = 0, $108,397 and $250,000, at every `r`. **CORRECTED at Sprint 2A — do not assert the earlier wording.** *"The after-tax Traditional path equals the Roth path scaled by `(1−t_later)` at every year"* is FALSE through decumulation once `t_later ≠ t_now`; the ratio drifts. It holds in accumulation, or at `t_later == t*` | **L1.** Both accounts fund the same net spending, so the draw subtracts the same real amount from both after-tax paths and vanishes. The difference is `roth₆₅ · [(1−t_later)/(1−t_now) − 1] · (1+r)³⁵`, which crosses zero at `t_later == t_now` for ANY `r` and ANY draw. That is why `t*` is exact, and it is a stronger claim than the four sampled rates |
+| T1 ✅ **2B** | `t_now == t_later` → the two outcomes are equal under D-01 | The identity is real |
+| T2 ✅ **2B** | `t*` unchanged across `r ∈ {4, 7, 9, 12}%`, **and the common draw CANCELS out of the difference**: `after_tax_trad(100) − roth(100)` is identical at draw = 0, $108,397 and $250,000, at every `r`. **CORRECTED at Sprint 2A — do not assert the earlier wording.** *"The after-tax Traditional path equals the Roth path scaled by `(1−t_later)` at every year"* is FALSE through decumulation once `t_later ≠ t_now`; the ratio drifts. It holds in accumulation, or at `t_later == t*`. **PASSING at Sprint 2B, and the draw-cancellation half is asserted through `engine._decumulate` rather than through `outcome()`** — §5’s signature carries no `draw` parameter and D-39 has the draw computed rather than passed in, so the test went one layer down instead of the contract widening to admit it. The `t*`-across-`r` half is still 2C’s | **L1.** Both accounts fund the same net spending, so the draw subtracts the same real amount from both after-tax paths and vanishes. The difference is `roth₆₅ · [(1−t_later)/(1−t_now) − 1] · (1+r)³⁵`, which crosses zero at `t_later == t_now` for ANY `r` and ANY draw. That is why `t*` is exact, and it is a stronger claim than the four sampled rates |
 | T3 | At the **$185,000 test profile** (D-42) with D2 ON, Roth shelters strictly more real dollars and the cell returns `always_roth` | D2, the G4 trap, and D-25's scoping of D-01 |
 | T4 | A no-crossing cell returns its sentinel and does not raise | R3. T3's cell is one, so this is exercised rather than hypothetical |
 | T5 | In the base case, the today's-law effective marker is strictly below `t*` | The headline sentence — you defer at marginal and withdraw across the whole structure from zero |

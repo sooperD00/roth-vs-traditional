@@ -411,11 +411,30 @@ def geometric_mean(returns) -> float:
     than at a rounding of it. The four-decimal literal returns $2,028,055.76;
     this function's value returns $2,028,066.17, which is the published figure.
     Ten dollars, on a number whose only job is to be checked against.
+
+    COMPUTED IN LOG SPACE, AND THAT IS NOT A STYLE CHOICE. The running-product
+    form this replaced overflowed float64 at about 10,800 factors. One path is
+    65 of them and nobody noticed; D-41's n_paths = 2000 is 130,000 of them and
+    draw_return_rate() flattens the whole array, so Sprint 3's first bootstrap
+    would have returned inf -- and then nan through _solve_draw and outcome(),
+    with objective 5 reporting 1.0, ZERO RUIN, which is exactly the number
+    Sprint 4's 0-shock gate is looking for. exp(mean(log1p(x))) - 1 is
+    bit-identical on both arrays that carry a published figure: the 7% constant
+    array and the 98-year series.
+
+    log1p rather than log(1 + x) for the small-return precision, and the guard
+    below is what a total loss would otherwise do -- log1p(-1) is -inf, where
+    the product form silently returned -1.
     """
-    product = 1.0
-    for v in returns:
-        product *= (1.0 + v)
-    return product ** (1.0 / len(returns)) - 1.0
+    a = np.asarray(returns, dtype=float).ravel()
+    if a.size == 0:
+        raise ValueError("geometric_mean of an empty sequence is undefined")
+    if np.any(a <= -1.0):
+        raise ValueError(
+            "a return of -100% or worse has no geometric mean: the compounded "
+            "path is zero or negative and no annual rate reproduces it"
+        )
+    return float(np.exp(np.mean(np.log1p(a))) - 1.0)
 
 
 @dataclass

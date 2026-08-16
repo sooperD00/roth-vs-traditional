@@ -569,6 +569,67 @@ def test_the_draw_rate_is_the_constant_on_a_constant_array(rate):
     assert engine.draw_return_rate(paths) == pytest.approx(rate, abs=1e-15)
 
 
+def test_the_draw_rate_survives_a_bootstrap_sized_array():
+    """POST-SPRINT-2B. The gate 2B's own shapes could not reach.
+
+    draw_return_rate() flattens the whole array, so a (2000, 98) bootstrap is
+    196,000 factors. The running-product form this defends against overflowed
+    float64 at about 10,800 of them -- n_paths above ~166 -- and returned inf.
+
+    THE ARRAY IS TILED ON PURPOSE. Every row is the same 98-year series, so the
+    answer is knowable in closed form: it must equal the geometric mean of ONE
+    copy, exactly. A resampled array would only let this assert "finite and
+    roughly right," which is the assertion that lets a rate computed the wrong
+    way survive -- see D-15, where 6.81% agreed with 6.7762% everywhere anyone
+    looked.
+
+    Sprint 2B could not have caught this: make_paths("block", ...) raises, so
+    no multi-row array existed in the suite. A gate whose failing input cannot
+    be constructed is the streamlit-grep shape again.
+    """
+    one = np.asarray(return_series.REAL_RETURNS, dtype=float)
+    tiled = np.tile(one, (2000, 1))
+    assert tiled.size == 2000 * one.size
+    got = engine.draw_return_rate(tiled)
+    assert math.isfinite(got)
+    assert got == engine.geometric_mean(one)
+
+
+def test_a_multi_path_outcome_is_a_number_rather_than_a_nan():
+    """POST-SPRINT-2B. The failure mode, not the arithmetic.
+
+    The overflow above did not raise. _solve_draw() returned nan, outcome()
+    returned nan on objectives 1, 3 and 4 -- and objective 5 returned 1.0,
+    ZERO RUIN, because nan < 0 is False so no path counted as ruined. That is
+    the number Sprint 4's 0-shock gate is looking for, arriving from a run
+    where every other value was nan.
+
+    Same shape D-06 and D-38 exist to prevent one layer down, and the same
+    shape as P3a's Railway defect: exit zero, nothing listening.
+    """
+    one = np.asarray(return_series.REAL_RETURNS, dtype=float)
+    paths = np.tile(one[: engine.ARCHETYPE.n_years], (500, 1))
+    for objective in (1, 3, 4, 5):
+        got = engine.outcome(
+            engine.ARCHETYPE, objective, 0, None, paths, 0.30, "trad"
+        )
+        assert math.isfinite(got), objective
+    assert math.isfinite(engine._solve_draw(engine.ARCHETYPE, paths))
+
+
+def test_a_total_loss_has_no_geometric_mean_and_says_so():
+    """The one input log1p cannot take, refused rather than approximated.
+
+    log1p(-1) is -inf. The product form returned -1.0 for it, which is a
+    plausible-looking annual rate for a path that is worth zero forever -- and
+    plausible-looking answers to degenerate inputs are what D-06 is about. The
+    real series bottoms out at -38.1% (1931), so nothing in this repo reaches
+    it; the guard is for Sprint 3's resampler, not for the data.
+    """
+    with pytest.raises(ValueError, match="-100%"):
+        engine.geometric_mean([0.05, -1.0, 0.05])
+
+
 def test_the_draw_is_identical_for_both_accounts():
     """Sprint 2B's draw-scope gate. D-39's PIN, consequence 1.
 
