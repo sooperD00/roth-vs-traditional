@@ -21,7 +21,14 @@ INVARIANTS THE TESTS DEFEND
       through decumulation once t_later != t_now: the ratio runs
       1.12 -> 1.43 -> 8.91 across ages 66, 82, 99. It holds in
       accumulation, or at t_later == t*.
-  T5  the today's-law marker is strictly below t*                 (D-24)
+  T5  IN THE BASE CASE, the today's-law marker is strictly below t*  (D-24)
+      THE SCOPE IS LOAD-BEARING AND TWO DOCUMENTS DROPPED IT. Section 6 reads
+      "in the base case"; remaining-sprints' 2C done-when and ENGINE.md's T5
+      row did not, and unscoped the claim is FALSE BY DESIGN. At the
+      early-career preset the marker is 15.9184% against t* = 12.0000% --
+      D-40's own published pair, and the inversion is exactly why that preset
+      carries the flip. Asserted at the archetype, with the preset as its
+      teeth.                                                    (2C, CL-5)
 
   Validation gate, DERIVABLE not measured: objectives 1, 3, 4 and 5
   are monotone functionals of the after-tax terminal distribution,
@@ -69,6 +76,49 @@ function that implements it; collected here because a reader looking for
      reason. The PARAMETER lands here so Sprint 3 fills a branch instead of
      moving a seam under 2A's 54 tests; only the BODY is deferred.
 
+SPRINT 2C PINNED THREE MORE. Same accounting as the block above: each is stated
+at the function that implements it, collected here so "what did 2C decide" is one
+place. All three are search parameters -- none of them is a modeling choice, and
+that is why they live here rather than in a decision row of their own.
+
+  1. THE BISECTION BRACKET IS (0.01, 0.95), AND IT IS A CITATION RATHER THAN A
+     PICK. Section 5 says "evaluate the difference at both bracket endpoints" and
+     never says what they are; D-06, D-22, D-38 and ENGINE.md are all silent. But
+     D-26's row already publishes a swept interval -- "the after-tax difference
+     NEVER crosses zero anywhere in t_later in (0.01, 0.95)" -- and
+     test_the_d26_terminal_rule_reproduces_all_three_readings runs exactly that
+     grid today. The number was in the corpus, unlabeled.
+     WHY THE LOW END CANNOT SIMPLY BE ZERO, WHICH IS THE REAL FINDING.
+     _outcome_paths guards 0 < rate < 1, so lo = 0 RAISES and the "sign of zero"
+     branch is unreachable there. The degenerate case is real and sits one cliff
+     over: at the D-42 profile trad_65 and roth_65 are bit-identical, so the
+     difference is -roth_65 * t_later * (1+r)**35 and it UNDERFLOWS TO EXACTLY
+     0.0 at t_later around 1e-17. sign(f(lo)) is then 0, the no-crossing test
+     sign(f(lo)) == sign(f(hi)) is False, and T4's cell reports a crossing near
+     zero instead of always_roth. At lo = 0.01 that difference is -24,708.70 --
+     thirteen orders above the floor -- so the zero branch cannot arise and there
+     is no third case to write.
+  2. THE STOPPING RULE IS FLOAT EXHAUSTION, NOT A TOLERANCE. The loop runs until
+     the midpoint equals an endpoint. D-22's "assert as an identity, not a
+     tolerance" and a t* published to four decimals only look opposed: the first
+     governs the TEST, the second needs a rule for the SOLVER. This repo has
+     already reconciled that exact pair twice -- 2A's 4-ulp bound on the
+     accumulation identity and T1's K = 16 -- and Section 5 states the
+     reconciliation in so many words: a REPRESENTATION tolerance, not a modeling
+     one. Measured, at 54 evaluations: t* lands 3 ulps from t_now at the
+     archetype and 20 at the preset, and the published 58.4064361550% reproduces
+     in full. Stopping at hi - lo <= 1e-4 instead returns 58.4046% and misses a
+     published figure in its fourth decimal.
+  3. RUIN IS MEASURED AT THE RATE THE RESULT REPORTS. Result.ruin varies with
+     t_later and nothing in the corpus said at which one: Traditional's fraction
+     goes 0.0 -> 1.0 between 32.50% and 33.45%, one point either side of t*. So a
+     crossing cell reports ruin at its own t*, which is what the done-when's "must
+     not mean running the decumulation a second time" already points at. A
+     NON-CROSSING cell has no t* and reports at t_now -- the one rate defined for
+     every profile without a solve, and the rate t* equals on every crossing cell
+     under current rules. That second half is the only line in this block with no
+     document behind it.
+
 OBJECTIVE ENCODING (D-06, CONTEXT part C). Four ints, and 2 is not one of them:
   1  mean of the after-tax terminal distribution   ("max expected terminal")
   3  median                                        ("max median outcome")
@@ -112,6 +162,15 @@ TERMINAL_AGE = 100     # D-20. Every objective evaluates here. "Terminal wealth"
                        # means bequest at 100, not balance at 65.
 POLICY_YEAR = 20       # D-09/D-26 default N. Year 1 is current_age, so N=20 is
                        # the balance AFTER the age-54 contribution, not age 55.
+
+BRACKET = (0.01, 0.95) # 2C. breakeven()'s search interval. NOT A TAX NUMBER and
+                       # so not D-21's business -- it is a bound on the search,
+                       # not a fact about the code. Cited rather than chosen:
+                       # D-26's row measures the untaxed reading across
+                       # t_later in (0.01, 0.95), and the 2B test that
+                       # reproduces its three readings sweeps that same grid.
+                       # See pin 1 in the module docstring for why the low end
+                       # cannot be zero.
 
 
 # --- The resilience ladder (D-33) --------------------------------------------
@@ -901,6 +960,38 @@ def outcome(profile, objective, shocks, policy, paths, rate, account) -> float:
     return _reduce(objective, after_tax, ruined)
 
 
+def _difference(profile, objective, shocks, policy, paths, t_later) -> tuple:
+    """(trad - roth, {"roth": f, "trad": f}) at one future marginal rate.
+
+    PRIVATE, AND IT IS THE WHOLE REASON Result.ruin COSTS NOTHING. The objective
+    value and the ruin fraction are two reductions of ONE decumulation, so
+    populating the field never means running the loop again with a different
+    reduction bolted on -- which is what the 2C done-when asks for and what
+    _outcome_paths' docstring means by naming this sprint its second caller.
+
+    SIGN CONVENTION: trad - roth, matching _selftest's policy gap and the tests'
+    d26_readings(). Positive means Traditional is ahead at this rate.
+
+    `policy` GOES TO BOTH CALLS UNCHANGED, and Traditional's immunity is not
+    re-decided here. _outcome_paths builds an allowance only for the Roth, and
+    _decumulate refuses one for Traditional outright; asserting it a third time
+    in this function would be a third place to keep in step. THAT ABSENCE IS
+    D-26's asymmetry, and it stays where the code already carries it.
+
+    NOT A REPLACEMENT FOR outcome(). outcome() is public and spike_grid calls it
+    directly for the dollar fields (D-17); this returns a difference and a ruin
+    dict, which is a shape only the search wants.
+    """
+    values, ruin = {}, {}
+    for account in ("trad", "roth"):
+        after_tax, ruined = _outcome_paths(
+            profile, shocks, policy, paths, t_later, account
+        )
+        values[account] = _reduce(objective, after_tax, ruined)
+        ruin[account] = float(np.mean(np.asarray(ruined, dtype=bool)))
+    return values["trad"] - values["roth"], ruin
+
+
 def breakeven(profile, objective, shocks, policy, paths) -> Result:
     """Bisect on the future marginal rate until the two outcomes tie.
 
@@ -923,8 +1014,89 @@ def breakeven(profile, objective, shocks, policy, paths) -> Result:
     Archetype, rules hold:      32.5%   (== t_now, exactly)
     Archetype, nevermind @ 20:  58.4%   (RIGHT of t*, not left -- D-40)
     Early-career preset:        12.0% -> 29.1%, and the verdict flips
+
+    THE SEARCH PARAMETERS ARE PINNED IN THE MODULE DOCSTRING, not here, because
+    the bracket and the stopping rule were decided nowhere in the corpus and a
+    reader looking for them should not have to know which function to open.
+    Short form: BRACKET is (0.01, 0.95), the loop runs to float exhaustion, and
+    ruin is measured at the rate this Result reports.
+
+    `dollars` IS ALWAYS None OUT OF HERE AND THAT IS THE CONTRACT, not an
+    omission (Sec 5, D-17). spike_grid evaluates outcome() at t* +/- delta and
+    fills the slot; carrying the slot is what leaves it able to. So null has two
+    causes and `status` tells them apart: status != "crosses" is a non-crossing
+    cell and stays null forever, while status == "crosses" with a null here is a
+    cell spike_grid has not reached yet.
+
+    `ruin` IS POPULATED, AND IT DOES NOT CONFLICT WITH REJECTING OBJECTIVE 5 AT
+    ONE PATH. The rejection is about objective 5 as a BISECTION TARGET -- P(not
+    running out) over one path is a step function with one step. The FIELD is a
+    report, and at n_paths == 1 it is a well-defined 0.0 or 1.0.
     """
-    raise NotImplementedError   # Sprint 2C
+    paths = np.asarray(paths, dtype=float)
+    # The ndim clause is not belt-and-braces: on a 1-D array shape[0] is the YEAR
+    # count, so testing it alone would reject a 65-year path as "one path". A
+    # wrongly shaped array falls through to _outcome_paths, which owns that
+    # message; duplicating it here would be a second place to keep it in step.
+    if objective == 5 and paths.ndim == 2 and paths.shape[0] == 1:
+        raise ValueError(
+            "objective 5 (P(not running out)) cannot be bisected at n_paths == 1: "
+            "over one path it is a step function, not a monotone difference "
+            "(D-22). The deterministic headline is objective-independent anyway "
+            "-- objectives 1, 3 and 4 collapse there"
+        )
+
+    def f(t_later):
+        return _difference(profile, objective, shocks, policy, paths, t_later)
+
+    lo, hi = BRACKET
+    f_lo, _ = f(lo)
+    f_hi, _ = f(hi)
+
+    # GUARD BEFORE BISECTING (D-06). Two evaluations, one assertion. Raising
+    # rather than returning a status: Sec 5 is explicit that there is deliberately
+    # no status for a degenerate cell, because a difference that never varies is a
+    # modeling error and not a result. AssertionError rather than `assert` for the
+    # reason _decumulate's policy refusal already uses -- `python -O` deletes the
+    # statement and a guard that vanishes under a flag is not a guard.
+    if f_lo == f_hi:
+        raise AssertionError(
+            f"the difference is constant at {f_lo!r} across the whole bracket "
+            f"{BRACKET}: bisection has nothing to bracket, and it would return "
+            "whichever endpoint it started nearest, SILENTLY (D-06). Objective 2 "
+            "was the only known instance and it is cut"
+        )
+
+    if (f_lo > 0.0) == (f_hi > 0.0):
+        # No crossing in range. Objectives 4 and 5 genuinely do this for some
+        # cells and so does T3's profile -- return the sentinel, do not raise
+        # (T4, R3). The difference is trad - roth, so negative throughout means
+        # Roth wins at every rate in the bracket.
+        status = "always_trad" if f_lo > 0.0 else "always_roth"
+        _, ruin = f(profile.t_now)
+        return Result(breakeven=None, status=status, dollars=None, ruin=ruin)
+
+    # Bisect to float exhaustion. No tolerance argument and no iteration count --
+    # the same instinct retirement_draw() and tax.gross_for_net() apply one layer
+    # up, arrived at here rather than assumed. An exact zero at the midpoint needs
+    # no branch: it compares False against the sign of f_lo, so the interval keeps
+    # closing on it from whichever side it is already on.
+    while True:
+        mid = 0.5 * (lo + hi)
+        if mid == lo or mid == hi:
+            break
+        f_mid, _ = f(mid)
+        if (f_mid > 0.0) == (f_lo > 0.0):
+            lo, f_lo = mid, f_mid
+        else:
+            hi = mid
+
+    t_star = 0.5 * (lo + hi)
+    # One evaluation at the rate being reported, not a second sweep. _difference
+    # returns ruin off the same decumulation it reduces, which is what
+    # _outcome_paths' docstring means by naming this sprint its second caller.
+    _, ruin = f(t_star)
+    return Result(breakeven=t_star, status="crosses", dollars=None, ruin=ruin)
 
 
 def _selftest():
@@ -981,6 +1153,36 @@ def _selftest():
         f"{marker:.4%} | tie at t_now {at_t_now[0]:,.2f} vs {at_t_now[1]:,.2f} "
         f"| policy gap {_policy_gap(0.50):+,.0f} at 50% -> "
         f"{_policy_gap(0.70):+,.0f} at 70%"
+    )
+
+    # --- Sprint 2C ------------------------------------------------------------
+    rules = breakeven(ARCHETYPE, 1, 0, None, paths)
+    policy = breakeven(ARCHETYPE, 1, 0, POLICY_YEAR, paths)
+    preset_paths = make_paths("constant", 1, EARLY_CAREER.n_years, 0.07)
+    preset = breakeven(EARLY_CAREER, 1, 0, None, preset_paths)
+    preset_policy = breakeven(EARLY_CAREER, 1, 0, POLICY_YEAR, preset_paths)
+    preset_marker = tax.effective_rate(
+        tax.gross_for_net(_solve_draw(EARLY_CAREER, preset_paths))
+    )
+    capped = breakeven(TEST_185K, 1, 0, None, paths)
+
+    assert round(rules.breakeven, 6) == 0.325000, rules.breakeven
+    assert round(policy.breakeven, 6) == 0.584064, policy.breakeven
+    assert policy.breakeven > rules.breakeven, "D-40: the threshold moves RIGHT"
+    assert round(preset.breakeven, 3) == 0.120, preset.breakeven
+    assert round(preset_policy.breakeven, 3) == 0.291, preset_policy.breakeven
+    assert preset.breakeven < preset_marker < preset_policy.breakeven, "the flip"
+    assert capped.status == "always_roth" and capped.breakeven is None
+    assert marker < rules.breakeven, "T5, and it is scoped to the base case"
+    print(
+        f"engine.py 2C OK -- t* {rules.breakeven:.4%} "
+        f"({abs(rules.breakeven - a.t_now) / np.spacing(a.t_now):.0f} ulps off "
+        f"t_now) -> policy {policy.breakeven:.4%}, RIGHT by "
+        f"{policy.breakeven - rules.breakeven:.4%} | T5 marker {marker:.4%} "
+        f"< t* | preset {preset.breakeven:.1%} < marker {preset_marker:.1%} "
+        f"< {preset_policy.breakeven:.1%} FLIPS | D-42 cell {capped.status}, "
+        f"ruin trad {capped.ruin['trad']:.0%} roth {capped.ruin['roth']:.0%} "
+        f"| bracket {BRACKET}, dollars {rules.dollars}"
     )
 
 
