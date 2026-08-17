@@ -14,9 +14,9 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 2B complete — 3 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `outcome()` — accumulation, the retirement draw, both decumulation loops, the policy branch and the four objective reductions — the P3a deploy probe, 147 passing tests |
-| **Not yet written** | `engine.py`'s `breakeven()` and its block bootstrap; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
+| **Progress** | Sprint 2C complete — 4 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `breakeven()` — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold — the P3a deploy probe, 171 passing tests |
+| **Not yet written** | `engine.py`'s block bootstrap and the three rung mechanisms behind `accumulate`'s `shocks` parameter; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -24,14 +24,14 @@ headline figures from the documents alone. It reproduced two of three, built a
 working deterministic engine to do it, and found the third impossible as
 specified. Every figure below came out of that engine.
 
-**Sprints 2A and 2B have since brought the engine into this repo.** The four
+**Sprints 2A, 2B and 2C have since brought the engine into this repo.** The four
 age-65 balances, `t_now`, both year-20 allowances, D-15's proxy, the modeled draw
 and the today's-law marker all reproduce from `uv run python engine.py` and are
-asserted by tests. Both thresholds fall out of hand-bisecting 2B's `outcome()`,
-at 58.4064% and 29.1% — but the search itself is Sprint 2C's, so they stay
-gate-two figures until it ships. Two figures were withdrawn during review and
-restored in 2A as labeled proxies; the bootstrap values they stand in for are
-owed by Sprint 3.
+asserted by tests. **So do both thresholds, as of Sprint 2C** — 58.4064% and
+29.1% come out of `breakeven()`'s own bisection now rather than a hand-bisection
+of `outcome()`, so nothing in this file is a cold-read figure any more. Two
+figures were withdrawn during review and restored in 2A as labeled proxies; the
+bootstrap values they stand in for are owed by Sprint 3.
 
 ---
 
@@ -112,8 +112,8 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 147 tests, all green
-uv run python engine.py          # engine self-test — 2A and 2B's published scalars
+uv run pytest                    # 171 tests, all green
+uv run python engine.py          # engine self-test — 2A, 2B and 2C's published scalars
 uv run python return_series.py   # return-series self-test
 uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
 ```
@@ -140,9 +140,9 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | `tax.py` | ✅ | Every number that came from outside the model — 2026 single-filer brackets, standard deduction, deferral cap, state rate, early-withdrawal penalty. No tax number appears anywhere else in the repo, and `tests/` is the one stated exemption |
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
-| `engine.py` | 🟡 | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. **`breakeven()` is Sprint 2C**; the block bootstrap inside `make_paths` is Sprint 3. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
+| `engine.py` | 🟡 | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. Sprint 2C landed `breakeven()` — the bisection, the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape — and pinned the three search parameters no document had decided: the bracket `(0.01, 0.95)`, float exhaustion as the stopping rule, and the rate `ruin` is read at. **What still raises is the block bootstrap inside `make_paths`**, plus the three rung mechanisms behind `accumulate`'s `shocks` parameter; both are Sprint 3's. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 104 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, and 3 added post-2B over `geometric_mean`'s overflow (D-39). Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green**, T3–T5 are 2C, T6–T8 are Sprint 3 |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 128 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, 3 added post-2B over `geometric_mean`'s overflow (D-39), and 24 added at Sprint 2C over the search, the bracket, the sentinel and the `Result` fields. Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green as of 2B, T3, T4 and T5 as of 2C**, T6–T8 are Sprint 3 |
 | `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
 | `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
@@ -312,6 +312,7 @@ asserted.
 | 7 | P3a — Railway deploy | `prompt5.txt` _(reused)_ | [`docs/sprints/P3a.txt`](docs/sprints/P3a.txt) · _(link)_ |
 | 8 | Docs assessment | `prompt6.txt` | _(link)_ |
 | 9 | Sprint 2B | `reading-list-sprint-2B.txt` | [`docs/sprints/Sprint2B.txt`](docs/sprints/Sprint2B.txt) · _(link)_ |
+| 10 | Sprint 2C | `reading-list-sprint-2C.txt` | [`docs/sprints/Sprint2C.txt`](docs/sprints/Sprint2C.txt) · _(link)_ |
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three

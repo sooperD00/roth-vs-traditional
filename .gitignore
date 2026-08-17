@@ -17,6 +17,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Office owner-lock temp files. `docs/~$presentation.pptx` was committed at
+# Sprint 2B and lived in the repo until the 2C docs assessment found it --
+# PowerPoint writes one whenever the deck is open, so this recurs without a rule.
+~$*
+
 # DELIBERATELY NOT IGNORED -- do not "tidy" these in later:
 #   uv.lock          Railway builds with `uv sync --locked --no-dev
 #                    --no-install-project` and fails without it. Two
