@@ -25,20 +25,31 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: three layers implemented, one function still raising.** Sprint 2A
+**Status: the engine is complete; one path inside it still raises.** Sprint 2A
 landed the profile, the income curve, contributions, accumulation, the D-33
 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both
 decumulation loops, the D-26 policy branch, the four objective reductions, ruin
 detection and `outcome()`; it deleted `marker_withdrawal`, which was a pure
-alias for `tax.gross_for_net`. **`breakeven()` is Sprint 2C**, and the block
-bootstrap inside `make_paths` is Sprint 3.
+alias for `tax.gross_for_net`. **Sprint 2C landed `breakeven()`** — the search,
+the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape.
+**What still raises is `make_paths(kind="block")`, the bootstrap, and it is
+Sprint 3's** — along with the three rung mechanisms behind `accumulate`'s
+`shocks` parameter.
+
+**Three search parameters were decided nowhere in this corpus and are pinned in
+`engine.py`'s module docstring rather than invented per caller:** the bisection
+bracket is `(0.01, 0.95)` — the interval D-26's row already sweeps, cited rather
+than chosen; the stopping rule is float exhaustion, not a tolerance; and
+`Result.ruin` is measured at the rate the `Result` reports, which is `t*` on a
+crossing cell and `t_now` on one that does not cross.
 
 **The accumulation figures in this file now come out of this repo.** The four
 age-65 balances, `t_now`, the year-20 allowances and D-15's proxy all reproduce
 from `uv run python engine.py` and are asserted by `tests/test_engine.py`.
-Everything downstream of the retirement draw — the draw itself, the marker, and
-both thresholds — is still a gate-two cold-read figure and stays pending until
-Sprints 2B and 2C run it.
+**Nothing in this file is a cold-read figure any more.** The draw and the marker
+came out of the repo at Sprint 2B; both thresholds came out at Sprint 2C. `uv run
+python engine.py` prints all three sprints' scalars, and `tests/test_engine.py`
+asserts every one of them against literals restated by hand.
 
 | Section | |
 |---|---|
@@ -234,20 +245,21 @@ should not die on the interesting cases.
 
 # Tests
 
-Three suites, 147 tests. `tests/test_tax.py` — 35 tests, each defending a number
+Three suites, 171 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` — opened at Sprint 2A, 104 tests: 54 over the
+imported. `tests/test_engine.py` — opened at Sprint 2A, 128 tests: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
 the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
-and 3 added post-2B over `geometric_mean`'s overflow (D-39). `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
+3 added post-2B over `geometric_mean`'s overflow (D-39), and 24 added at Sprint
+2C over the search, the bracket, the sentinel and the `Result` fields. `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
 `railway.toml`. Those eight guard the deploy config rather than the engine, and
 they are counted here because `uv run pytest` runs them; the eight numbered
 tests below are a different set entirely.
 
 No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4 closes
 by collecting and mapping** T1–T8 into it, each docstring naming the sentence it
-protects. **T1 and T2 are green as of Sprint 2B**; T3–T5 are 2C, T6–T8 are
-Sprint 3. Each asserts a claim made elsewhere in the docs:
+protects. **T1 and T2 are green as of Sprint 2B; T3, T4 and T5 as of Sprint 2C.**
+T6–T8 are Sprint 3. Each asserts a claim made elsewhere in the docs:
 
 | Test | Defends |
 |---|---|
@@ -255,7 +267,7 @@ Sprint 3. Each asserts a claim made elsewhere in the docs:
 | T2 · `t*` unchanged across 4, 7, 9, 12 percent, **and the common draw cancels out of the difference** — `after_tax_trad(100) − roth(100)` is identical at draw = 0, $108,397 and $250,000 | The return rate never affects the choice. **Corrected at Sprint 2A:** the trajectories are not a scalar multiple of each other through decumulation, so the assertion is on the difference, not the ratio — and that is the stronger claim, holding for any `r` and any draw rather than the four sampled |
 | T3 · At the $185,000 test profile with the cap binding, Roth shelters strictly more | The same-dollars trap, and why the limit matters |
 | T4 · A no-crossing cell returns a sentinel rather than raising | The demo survives the interesting cases |
-| T5 · The today's-law marker is strictly below `t*` | You defer at marginal and withdraw across the whole structure from zero |
+| T5 · **In the base case**, the today's-law marker is strictly below `t*` | You defer at marginal and withdraw across the whole structure from zero. **The scope is load-bearing and this row used to drop it:** at D-40's early-career preset the marker is 15.9% against `t*` = 12.0%, and that inversion is *why* the preset carries the flip. §6 has always read *in the base case*; this row and remaining-sprints' 2C done-when did not. Corrected at Sprint 2C, with the preset asserted as T5's teeth |
 | T6 · Low rung — a shock realizes a sale; Traditional takes the penalty, Roth basis is free | The forced-liquidation branch |
 | T7 · Mid rung — a shock skips a contribution year and nothing is sold | The shares not bought |
 | T8 · High rung — a shock leaves the portfolio untouched | The control case |
