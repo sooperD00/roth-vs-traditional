@@ -610,7 +610,7 @@ Per cell:
 |---|---|---|
 | `breakeven` | `float \| null` | Break-even future marginal rate, as a percentage |
 | `status` | `"crosses" \| "always_roth" \| "always_trad"` | When not `"crosses"`, `breakeven` is `null`. Objectives 4 and 5 will not always cross inside a plausible range — **this must not raise**. There is deliberately **no status for a degenerate cell** where the difference is flat everywhere: `breakeven()` guards against that before bisecting rather than encoding it, because a difference that never varies is a modeling error, not a result. Objective 2 was the only known instance and it is cut (D-06) |
-| `dollars` | `{"2": {...}, "10": {...}} \| null` | Keyed by δ. Each value is `{"roth": float, "trad": float}`. Null for non-crossing cells |
+| `dollars` | `{"2": {...}, "10": {...}} \| null` | Keyed by δ. Each value is `{"roth": float, "trad": float}`. **`breakeven()` always returns this null; `spike_grid` fills it** (D-17). **So null has two causes and they are told apart by `status`, not by this field:** `status != "crosses"` is a non-crossing cell and stays null; `status == "crosses"` with a null here is a cell `spike_grid` has not reached yet. Deferred out of Sprint 2C deliberately — Sprint 4 already owns every invariant over these numbers, and splitting the fill from its own gates was the worse half |
 | `ruin` | `{"roth": float, "trad": float}` | Fraction of paths where the **account balance** went negative during decumulation. Recorded, never clamped (D-38). **Pinned at Sprint 2B:** the operand is the balance, not its after-tax value. The two agree in sign for Traditional and for Roth under current rules, since `(1 − t_later) > 0`; they can disagree for **Roth under the policy**, where `rem` is a tax attribute rather than money you can spend. "Before 100" is inclusive of the terminal, and costs nothing to read that way — below zero the recurrence is strictly more negative each year, so *ever negative* and *negative at 100* are the same set. Ruin is absorbing without being enforced |
 
 Header block: `seed`, `n_paths`, `return_rate`, `profile`, `deltas`,
@@ -705,11 +705,11 @@ read it.** Fields: `income_points` (four `(age, gross)` pairs, D-19), `savings_r
   uninformative ones' number.
 
 - `paths` is passed in, never drawn inside — that is what makes D-07 hold
-- `outcome` is public; `spike_grid` calls it directly for the dollar fields
+- **`outcome` is public, and `spike_grid` is the ONE caller that fills the dollar fields** — it evaluates `outcome()` at `t* + δ` for δ ∈ {2, 10} (D-17). `breakeven()` does not, and `outcome()`'s docstring says so at the code: *do not fold it into `breakeven()`*
 - **Guard before bisecting.** Evaluate the difference at both bracket endpoints and assert it is non-constant. Two evaluations, one assertion. A difference that is identically zero otherwise returns whichever endpoint bisection started nearest, **silently** — worse than the no-crossing case T4 covers, which at least has a sentinel. This guard would have caught objective 2 in Sprint 2C instead of Sprint 4
 - Solve by bisection over the future marginal rate
 - **No clamping** (D-38)
-- Returns the `Result` shape above
+- Returns the `Result` shape above, with **`dollars=None`** — that field is `spike_grid`'s
 
 ---
 
