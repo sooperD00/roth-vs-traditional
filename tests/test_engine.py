@@ -80,6 +80,19 @@ T2_ULP_K = 8                    # measured worst 2.75
 T2_DRAWS = (0.0, 108_397.0, 250_000.0)   # T2's sweep, per section 6
 TRAD_RUIN_ABOVE = 0.3345        # D-26. Traditional's terminal turns negative here
 
+# --- Sprint 2C, restated by hand from DECISIONS and remaining-sprints ---------
+T_STAR = 0.325000               # remaining-sprints 2C. == t_now, and that is D-22
+POLICY_THRESHOLD = 0.584064     # D-26/D-40. RIGHT of t*, not left
+PRESET_T_STAR = 0.120           # D-40's preset, where the verdict flips
+PRESET_MARKER = 0.159           # D-40. ABOVE the preset's t* -- see T5's scope
+PRESET_POLICY_THRESHOLD = 0.291  # D-40
+BRACKET = (0.01, 0.95)          # 2C's pin. D-26 measures the untaxed reading
+                                # across exactly this interval, and the D-26
+                                # three-readings test below sweeps it
+UNDERFLOW_LO = 1e-17            # where the D-42 difference reaches EXACTLY 0.0
+T2C_ULP_K = 128                 # measured worst 36 over eight (profile, rate)
+                                # pairs -- see test_T2_t_star_is_unchanged...
+
 
 def accum(profile, rate=0.07):
     """One deterministic accumulation. The shape IS the deterministic mode."""
@@ -1168,3 +1181,375 @@ def test_engine_imports_no_streamlit():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     assert "streamlit" not in imported, sorted(imported)
+
+
+# =============================================================================
+# SPRINT 2C -- breakeven(), the search, and the Result contract
+#
+# Everything here SOLVES. outcome() is the function being searched, so if a
+# published number moves in this block the bug is in 2B (remaining-sprints, 2C).
+#
+# THE THREE SEARCH PARAMETERS WERE DECIDED NOWHERE IN THE CORPUS and are pinned
+# in engine.py's module docstring: the bracket, the stopping rule, and the rate
+# ruin is measured at. Each one has a test below that fails if it drifts, because
+# a parameter with no document behind it and no test on it is a parameter that
+# will be re-invented differently in Sprint 4.
+# =============================================================================
+def solve(profile, policy=None, objective=1, rate=0.07, shocks=0):
+    """One deterministic breakeven. The shape IS the deterministic mode."""
+    paths = engine.make_paths("constant", 1, profile.n_years, rate)
+    return engine.breakeven(profile, objective, shocks, policy, paths)
+
+
+# --- The published headline ---------------------------------------------------
+def test_the_base_case_reproduces_the_headline():
+    """Sprint 2C's first gate. t* = 32.5000%, policy 58.4064%, and RIGHT not left.
+
+    D-40's inequality is the claim that survived when the deck's number did not:
+    a policy that harms only Roth strictly RAISES the rate at which Roth becomes
+    worthwhile, whenever the frozen allowance is smaller than the balance it was
+    frozen out of. The deck drew this threshold at 14% with Roth winning to its
+    right. The algebra cannot do that.
+    """
+    rules = solve(engine.ARCHETYPE)
+    policy = solve(engine.ARCHETYPE, policy=POLICY_N)
+
+    assert rules.status == "crosses"
+    assert policy.status == "crosses"
+    assert round(rules.breakeven, 6) == T_STAR
+    assert round(policy.breakeven, 6) == POLICY_THRESHOLD
+    assert policy.breakeven > rules.breakeven, "D-40: the threshold moves RIGHT"
+
+
+def test_t_star_is_t_now_as_an_identity_not_a_tolerance():
+    """D-22's headline half, and the reason the stopping rule is float exhaustion.
+
+    t* IS t_now under current rules -- not close to it, equal to it in the only
+    sense binary arithmetic offers. Stop the bisection at hi - lo <= 1e-4 instead
+    and t* reads 32.500671%, which still prints as 32.5% and is 1.2e11 ulps out.
+
+    THE BOUND IS A REPRESENTATION TOLERANCE, NOT A MODELING ONE -- the same
+    sentence Section 5 already writes twice, for 2A's 4-ulp identity bound and
+    T1's K = 16. Nothing about the model is being given room: the failure this
+    exists to catch moves t* by 1e-3 or more, which is about 1e14 ulps here.
+    """
+    t_now = engine.ARCHETYPE.t_now
+    got = solve(engine.ARCHETYPE).breakeven
+    assert abs(got - t_now) <= T2C_ULP_K * math.ulp(t_now)
+    # And the bound has teeth: a 1e-4 stopping rule lands four orders outside it
+    # while still PRINTING as 32.5%, which is the failure it exists to catch.
+    assert abs(0.32500067138671875 - t_now) > T2C_ULP_K * math.ulp(t_now)
+
+
+def test_the_early_career_preset_reproduces_and_the_verdict_flips():
+    """D-40's second artifact. 12.0% -> 15.9% -> 29.1%, and the answer reverses.
+
+    The default teaches that the bet is bigger than it looked; the preset teaches
+    that it can reverse an answer. The flip belongs to the person the policy
+    actually costs something -- the low-bracket saver Roth was supposed to be for.
+
+    THE FLIP READ OFF THESE THREE NUMBERS: the marker (15.9%) sits ABOVE t*
+    (12.0%) under current rules, so Roth wins; it sits BELOW the policy threshold
+    (29.1%), so Traditional wins once the rule moves.
+    """
+    preset = engine.EARLY_CAREER
+    paths = engine.make_paths("constant", 1, preset.n_years, 0.07)
+    marker = tax.effective_rate(tax.gross_for_net(engine._solve_draw(preset, paths)))
+
+    rules = solve(preset)
+    policy = solve(preset, policy=POLICY_N)
+
+    assert round(rules.breakeven, 3) == PRESET_T_STAR
+    assert round(marker, 3) == PRESET_MARKER
+    assert round(policy.breakeven, 3) == PRESET_POLICY_THRESHOLD
+    assert rules.breakeven < marker < policy.breakeven, "the verdict flips"
+
+
+# --- T2, second half ----------------------------------------------------------
+@pytest.mark.parametrize("rate", RATES)
+@pytest.mark.parametrize("profile_name", ["ARCHETYPE", "EARLY_CAREER"])
+def test_T2_t_star_is_unchanged_across_the_return_rate(profile_name, rate):
+    """T2's remaining half (section 6). L1, as a solve rather than a sweep.
+
+    The draw-cancellation half closed in 2B and it is WHY this holds: both
+    accounts fund the same net spending, so the draw subtracts the same real
+    amount from both after-tax paths and vanishes from their difference. What is
+    left is roth_65 * [(1 - t_later)/(1 - t_now) - 1] * (1+r)**35, which crosses
+    zero at t_later == t_now for ANY r and ANY draw. That is a stronger claim
+    than the four sampled rates, and these four are the demonstration of it.
+
+    Bounded in ulps of t_now for the reason above. Measured worst over these
+    eight pairs is 36, at the preset at 9% and 12%; the bound carries 3.6x.
+    """
+    profile = getattr(engine, profile_name)
+    got = solve(profile, rate=rate).breakeven
+    assert abs(got - profile.t_now) <= T2C_ULP_K * math.ulp(profile.t_now)
+
+
+# --- T3 -----------------------------------------------------------------------
+def test_T3_the_capped_roth_shelters_more_and_the_cell_returns_always_roth():
+    """T3 (section 6), at D-42's $185,000 profile with D2 ON.
+
+    D2 IS THE SECOND ASYMMETRIC MECHANISM IN THE MODEL, alongside Low's penalty,
+    and T3 is its only coverage -- which is why it matters more than its position
+    in the test list suggests. It was assigned to no sprint until gate two.
+
+    The arithmetic: capacity is $37,000 against the $36,296 pre-tax cost of
+    filling a Roth to the $24,500 cap in AFTER-TAX dollars, so the two nominal
+    contributions land equal. Equal nominal dollars bought with unequal pre-tax
+    money is exactly the convention D-01 forbids in the base case, broken here on
+    purpose -- so the Roth shelters strictly more real money and there is no
+    future rate inside the bracket at which Traditional catches up.
+    """
+    cell = solve(engine.TEST_185K)
+    assert cell.status == "always_roth"
+    assert cell.breakeven is None
+
+    # "Shelters strictly more" as the difference itself, at both endpoints.
+    paths = engine.make_paths("constant", 1, engine.TEST_185K.n_years, 0.07)
+    for t_later in BRACKET:
+        trad = engine.outcome(engine.TEST_185K, 1, 0, None, paths, t_later, "trad")
+        roth = engine.outcome(engine.TEST_185K, 1, 0, None, paths, t_later, "roth")
+        assert roth > trad, t_later
+
+
+def test_the_d42_profile_is_where_the_two_balances_coincide_exactly():
+    """Why T3's cell is the one the bracket had to be chosen against.
+
+    Both contributions bind at the cap, so trad_65 and roth_65 are not merely
+    equal to the dollar -- they are the same float. The whole difference is then
+    -roth_65 * t_later * (1+r)**35, which is negative everywhere and approaches
+    zero as t_later does. That is the one cell in this project where the low
+    bracket endpoint is load-bearing, and the next test is why.
+    """
+    paths = engine.make_paths("constant", 1, engine.TEST_185K.n_years, 0.07)
+    a = engine.accumulate(engine.TEST_185K, paths[0])
+    assert a.trad == a.roth
+    trad, roth = engine.contributions(engine.TEST_185K, 35)
+    assert trad == roth == pytest.approx(CAP)
+
+
+# --- The bracket, which was decided nowhere in the corpus ----------------------
+def test_the_bracket_endpoints_are_legal_inputs_to_outcome():
+    """PIN 1, first half. lo = 0 is not available and that is not a style point.
+
+    _outcome_paths guards 0 < rate < 1, so a bracket that reached zero would
+    raise before the guard could ever see a sign. The endpoints have to sit
+    strictly inside the open interval, and this asserts the two that were chosen
+    actually do.
+    """
+    lo, hi = engine.BRACKET
+    assert (lo, hi) == BRACKET
+    assert 0.0 < lo < hi < 1.0
+    paths = engine.make_paths("constant", 1, 65, 0.07)
+    for t_later in (lo, hi):
+        assert math.isfinite(
+            engine.outcome(engine.ARCHETYPE, 1, 0, None, paths, t_later, "trad")
+        )
+    with pytest.raises(ValueError, match="t_later"):
+        engine.outcome(engine.ARCHETYPE, 1, 0, None, paths, 0.0, "trad")
+
+
+def test_a_bracket_low_end_near_zero_would_report_a_crossing_that_is_not_there():
+    """PIN 1, and THE DEFECT THE BRACKET DECISION EXISTS TO PREVENT.
+
+    At the D-42 profile the difference underflows to EXACTLY 0.0 around
+    t_later = 1e-17. sign(0.0) is 0, so the no-crossing test
+    sign(f(lo)) == sign(f(hi)) reads False, breakeven() concludes there is a root,
+    and T3's cell returns a spurious t* near zero instead of always_roth. The
+    non-constant guard does not catch it -- f(lo) != f(hi) is perfectly true.
+
+    This asserts the cliff is real AND that the chosen endpoint clears it by
+    thirteen orders of magnitude, so the zero branch cannot arise and there is no
+    third case in breakeven() to write. If someone later widens the bracket
+    downward, this fails and says why.
+    """
+    paths = engine.make_paths("constant", 1, engine.TEST_185K.n_years, 0.07)
+
+    def gap(t_later):
+        return (engine.outcome(engine.TEST_185K, 1, 0, None, paths, t_later, "trad")
+                - engine.outcome(engine.TEST_185K, 1, 0, None, paths, t_later, "roth"))
+
+    assert gap(UNDERFLOW_LO) == 0.0, "the cliff moved -- re-derive the bracket"
+    # sign(0.0) is 0 and sign(f(hi)) is -1, so the no-crossing test reads False
+    # and the search concludes there is a root. THAT INEQUALITY IS THE DEFECT.
+    assert np.sign(gap(UNDERFLOW_LO)) != np.sign(gap(BRACKET[1]))
+
+    at_lo = gap(engine.BRACKET[0])
+    assert at_lo < 0.0
+    assert abs(at_lo) > 1e4, "the chosen endpoint must not be near the floor"
+
+
+# --- T4 -----------------------------------------------------------------------
+def test_T4_a_no_crossing_cell_returns_a_sentinel_rather_than_raising():
+    """T4 (section 6). The demo survives the interesting cases (R3).
+
+    Objectives 4 and 5 genuinely do not cross inside a plausible range for some
+    cells, and T3's profile is one under every objective -- so this is exercised
+    rather than hypothetical. A cube that died on the interesting cells would be
+    worse than one that reported them.
+    """
+    cell = solve(engine.TEST_185K)
+    assert cell.breakeven is None
+    assert cell.status in ("always_roth", "always_trad")
+    assert cell.status != "crosses"
+
+
+def test_T4s_result_is_fully_populated_and_dollars_is_none_on_purpose():
+    """The 2C done-when that has no owner: the FIELDS, not the shape.
+
+    THESE TWO DONE-WHENS ARE NOT IN TENSION and reading them as such is how the
+    ruin field ends up empty. "Fully populated, all four fields" is about the
+    Result; "n_paths=1 rejects objective 5" is about objective 5 as a BISECTION
+    TARGET. The ruin FIELD is a report, and at one path it is a well-defined 0.0
+    or 1.0.
+
+    `dollars` is null out of breakeven() ALWAYS (D-17, Sec 5) -- spike_grid fills
+    it by calling outcome() at t* +/- delta. So null has two causes and `status`
+    tells them apart, not this field.
+    """
+    for cell in (solve(engine.ARCHETYPE), solve(engine.TEST_185K)):
+        assert cell.dollars is None
+        assert isinstance(cell.ruin, dict)
+        assert set(cell.ruin) == {"roth", "trad"}
+        for account, fraction in cell.ruin.items():
+            assert fraction in (0.0, 1.0), (account, fraction)
+
+
+def test_ruin_is_measured_at_the_rate_the_result_reports():
+    """PIN 3, and it was decided NOWHERE in the corpus.
+
+    Section 5 pins ruin's OPERAND -- the balance, not its after-tax value -- and
+    never names the t_later it is read at. It is not a detail: Traditional's
+    fraction goes 0.0 -> 1.0 between 32.50% and 33.45%, one point either side of
+    t*. Read at the top of the bracket every cell reports total ruin, and Sprint
+    4's "ruin is 0.0 on the 0-shock slab" gate (D-39) becomes unpassable.
+
+    A crossing cell reports at its own t*. A non-crossing cell has no t* and
+    reports at t_now -- the one rate defined for every profile without a solve.
+    THAT SECOND HALF IS THE ONLY LINE IN THIS SPRINT WITH NO DOCUMENT BEHIND IT.
+    """
+    paths = engine.make_paths("constant", 1, 65, 0.07)
+    crossing = solve(engine.ARCHETYPE)
+    _, at_t_star = engine._difference(
+        engine.ARCHETYPE, 1, 0, None, paths, crossing.breakeven
+    )
+    assert crossing.ruin == at_t_star
+
+    non_crossing = solve(engine.TEST_185K)
+    _, at_t_now = engine._difference(
+        engine.TEST_185K, 1, 0, None, paths, engine.TEST_185K.t_now
+    )
+    assert non_crossing.ruin == at_t_now
+
+    # And the gate that pins the choice: at t* the 0-shock slab is unruined.
+    assert crossing.ruin == {"roth": 0.0, "trad": 0.0}
+
+
+# --- T5 -----------------------------------------------------------------------
+def test_T5_the_todays_law_marker_is_strictly_below_t_star_in_the_base_case():
+    """T5 (section 6). You defer at the margin and withdraw across the whole
+    structure from zero, starting at zero.
+
+    An EFFECTIVE rate against a MARGINAL one, and the gap between them is the
+    lesson rather than an inconsistency of units. Non-circular by construction:
+    the engine decumulates at the flat t_later, so the marker's operand is
+    D-39's net draw instead (D-24).
+    """
+    paths = engine.make_paths("constant", 1, 65, 0.07)
+    marker = tax.effective_rate(
+        tax.gross_for_net(engine._solve_draw(engine.ARCHETYPE, paths))
+    )
+    t_star = solve(engine.ARCHETYPE).breakeven
+    assert round(marker, 3) == MARKER_RATE
+    assert marker < t_star
+    assert t_star - marker == pytest.approx(0.173, abs=5e-4), "D-30's 17.3 points"
+
+
+def test_T5_has_teeth_because_the_preset_inverts_it():
+    """T5's SCOPE, and two documents dropped it.
+
+    Section 6 reads "in the base case." remaining-sprints' 2C done-when and
+    ENGINE.md's T5 row do not, and unscoped the claim is FALSE BY DESIGN: at
+    D-40's preset the marker is 15.9% against t* = 12.0%. That inversion is not
+    a defect to repair, it IS the preset -- the marker sitting above t* is what
+    makes Roth the answer there under current rules.
+
+    So this is the companion every identity test in this file has: if T5 held
+    everywhere it would be asserting nothing about the base case.
+    """
+    preset = engine.EARLY_CAREER
+    paths = engine.make_paths("constant", 1, preset.n_years, 0.07)
+    marker = tax.effective_rate(tax.gross_for_net(engine._solve_draw(preset, paths)))
+    assert marker > solve(preset).breakeven
+
+
+# --- The D-06 guard, and objective 5 ------------------------------------------
+def test_the_degeneracy_guard_raises_before_bisecting(monkeypatch):
+    """D-06 / Section 5. Two evaluations, one assertion.
+
+    A difference that is identically zero otherwise returns whichever endpoint
+    bisection started nearest, SILENTLY -- worse than the no-crossing case, which
+    at least has a sentinel.
+
+    IT IS MONKEYPATCHED BECAUSE THE FAILING INPUT CANNOT OTHERWISE BE BUILT, and
+    saying so is the point. Objective 2 was the only known instance and _reduce()
+    now rejects it before breakeven() can see it, so the guard's own trigger is
+    unreachable through the public path. A gate whose failing input cannot be
+    constructed is the unanchored-streamlit-grep shape this file has fixed twice;
+    replacing the seam is how you avoid writing a third one.
+
+    AssertionError rather than a bare `assert`: `python -O` deletes the statement,
+    and a guard that vanishes under a flag is not a guard. Same choice
+    _decumulate's policy refusal makes.
+    """
+    monkeypatch.setattr(
+        engine, "_difference", lambda *a, **k: (7.0, {"roth": 0.0, "trad": 0.0})
+    )
+    with pytest.raises(AssertionError, match="constant"):
+        solve(engine.ARCHETYPE)
+
+
+def test_breakeven_rejects_objective_5_at_one_path():
+    """D-22. P(not running out) over one path is a step function with one step.
+
+    Rejected as a BISECTION TARGET only. outcome() evaluates it happily at one
+    path and 2B asserts that it does, because a forward evaluation of it is
+    perfectly well defined -- and Result.ruin is populated in the same run.
+    """
+    paths = engine.make_paths("constant", 1, 65, 0.07)
+    assert paths.shape[0] == 1
+    with pytest.raises(ValueError, match="objective 5"):
+        engine.breakeven(engine.ARCHETYPE, 5, 0, None, paths)
+
+    # Scoped to one path, not to the objective: a multi-path array gets through
+    # the rejection. The array is hand-built because the bootstrap is Sprint 3.
+    many = np.array([np.full(65, 0.01 * i) for i in range(2, 12)])
+    engine.breakeven(engine.ARCHETYPE, 5, 0, None, many)
+
+
+def test_the_objective_5_rejection_does_not_misread_a_one_dimensional_path():
+    """The guard reads shape[0], which on a 1-D array is the YEAR count.
+
+    Testing it alone would reject a 65-year path as "one path" and mask the
+    shape error underneath. _outcome_paths owns that message; this asserts the
+    rejection defers to it rather than shadowing it.
+    """
+    flat = engine.make_paths("constant", 1, 65, 0.07)[0]
+    with pytest.raises(ValueError, match="2-D"):
+        engine.breakeven(engine.ARCHETYPE, 5, 0, None, flat)
+
+
+# --- The published signature ---------------------------------------------------
+def test_breakeven_takes_no_rung_and_no_draw_argument():
+    """Section 5's two signatures, asserted as an absence.
+
+    `rung` is DERIVED from stops and Sprint 4 sweeps that axis by REPLACING
+    stops. `draw` is computed per D-39. If either ever appears here, someone
+    widened a published contract to accommodate a caller -- which is the trade
+    T2's draw-cancellation half already refused once.
+    """
+    import inspect
+    names = list(inspect.signature(engine.breakeven).parameters)
+    assert names == ["profile", "objective", "shocks", "policy", "paths"]
+    assert "rung" not in names and "draw" not in names
