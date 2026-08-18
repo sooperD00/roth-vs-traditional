@@ -19,22 +19,34 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 | `app.py` and `spike_grid.py` both import this module | No duplicated math (D-11) |
 | `paths` is passed in, never drawn inside | What makes common random numbers hold (D-07) |
 | `outcome` is public | `spike_grid` calls it directly for the dollar fields (D-17) |
-| Solved by bisection over the future marginal rate | — |
+| Solved by bisection over the future marginal rate | Bracket `(0.01, 0.95)`, stopping at float exhaustion — both pinned in §5 and in `engine.py`'s module docstring |
 | No clamping | D-38, and choice 4 below is why |
 
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: the engine is complete; one path inside it still raises.** Sprint 2A
+**Status: the engine is complete; one path inside it still raises — and after
+Sprint 3A it is not `make_paths` any more.** Sprint 2A
 landed the profile, the income curve, contributions, accumulation, the D-33
 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both
 decumulation loops, the D-26 policy branch, the four objective reductions, ruin
 detection and `outcome()`; it deleted `marker_withdrawal`, which was a pure
 alias for `tax.gross_for_net`. **Sprint 2C landed `breakeven()`** — the search,
 the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape.
-**What still raises is `make_paths(kind="block")`, the bootstrap, and it is
-Sprint 3's** — along with the three rung mechanisms behind `accumulate`'s
-`shocks` parameter.
+**Sprint 3A landed the block bootstrap** — `make_paths(kind="block")`, the
+`RandomState`/overlapping-starts/truncation parameters D-05 left open (D-43),
+`paths_digest()` for D-41's cube header, `path_drawdown()` and the D-44
+vocabulary. It also closed the two shock-free decisions Sprint 4A was blocked on:
+R9's ruin question (D-39, option 1) and D-15's reconciliation. **What still
+raises is `accumulate(..., shocks>0)` — the three rung mechanisms, and they are
+Sprint 3B's.**
+
+**Three parameters more were decided nowhere in this corpus and are now D-43.**
+The generator is `RandomState(20260815)`, MT19937 — picked *against* current
+numpy practice because NEP 19 freezes the legacy stream and declines to freeze
+`default_rng`, and D-41 needs reproduction from an integer rather than from a
+lockfile. Block starts are drawn from overlapping windows with no wrap. A
+trailing partial block is truncated.
 
 **Three search parameters were decided nowhere in this corpus and are pinned in
 `engine.py`'s module docstring rather than invented per caller:** the bisection
@@ -157,18 +169,36 @@ sale during a downturn, and that requires bad years to arrive in runs. Draw year
 independently and a crash is followed by an ordinary year, so the mechanism
 survives and the magnitude doesn't.
 
-**What 4,000 paths on the real series actually say.**
+**What 4,000 paths on the real series actually say** — `path-drawdown` (D-44),
+measured over the **30-year accumulation window**, not the full 65-year path.
+Reproduced at Sprint 3A by `scripts/measure_3a.py`; the right-hand column is the
+gate-two measurement it reproduces.
 
-| | Block(5) | IID |
-|---|---|---|
-| Median maximum drawdown | −42.6% | −43.0% |
-| p10 maximum drawdown | −59.7% | **−64.3%** |
-| Year after the worst year | **+17.0%** | +9.5% |
-| Next three years, cumulative | **+39.5%** | +32.1% |
-| …of which negative | 5% | 21% |
+**THE WINDOW IS LOAD-BEARING AND IT WAS MISSING FROM THIS CAPTION UNTIL SPRINT
+3A.** Read "each path" as the whole 65 years and the same measurement returns
+−51.9% / −53.0% and −66.7% / −72.0% — every number below goes stale in five
+documents at once. Accumulation is the right window because that is where a
+shock lands (D-08).
+
+| | Block(5) | IID | published |
+|---|---|---|---|
+| Median `path-drawdown` | −42.2% | −42.0% | −42.6 / −43.0 |
+| p10 `path-drawdown` | −59.6% | **−63.7%** | −59.7 / −64.3 |
+| Year after the worst year | **+17.1%** | +10.1% | +17.0 / +9.5 |
+| Next three years, cumulative | **+39.9%** | +33.2% | +39.5 / +32.1 |
+| …of which negative | 5.4% | 20.0% | 5% / 21% |
 
 Block bootstrap has the **thinner** left tail and the **faster** rebound. It is
 the conservative model here, which is the opposite of what was claimed.
+
+**ONE ROW CARRIES THE FINDING AND ONE DOES NOT, WHICH SPRINT 3A MEASURED AND
+THIS TABLE USED TO OBSCURE.** Across five seeds at 4,000 paths the **p10 pair
+says *block thinner* five times out of five**; the **median pair splits three to
+two** at a gap of a few tenths of a point. The median row is sampling noise and
+must be read as noise — the *tail* is the claim. This matters practically:
+measure on one seed and a median inversion reads as a defect worth an afternoon.
+Both readings are asserted in `tests/test_engine.py`, the p10 as a direction and
+the median as noise.
 
 **Why.** The lag-1 autocorrelation of annual US real returns is **−0.035** —
 essentially zero, faintly negative. The runs intuition is real at monthly and
@@ -181,8 +211,16 @@ Keeping the runs intact keeps the rebounds intact too.
 different channel. A shock at the Low rung sells $40,000 at a depressed price,
 and what it costs is the compounding you gave up — so a *faster* rebound makes
 that cost **larger**, not smaller. Block also reproduces history's own worst
-five-year sequence reliably: the median path's worst run lands at −10.26%
-annualized, which is exactly 1937–41.
+five-year sequence: the median path's worst five-year run lands at
+**−10.28%** annualized over the full path, against a published −10.26%.
+**The number reproduces; the clause attached to it does not.** −10.26% is
+exactly 1937–41 — it is the deck's own worst five-year window — but only
+**12.6%** of paths actually draw that block. The median path's worst run
+*coincides* with 1937–41's depth through a rolling window that usually
+straddles two drawn blocks. Read strictly to the blocks themselves, the median
+path's worst *drawn* run is −7.27%, which is 1973–77. Same shape as this
+section's other correction: the measurement stands, the story told about it was
+tightened.
 
 **And the honest limit.** Ninety-eight years at block length five is about **19.6
 independent blocks.** That is the same n ≈ 5 critique this project makes of
@@ -245,13 +283,19 @@ should not die on the interesting cases.
 
 # Tests
 
-Three suites, 171 tests. `tests/test_tax.py` — 35 tests, each defending a number
+Three suites, 189 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
 imported. `tests/test_engine.py` — opened at Sprint 2A, 128 tests: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
 the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
-3 added post-2B over `geometric_mean`'s overflow (D-39), and 24 added at Sprint
-2C over the search, the bracket, the sentinel and the `Result` fields. `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
+3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint
+2C over the search, the bracket, the sentinel and the `Result` fields, and **19
+added at Sprint 3A** over the bootstrap, the D-43 parameters, the digest,
+`path-drawdown`, the overflow gate D-39 called *a gate whose failing input
+cannot yet be constructed*, and the three measurement records. **One test was
+DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
+`NotImplementedError` that no longer exists, and a test of scaffolding outlives
+its subject silently. `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
 `railway.toml`. Those eight guard the deploy config rather than the engine, and
 they are counted here because `uv run pytest` runs them; the eight numbered
 tests below are a different set entirely.
