@@ -129,6 +129,40 @@ def measure_toggle(paths):
 
 
 # =============================================================================
+
+def crossing_point(paths, lo=40_000.0, hi=120_000.0, iterations=20):
+    """The shock size at which Low's Traditional median falls below its Roth.
+
+    Bisection is legitimate here because the gap is monotone in shock size --
+    checked on a $5,000 grid from $40,000 to $80,000 before this was written,
+    and the reason is mechanical: the gross sale climbs the bracket table as it
+    grows, so Traditional's proportional loss per shock rises while its
+    1/(1 - t_now) head start does not.
+
+    THE CACHE CLEAR IS FOR MEMORY, NOT CORRECTNESS. D-48 put SHOCK_AMOUNT in
+    _accumulations' key, so a stale entry cannot be served -- verified, the
+    answer is identical either way. Without the clear, peak RSS roughly doubles
+    as full accumulation sets stack up.
+
+    20 iterations resolves to eight cents, which is far finer than 2,000 paths
+    can support. The precision is the bisection's, not the sample's.
+    """
+    original = engine.SHOCK_AMOUNT
+    try:
+        for _ in range(iterations):
+            engine.SHOCK_AMOUNT = 0.5 * (lo + hi)
+            engine._ACCUMULATION_CACHE.clear()
+            trad, roth = accumulated(LOW, paths, 3)
+            if np.median(trad) > np.median(roth):
+                lo = engine.SHOCK_AMOUNT
+            else:
+                hi = engine.SHOCK_AMOUNT
+    finally:
+        engine.SHOCK_AMOUNT = original
+        engine._ACCUMULATION_CACHE.clear()
+    return 0.5 * (lo + hi)
+
+
 def measure_shock_magnitude(paths):
     """CUT LADDER ITEM 2, 3B's HALF. It gates nothing and it is the first thing
     to drop on an overrun -- so if you are reading this under time pressure,
@@ -167,6 +201,13 @@ def measure_shock_magnitude(paths):
     print(f"  Deltas are taken against the $40,000 base of ${base:,.0f}.")
     print("  The gross sale is superlinear in the net amount, because the")
     print("  withdrawal climbs the bracket table as it grows (D-16's PIN).")
+    print()
+    x = crossing_point(paths)
+    print(f"  THE ACCOUNT ORDERING REVERSES AT ${x:,.0f} -- bisected, ~7s.")
+    print(f"  That is {x / 24_500:.2f}x a contribution year, against the "
+          f"{engine.SHOCK_AMOUNT / 24_500:.2f}x D-39 chose.")
+    print("  Below it Traditional's deferral head start survives three shocks;")
+    print("  above it the penalty plus bracket-climb has eaten the whole 1.481x.")
 
 
 # =============================================================================
