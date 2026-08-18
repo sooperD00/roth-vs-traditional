@@ -231,15 +231,41 @@ The alternative worth naming: a parametric Monte Carlo is the conventional pick
 here, and it is thin-tailed *and* memoryless. It buys smoothness, and on this
 evidence it would have cost less than assumed.
 
-Block length is five years — a choice rather than a derivation, with sensitivity
-at three and ten in Scope & Branches. **Measuring the fudge factor is what caught
-the bad reason.** That is the whole argument for naming them.
+Block length is five years — a choice rather than a derivation. **Measuring the
+fudge factor is what caught the bad reason.** That is the whole argument for
+naming them.
+
+**The sensitivity, run at Sprint 3A.** 4,000 paths, same seed, same 30-year
+window as the table above.
+
+| Block length | Median `path-drawdown` | p10 `path-drawdown` |
+|---|---|---|
+| 3 | −44.7% | −65.1% |
+| **5** (D-05) | **−42.6%** | **−59.4%** |
+| 10 | −41.8% | −54.8% |
+
+**It is monotone and it gates nothing.** A shorter block breaks history's runs
+into smaller pieces and deepens the tail; a longer one averages over more of the
+record and shallows it. Five sits between the two. The p10 spread across the
+range is about ten points, which is larger than the block-versus-IID gap the
+whole section above is about — so **block length is the bigger fudge factor of
+the two**, and it is the one with no measurement behind its value. That is the
+honest reading, and it is why the number stays named rather than derived. Sprint
+4's cube runs at five regardless; nothing published moves.
 
 # Shock timing and size
 
 Life events land in each path's worst accumulation years, found by sorting on
 drawdown. There is no correlation coefficient — the placement is the correlation,
 and there is nothing to calibrate or defend.
+
+**Which drawdown, though.** D-44 splits the word into three quantities and D-08's
+rule admits two of them: `underwater-depth`, how far below its running peak the
+index sits at the end of a year, and `worst-year-return`, the annual return
+itself. They are different year sets on the same path. **Sprint 3B picks, and
+this paragraph is deliberately still ambiguous until it does.** Neither is
+`path-drawdown`, which is one number per path and is what the table above
+measures.
 
 An uncorrelated toggle scatters them randomly instead. Flipping it deflates the
 tail visibly, which is the cheapest demonstration in the project that the
@@ -285,7 +311,7 @@ should not die on the interesting cases.
 
 Three suites, 189 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` — opened at Sprint 2A, 128 tests: 54 over the
+imported. `tests/test_engine.py` — opened at Sprint 2A, 146 tests: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
 the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint

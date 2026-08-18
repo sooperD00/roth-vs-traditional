@@ -205,6 +205,43 @@ project's own methodology got tested on itself.
 | **Certainty equivalent** | The guaranteed amount you'd accept instead of the gamble. Formal version of the exchange rate |
 | **Ergodicity** | Ensemble average ≠ time average when ruin is absorbing |
 
+### Three words this project had to name itself
+
+The six above are borrowed from the literature. These three are not — they are
+the project's own, written at Sprint 3A as **D-44**, because three different
+quantities in this model were all being called *drawdown* and two of them are not
+the same quantity. The engine could not implement one of them until the word
+picked out exactly one.
+
+| Term | What it names | Shape |
+|---|---|---|
+| **`path-drawdown`** | The deepest peak-to-trough decline of the cumulative return index, over whatever window it is handed | **One number per path** |
+| **`underwater-depth`** | How far below its running peak the index sits at the end of a given year | **One number per year** |
+| **`worst-year-return`** | The annual real return itself | **One number per year** |
+
+**`path-drawdown` is what −59.6% is**, and `engine.path_drawdown()` computes it.
+The relation between the first two is the definition rather than a coincidence —
+`path-drawdown` is the minimum of `underwater-depth` over the window — and the
+test suite asserts it, which is what stops a later sprint from inventing a
+second, subtly different underwater curve.
+
+**`worst-year-return` loses the word entirely, and that is the point of the
+split.** It was never a drawdown. Calling it one is most of why D-08's placement
+rule — *shocks land at the `n` worst years* — reads two ways, and those two
+readings pick different years on the same path. Sprint 3B chooses; Sprint 3A
+deliberately did not.
+
+**One computed on the return index, never on a balance.** `path-drawdown` is a
+property of the return *model*. An account balance carries contributions, which
+arrive every year and buy at the bottom, masking the decline they are supposed to
+measure. There is no profile in that function's arguments and the absence is the
+argument.
+
+*(The naming also had to survive grep. Three distinct tokens with no shared
+prefix means `grep drawdown` minus `path-drawdown` returns a set small enough to
+read — which is how the remaining ambiguous uses in this file get found when 3B
+resolves them.)*
+
 ---
 
 # Part 3 — The interface

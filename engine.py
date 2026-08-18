@@ -425,9 +425,10 @@ def accumulate(profile: Profile, path, shocks: int = 0) -> Accumulation:
             f"(n_years = {TERMINAL_AGE} - current_age, D-20)"
         )
     if shocks:
-        # [SPRINT-3-CLEANUP] The three rung mechanisms are Sprint 3's first
-        # deliverable (D-16, remaining-sprints Sprint 3). Raising rather than
-        # ignoring the count, for make_paths("block", ...)'s reason.
+        # [SPRINT-3-CLEANUP] The three rung mechanisms are Sprint 3B's first
+        # deliverable (D-16, remaining-sprints Sprint 3B). 3A took the bootstrap
+        # and this tag is the one that survives it. Raising rather than ignoring
+        # the count, for the reason make_paths("block", ...) used to raise for.
         raise NotImplementedError(
             f"shocks={shocks}: the rung mechanisms are Sprint 3 -- see D-16 and "
             "remaining-sprints.md. The parameter is pinned here (Sprint 2B), "

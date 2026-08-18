@@ -14,9 +14,9 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 2C complete — 4 of 14 sprint units (2 splits 2A / 2B / 2C, 3 splits 3A / 3B, 4 splits 4A / 4B; 10 is closeout) |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `breakeven()` — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold — the P3a deploy probe, 171 passing tests |
-| **Not yet written** | `engine.py`'s block bootstrap and the three rung mechanisms behind `accumulate`'s `shocks` parameter; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
+| **Progress** | Sprint 3A complete — 5 of 14 sprint units (2 splits 2A / 2B / 2C, 3 splits 3A / 3B, 4 splits 4A / 4B; 10 is closeout) |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `breakeven()` — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold — plus the block bootstrap, `paths_digest()` and `path_drawdown()` as of Sprint 3A. The P3a deploy probe, 189 passing tests |
+| **Not yet written** | The three rung mechanisms behind `accumulate`'s `shocks` parameter — Sprint 3B; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -30,8 +30,10 @@ and the today's-law marker all reproduce from `uv run python engine.py` and are
 asserted by tests. **So do both thresholds, as of Sprint 2C** — 58.4064% and
 29.1% come out of `breakeven()`'s own bisection now rather than a hand-bisection
 of `outcome()`, so nothing in this file is a cold-read figure any more. Two
-figures were withdrawn during review and restored in 2A as labeled proxies; the
-bootstrap values they stand in for are owed by Sprint 3.
+figures were withdrawn during review and restored in 2A as labeled proxies.
+**Sprint 3A supplied the bootstrap distribution they stand in for** — D-15's T65
+Traditional runs p10 $997,415, median $2,123,538, mean $2,618,218 against the
+$2,028,066 proxy. Which one Sprint 6's caption carries is still open.
 
 ---
 
@@ -112,10 +114,11 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 171 tests, all green
-uv run python engine.py          # engine self-test — 2A, 2B and 2C's published scalars
+uv run pytest                    # 189 tests, all green
+uv run python engine.py          # engine self-test — 2A, 2B, 2C and 3A's published scalars
 uv run python return_series.py   # return-series self-test
 uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
+uv run python scripts/measure_3a.py   # the five documents' block-vs-IID measurement
 ```
 
 Without uv:
@@ -140,13 +143,14 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | `tax.py` | ✅ | Every number that came from outside the model — 2026 single-filer brackets, standard deduction, deferral cap, state rate, early-withdrawal penalty. No tax number appears anywhere else in the repo, and `tests/` is the one stated exemption |
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
-| `engine.py` | 🟡 | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. Sprint 2C landed `breakeven()` — the bisection, the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape — and pinned the three search parameters no document had decided: the bracket `(0.01, 0.95)`, float exhaustion as the stopping rule, and the rate `ruin` is read at. **What still raises is the block bootstrap inside `make_paths`**, plus the three rung mechanisms behind `accumulate`'s `shocks` parameter; both are Sprint 3's. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
+| `engine.py` | 🟡 | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. Sprint 2C landed `breakeven()` — the bisection, the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape — and pinned the three search parameters no document had decided: the bracket `(0.01, 0.95)`, float exhaustion as the stopping rule, and the rate `ruin` is read at. Sprint 3A landed the block bootstrap inside `make_paths` — the D-43 generator, sampling scheme and truncation rule — plus `paths_digest()` for D-41's cube header and `path_drawdown()` for D-44's vocabulary. **What still raises is `accumulate(..., shocks>0)`**, the three rung mechanisms, and that is Sprint 3B's. Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
 | `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
-| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 128 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, 3 added post-2B over `geometric_mean`'s overflow (D-39), and 24 added at Sprint 2C over the search, the bracket, the sentinel and the `Result` fields. Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green as of 2B, T3, T4 and T5 as of 2C**, T6–T8 are Sprint 3 |
+| `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 146 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint 2C over the search, the bracket, the sentinel and the `Result` fields, and 19 added at Sprint 3A over the bootstrap, the D-43 parameters, the digest, `path-drawdown` and the three measurement records. **One test was deleted at 3A rather than skipped** — `test_block_paths_still_raise` asserted a `NotImplementedError` that no longer exists. Sprint 4 closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green as of 2B, T3, T4 and T5 as of 2C**, T6–T8 are Sprint 3B |
 | `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
 | `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
 | `tests/test_deploy_config.py` | ✅ | 8 tests on `railway.toml`. No assertion names the entry file — the one test that checks it reads the name out of the start command, so Sprint 6's rename keeps the guard |
+| `scripts/measure_3a.py` | ✅ | Sprint 3A. Not the engine, and nothing imports it. Five documents cite one block-vs-IID measurement taken at gate two by code that was **not in this repo**; this file makes all five checkable by one command. It also carries the IID arm, which lives here rather than as a third `make_paths` kind because nothing in the model consumes an IID path set |
 
 ---
 
@@ -235,22 +239,31 @@ original number.
 **A named margin was measured and its justification did not survive.** D-39 sizes
 the retirement draw to leave 15% of the Roth's age-65 balance at 100, so the base
 case is not sitting exactly at zero where any shock ruins every objective at
-once. Over 2,000 block-bootstrap paths, shock-free, **1,062 of 2,000 Roth paths
-go negative before 100 — 53.1%.** That is sequence risk rather than a tuning
-error: a level real draw against a 19.30% standard deviation over 35 years ruins
-about half the time by construction, and no plausible margin closes it. Sprint
-4's gate reads *ruin is 0.0 across the 0-shock slab* and cannot pass as written;
-the four options and their costs are in D-39, and the choice is Sprint 3's, taken
-deliberately rather than discovered. **The figure is itself owed a
-re-measurement** — it was taken with the draw sized at the 7% deterministic solve,
-and Sprint 2B pinned the bootstrap draw at the series' own 6.776%, which is
-smaller and therefore less ruin. The direction is favorable, which is precisely
-why it gets re-measured rather than assumed to hold.
+once. Over 2,000 block-bootstrap paths, shock-free, **the Roth balance goes
+negative before 100 about half the time.** That is sequence risk rather than a
+tuning error: a level real draw against a 19.30% standard deviation over 35 years
+ruins about half the time by construction, and no plausible margin closes it.
+Sprint 4's gate reads *ruin is 0.0 across the 0-shock slab* and cannot pass as
+written.
+
+**The figure was re-measured at Sprint 3A rather than inherited, and it moved the
+way that would have flattered us.** The original 53.1% was taken with the draw
+sized at the 7% deterministic solve; Sprint 2B pinned the bootstrap draw at the
+series' own compounded rate, which is a smaller draw and therefore less ruin. On
+3A's own bootstrap, 2,000 paths, three seeds: **48.7%, 48.2%, 49.4%**, with the
+draw at about $99,000 against the $108,397 deterministic solve. It fell four
+points and it did not fall far enough to matter. **D-39 records OPTION 1** —
+report the ruin rate as a finding and drop Sprint 4A's absolute gate — with the
+other three options costed at the re-measured number.
 
 **The block bootstrap was picked for a reason that failed measurement.** It was
 chosen to fatten the tail against an IID draw and it thins it slightly — p10
-drawdown −59.7% against −64.3%. It survives on a different argument than the one
-it was picked for, which Scope & Branches below states in full.
+`path-drawdown` −59.6% against −63.7%, measured over the 30-year accumulation
+window. **The tail is the finding and the middle is not.** Across five seeds the
+p10 pair says *block thinner* five times out of five; the median pair splits three
+to two at a gap of a few tenths of a point, which is sampling noise. The pick
+survives on a different argument than the one it was chosen for, which Scope &
+Branches below states in full.
 
 ---
 
@@ -284,9 +297,9 @@ rather than deferred are in [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
 | **Bracket rise as a modeled scenario** | Already on the axis. A higher future rate is a position to the right of `t*` | Nothing. Naming it is the work, and the two-threshold headline does that |
 | **Symmetric "nevermind"** — the rule change hitting Traditional's deduction too | The design deck's original words were "all tax benefits go away." Making it symmetric deletes the asymmetry the whole policy branch rests on, and it still doesn't flip the archetype toward Roth | A Traditional branch in the decumulation loop. ~20 minutes and one lost argument |
 | **Two-bar asymmetry chart** (p90 gain vs p10 loss, both against median) | Teaches a real lesson — outcomes are left-skewed, the bad case is bigger than the good one — but not L3. L3 is *fragility beats the account choice*, carried by the dot collapse and the $X/$Y sentence. Adjacent, not the same | A `p90` field in the cube and one chart. ~10 minutes |
-| **Block length sensitivity** | Block length 5 is a stated fudge factor | Run at 3 and 10, record the deltas. Sprint 3 does this and reports it here |
-| **Block bootstrap over IID** | Kept, but its original justification failed measurement — block *thins* the tail rather than fattening it (p10 drawdown −59.7% vs −64.3%), because annual real returns have a lag-1 autocorrelation of −0.035. It survives on the recovery-forgone channel, and on reproducing history's own worst five-year run. At ~19.6 independent blocks the structure claim cannot be validated, only stated | Switching to IID would delete one fudge factor and simplify Sprint 3 by about five minutes. The reason not to is that block is the more conservative tail and keeps real sequences intact — but that is a preference, not a result, and this row says so |
-| **Shock magnitude sensitivity** | $40,000 is the same kind of fudge factor | Run at $25,000 and $80,000. Same sprint |
+| **Block length sensitivity** | Block length 5 is a stated fudge factor. **Run at Sprint 3A, and it is monotone** — a shorter block deepens the tail and a longer one shallows it, over a 10-point p10 range from block 3 to block 10. The three-row table is in [`docs/ENGINE.md`](docs/ENGINE.md) | Nothing further. It gates nothing: 5 sits between the two and the direction is what the sensitivity was for |
+| **Block bootstrap over IID** | Kept, but its original justification failed measurement — block *thins* the tail rather than fattening it (p10 `path-drawdown` −59.6% vs −63.7%), because annual real returns have a lag-1 autocorrelation of −0.035. It survives on the recovery-forgone channel, and on reproducing history's own worst five-year run. At ~19.6 independent blocks the structure claim cannot be validated, only stated | Switching to IID would have deleted one fudge factor and saved Sprint 3A about five minutes. The reason not to is that block is the more conservative tail and keeps real sequences intact — but that is a preference, not a result, and this row says so |
+| **Shock magnitude sensitivity** | $40,000 is the same kind of fudge factor | Run at $25,000 and $80,000. Sprint 3B, which is where the shock mechanisms land |
 | **Over-65 deductions** — the permanent $2,050 additional standard deduction, and the OBBB senior deduction of up to $6,000 | Deferred, not overlooked. Together they move the marker from 15.2% to **13.5%**, which *widens* Traditional's lead — so omitting them **understates** the recommendation. Neither changes a verdict, and the preset's flip survives at 14.4% against a 12.0% threshold. The $6,000 also sunsets, and applying it across a 35-year retirement would assert something the statute doesn't say | The $2,050 is one conditional on age in `tax.py` and is the honest one to wire first. The $6,000 needs a phaseout and an expiry |
 | **SALT deductibility** — state tax is added flat to the federal marginal rate | **The larger of the two known biases, and it points the other way.** For a filer who itemizes the true combined rate is `0.24 + 0.085 × (1 − 0.24)` = **30.5%, not 32.5%** — two points on the headline itself, in the direction that flatters Traditional. It bites only on itemizers: state income tax alone is $14,025 at the archetype against a $16,100 standard deduction, so it takes about $2,075 more of mortgage interest, property tax or charity to cross | An itemize-or-not branch, and the state rate applied inside the federal calculation rather than beside it |
 | **Real per-state tax data** | One boolean at 8.5% carries the whole state effect | A state table and a second lookup. The `TODO` is in `tax.py` |
@@ -313,6 +326,14 @@ asserted.
 | 8 | Docs assessment | `prompt6.txt` | _(link)_ |
 | 9 | Sprint 2B | `reading-list-sprint-2B.txt` | [`docs/sprints/Sprint2B.txt`](docs/sprints/Sprint2B.txt) · _(link)_ |
 | 10 | Sprint 2C | `reading-list-sprint-2C.txt` | [`docs/sprints/Sprint2C.txt`](docs/sprints/Sprint2C.txt) · _(link)_ |
+| 11 | Sprint 3A | `reading-list-sprint-3-paths.txt` | [`docs/sprints/Sprint3A.txt`](docs/sprints/Sprint3A.txt) · _(link)_ |
+
+`prompts/` also holds `readinglist.sh`, which builds a reading list from a sprint
+name, and `designing-a-read-policy.txt`, the session that decided what a reading
+list should contain. **`reading-list-sprint-3-rungs.txt`,
+`reading-list-sprint-4-cube.txt` and `reading-list-sprint-4-mapping.txt` are
+written and their sprints have not run** — they are in the directory ahead of the
+work, not missing from this table.
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three
