@@ -393,15 +393,10 @@ def test_constant_paths_ignore_n_paths():
     assert engine.make_paths("constant", 2_000, 65, 0.07).shape == (1, 65)
 
 
-def test_block_paths_still_raise():
-    """Sprint 2A gate. The bootstrap is Sprint 3.
-
-    It RAISES rather than falling back to a constant array: a silent fallback to
-    determinism would make every stochastic gate in Sprints 3 and 4 pass for the
-    wrong reason.
-    """
-    with pytest.raises(NotImplementedError):
-        engine.make_paths("block", 2_000, 65)
+# NOTE: test_block_paths_still_raise() lived here through Sprint 2C and is
+# DELETED at 3A rather than skipped -- the bootstrap it asserted was absent now
+# exists, and a test that asserts a NotImplementedError is a test of scaffolding.
+# Its replacements are in the Sprint 3A block at the end of this file.
 
 
 def test_the_stub_flag_is_what_guards_the_block_path():
@@ -1553,3 +1548,327 @@ def test_breakeven_takes_no_rung_and_no_draw_argument():
     names = list(inspect.signature(engine.breakeven).parameters)
     assert names == ["profile", "objective", "shocks", "policy", "paths"]
     assert "rung" not in names and "draw" not in names
+
+
+# ==============================================================================
+# SPRINT 3A -- the block bootstrap, the two shock-free measurements, and the
+# overflow gate D-39 called "a gate whose failing input cannot yet be
+# constructed." This is the first block in this file that consumes a random
+# number, and the literals are restated by hand from DECISIONS and ENGINE.md.
+# ==============================================================================
+
+# --- Restated by hand: D-43, and ENGINE.md's block-vs-IID table ---------------
+SEED_3A = 20_260_815            # D-41
+DECK_YEARS = 98                 # return_series, 1928-2025
+DISTINCT_STARTS = 94            # D-43: 98 - 5 + 1, overlapping, no wrap
+PUB_MEDIAN_DD = -0.426          # ENGINE.md, over 30y accumulation (D-43 caption)
+PUB_P10_DD = -0.597
+PUB_IID_P10_DD = -0.643
+R9_CITED = 0.531                # R9, taken at the 7% solve -- the STALE figure
+D15_PROXY = 2_028_066           # D-15, deterministic at the series' own mean
+
+
+def _deck():
+    return np.asarray(return_series.REAL_RETURNS, dtype=float)
+
+
+# --- make_paths("block", ...) -------------------------------------------------
+def test_block_paths_honor_n_paths_where_constant_paths_ignore_it():
+    """The one place the two kinds read the same argument differently.
+
+    Constant collapses to one row on purpose (n identical rows would collapse
+    objectives 1, 3 and 4 while costing n times the arithmetic). Block cannot:
+    n_paths IS the sample size. Asserted together so the contrast is one test.
+    """
+    assert engine.make_paths("block", 4, 65).shape == (4, 65)
+    assert engine.make_paths("constant", 4, 65, 0.07).shape == (1, 65)
+
+
+def test_the_same_seed_reproduces_a_bit_identical_array():
+    """D-07 and D-41's reproducibility gate, and it is the contract.
+
+    Not `allclose`. The cube must be byte-reproducible from its header, so the
+    assertion is on the bytes -- which is also what paths_digest() fingerprints.
+    """
+    a = engine.make_paths("block", 200, 65, seed=SEED_3A)
+    b = engine.make_paths("block", 200, 65, seed=SEED_3A)
+    assert a.tobytes() == b.tobytes()
+    assert engine.paths_digest(a) == engine.paths_digest(b)
+
+
+def test_a_different_seed_moves_the_array():
+    """So the gate above is not asserting that a constant equals itself."""
+    a = engine.make_paths("block", 200, 65, seed=SEED_3A)
+    b = engine.make_paths("block", 200, 65, seed=SEED_3A + 1)
+    assert a.tobytes() != b.tobytes()
+
+
+def test_the_frozen_generator_is_the_one_that_is_wired():
+    """D-43. MT19937, chosen AGAINST current numpy practice.
+
+    NEP 19 freezes the legacy stream permanently and explicitly declines to
+    freeze default_rng, so this is the only generator that reproduces from an
+    integer for a reader who has neither this machine nor its lockfile. The
+    assertion is that the array equals what RandomState produces -- if anyone
+    swaps in default_rng for speed, D-41's header claim quietly stops being
+    true and nothing else in the suite would notice.
+    """
+    deck = _deck()
+    starts = np.random.RandomState(SEED_3A).randint(0, DISTINCT_STARTS, size=(7, 13))
+    expected = deck[starts[:, :, None] + np.arange(5)].reshape(7, 65)
+    assert engine.make_paths("block", 7, 65, seed=SEED_3A).tobytes() == expected.tobytes()
+
+
+def test_sample_sizes_nest_rather_than_rerandomize():
+    """The row-major draw order, asserted because a sensitivity run depends on it.
+
+    One randint call fills (n_paths, n_blocks) in C order, so a 400-path array's
+    first 200 rows ARE the 200-path array. Re-running at a larger n is a
+    superset, not a different experiment -- which is what lets 3A's 2,000-path
+    decisions and its 4,000-path table be read against each other.
+    """
+    small = engine.make_paths("block", 200, 65, seed=SEED_3A)
+    large = engine.make_paths("block", 400, 65, seed=SEED_3A)
+    assert large[:200].tobytes() == small.tobytes()
+
+
+def test_every_drawn_return_is_a_card_from_the_deck():
+    """The bootstrap resamples; it does not synthesize.
+
+    D-27's deflation happens once, on load, so any value not in REAL_RETURNS
+    means something rescaled the series -- which return_series.py forbids in as
+    many words, because it would make the paths compound at roughly 5%.
+    """
+    paths = engine.make_paths("block", 300, 65, seed=SEED_3A)
+    assert set(np.unique(paths)) <= set(return_series.REAL_RETURNS)
+
+
+def test_every_five_year_run_is_a_contiguous_run_of_history():
+    """THE TEST THAT DISTINGUISHES BLOCK FROM IID, and no done-when named it.
+
+    Every other test in this block passes unchanged if someone replaces the
+    bootstrap with an independent draw: the shape is the same, the seed still
+    reproduces, and every value is still a card from the deck. D-05's whole
+    claim is that bad years arrive in RUNS, and this is the only assertion that
+    can tell. It also asserts the no-wrap rule structurally -- a wrapped block
+    would be a run the deck does not contain.
+    """
+    deck = _deck()
+    paths = engine.make_paths("block", 200, 65, seed=SEED_3A)
+    runs = paths.reshape(200, 13, 5)
+    windows = np.lib.stride_tricks.sliding_window_view(deck, 5)
+    assert windows.shape[0] == DISTINCT_STARTS
+    for run in runs.reshape(-1, 5):
+        assert (windows == run).all(axis=1).any(), run
+
+
+def test_the_trailing_block_is_truncated_rather_than_forbidden():
+    """D-43. Free at 30 and 65 years; current_age = 36 gives 64, which is 12.8.
+
+    One control-tweak away, so the rule is stated rather than left to a
+    coincidence. The first 60 years must be whole blocks and the tail is the
+    HEAD of one more -- truncated from the right, never sampled separately.
+    """
+    short = engine.make_paths("block", 50, 64, seed=SEED_3A)
+    full = engine.make_paths("block", 50, 65, seed=SEED_3A)
+    assert short.shape == (50, 64)
+    assert short.tobytes() == full[:, :64].tobytes()
+
+
+def test_the_stub_flag_still_guards_the_block_path(monkeypatch):
+    """D-41: STUB survives as the flag make_paths("block", ...) raises on.
+
+    It must raise on STUB BEFORE it raises on anything else, so a stub deck
+    fails loudly rather than dealing 98 fake cards into a published cube.
+    """
+    monkeypatch.setattr(return_series, "STUB", True)
+    with pytest.raises(RuntimeError, match="STUB"):
+        engine.make_paths("block", 4, 65)
+
+
+# --- geometric_mean's overflow, finally constructible -------------------------
+def test_the_overflow_gate_can_finally_be_constructed(): 
+    """D-39's post-close correction. THE FAILING INPUT EXISTS AS OF THIS SPRINT.
+
+    Until the bootstrap landed, both draw_return_rate tests ran single-row
+    arrays and make_paths("block", ...) raised, so no multi-row array existed in
+    the suite -- "a gate whose failing input cannot yet be constructed."
+
+    THE SECOND ASSERTION IS THE POINT. A (2000, 65) array is 130,000 factors
+    averaging about 1.068 and the old running-product form overflowed float64 at
+    roughly 10,800 of them. Asserting only that the log-space form is finite
+    would pass on an array that never stressed it. So the old form is computed
+    here and asserted to be inf: the test proves it is testing something.
+
+    The failure this defends against did not raise. _solve_draw returned nan,
+    outcome() returned nan on objectives 1, 3 and 4, and objective 5 returned
+    1.0 -- ZERO RUIN -- because nan < 0 is False. That is exactly the number
+    Sprint 4's 0-shock gate is looking for.
+    """
+    paths = engine.make_paths("block", 2_000, 65, seed=SEED_3A)
+    flat = paths.ravel()
+    assert flat.size == 130_000
+    with np.errstate(over="ignore"):
+        # The overflow IS the assertion, so the warning it raises is expected
+        # rather than a symptom. Silenced locally so a green run tees a clean
+        # results file -- not silenced module-wide, where it would hide a real one.
+        assert np.isinf(np.prod(1.0 + flat)), "the old running-product form"
+    got = engine.draw_return_rate(paths)
+    assert math.isfinite(got)
+    assert 0.03 < got < 0.11, got
+
+
+def test_a_real_bootstrap_outcome_is_a_number_rather_than_a_nan():
+    """The same defect one layer up, on the array that actually ships."""
+    paths = engine.make_paths("block", 2_000, 65, seed=SEED_3A)
+    for objective in (1, 3, 4, 5):
+        got = engine.outcome(engine.ARCHETYPE, objective, 0, None, paths, 0.30, "trad")
+        assert math.isfinite(got), objective
+    assert 0.0 < engine.outcome(
+        engine.ARCHETYPE, 5, 0, None, paths, 0.30, "roth"
+    ) < 1.0, "objective 5 pinned at 1.0 is the overflow signature"
+
+
+# --- paths_digest(), extracted at 3A -------------------------------------------
+def test_the_digest_is_content_addressed_not_identity_addressed():
+    """D-41's header field. Two arrays with equal contents share a digest.
+
+    Keyed on contents rather than id() for the reason the accumulation cache
+    already states: id() works in practice and collides silently the first time
+    it does not.
+    """
+    a = engine.make_paths("block", 50, 65, seed=SEED_3A)
+    assert engine.paths_digest(a) == engine.paths_digest(a.copy())
+    assert engine.paths_digest(a) != engine.paths_digest(a * 1.0000001)
+    assert len(engine.paths_digest(a)) == 32
+
+
+# --- path-drawdown, the 3A half of D-44's vocabulary --------------------------
+def test_path_drawdown_is_the_minimum_of_the_underwater_curve():
+    """D-44. The two names are related, and the relation is the definition.
+
+    path-drawdown is ONE PER PATH; underwater-depth is ONE PER YEAR; the first
+    is the minimum of the second over the window. Asserting it here is what
+    keeps 3B from inventing a second, subtly different underwater curve.
+    """
+    paths = engine.make_paths("block", 20, 30, seed=SEED_3A)
+    index = np.cumprod(1.0 + paths, axis=1)
+    underwater = index / np.maximum.accumulate(index, axis=1) - 1.0
+    assert np.allclose(engine.path_drawdown(paths), underwater.min(axis=1))
+    assert (engine.path_drawdown(paths) <= 0.0).all()
+
+
+def test_path_drawdown_reads_the_return_model_not_an_account_balance():
+    """No profile in the signature, and that absence is the point.
+
+    A balance carries contributions, which arrive every year and buy at the
+    bottom -- masking the decline they are supposed to measure. A monotone
+    series has no drawdown at all; this is the cheapest statement of that.
+    """
+    assert engine.path_drawdown(np.full((1, 30), 0.07))[0] == 0.0
+
+
+# --- MEASUREMENT RECORD 1: the published block-vs-IID table -------------------
+def test_the_published_drawdown_table_reproduces_over_the_accumulation_window():
+    """SPRINT 3A's headline reproduction. FIVE documents carry some part of it.
+
+    The window is the part nobody wrote down and it moves the answer nine
+    points: over the full 65-year path the same measurement reads -51.9% and
+    -66.7%, which is what "each path" reads as if the caption does not say
+    otherwise. 3A added the window to ENGINE.md's caption; this test is what
+    keeps it there.
+
+    THE BAND IS A POINT, which is remaining-sprints' own bar -- these are
+    sampling estimates and the published figures came off a different generator
+    entirely. What is NOT banded is the direction of the p10 pair: block has the
+    thinner left tail, and a sign flip there is a defect rather than a tuning
+    gap. See the companion test for why the MEDIAN pair carries no such claim.
+    """
+    window = engine.ARCHETYPE.n_accumulation_years
+    block = engine.path_drawdown(engine.make_paths("block", 4_000, window, seed=SEED_3A))
+    rs = np.random.RandomState(SEED_3A)
+    iid = engine.path_drawdown(_deck()[rs.randint(0, DECK_YEARS, size=(4_000, window))])
+
+    assert np.median(block) == pytest.approx(PUB_MEDIAN_DD, abs=0.01)
+    assert np.percentile(block, 10) == pytest.approx(PUB_P10_DD, abs=0.01)
+    assert np.percentile(iid, 10) == pytest.approx(PUB_IID_P10_DD, abs=0.01)
+    assert np.percentile(block, 10) > np.percentile(iid, 10), "the finding"
+
+
+def test_only_the_p10_row_of_that_table_carries_a_direction():
+    """MEASURED AT 3A, AND IT CORRECTS A PUBLISHED TABLE.
+
+    ENGINE.md and D-05 print the median pair beside the p10 pair as though both
+    said the same thing. Across five seeds at 4,000 paths the p10 pair says
+    "block thinner" five times out of five, and the median pair splits three to
+    two at a gap of a few tenths of a point. The median row is noise.
+
+    Asserted rather than only written down, because the next person to measure
+    this on one seed will otherwise read a median inversion as a defect and go
+    looking for it. That is the afternoon this test buys.
+    """
+    window = engine.ARCHETYPE.n_accumulation_years
+    thinner_p10 = thinner_median = 0
+    for seed in range(SEED_3A, SEED_3A + 5):
+        block = engine.path_drawdown(engine.make_paths("block", 4_000, window, seed=seed))
+        rs = np.random.RandomState(seed)
+        iid = engine.path_drawdown(_deck()[rs.randint(0, DECK_YEARS, size=(4_000, window))])
+        thinner_p10 += np.percentile(block, 10) > np.percentile(iid, 10)
+        thinner_median += np.median(block) > np.median(iid)
+    assert thinner_p10 == 5, "the p10 finding is not scheme-noise"
+    assert 0 < thinner_median < 5, "the median row is noise and must read as noise"
+
+
+# --- MEASUREMENT RECORD 2: R9, re-measured rather than inherited --------------
+def test_r9_is_re_measured_below_the_figure_it_was_decided_against():
+    """R9 / D-39 part 2. The 53.1% was taken at the 7% deterministic solve.
+
+    2B's pin sizes the draw at the series' own compounded rate, which is SMALLER
+    and therefore LESS ruin -- a number that moves in the direction that would
+    flatter you, which is exactly why D-39 required it re-measured before any of
+    its four options was chosen.
+
+    Banded, not pinned: this is a sampling estimate and the band is what the
+    decision actually rests on. Option 2 -- raise ROTH_TERMINAL_MARGIN until the
+    slab is clean -- is dead anywhere in this band, and that is the claim.
+    """
+    paths = engine.make_paths("block", 2_000, 65, seed=SEED_3A)
+    _, ruined = engine._outcome_paths(
+        engine.ARCHETYPE, 0, None, paths, engine.ARCHETYPE.t_now, "roth"
+    )
+    measured = float(ruined.mean())
+    assert 0.44 < measured < 0.53, measured
+    assert measured < R9_CITED, "it moved in the favorable direction"
+    assert measured > 0.25, "and not far enough for Sprint 4A's absolute gate"
+
+
+def test_the_bootstrap_draw_sits_below_the_deterministic_one():
+    """The mechanism behind the line above, asserted separately from its effect.
+
+    D-39's two candidates are one expression on two inputs: 7% on a constant
+    array, the series' own rate on a bootstrap. The second is the smaller draw.
+    """
+    block = engine.make_paths("block", 2_000, 65, seed=SEED_3A)
+    constant = engine.make_paths("constant", 1, 65, 0.07)
+    assert engine._solve_draw(engine.ARCHETYPE, block) < engine._solve_draw(
+        engine.ARCHETYPE, constant
+    )
+    assert round(engine._solve_draw(engine.ARCHETYPE, constant)) == 108_397
+
+
+# --- MEASUREMENT RECORD 3: D-15's reconciliation ------------------------------
+def test_d15_has_three_answers_and_they_disagree_by_more_than_the_question():
+    """D-15. 2A's proxy is a deterministic run; the bootstrap is a distribution.
+
+    Jensen is not a footnote here: the mean sits about a quarter above the
+    proxy, the median a few points above it, and the p10 at roughly half. The
+    ORDERING is what this test defends -- p10 < proxy < median < mean -- because
+    that ordering is what makes the choice of caption a decision rather than a
+    rounding, and D-23 already rejected the ensemble average as a gauge.
+    """
+    paths = engine.make_paths("block", 2_000, 65, seed=SEED_3A)
+    t65 = np.array([a.trad for a in engine._accumulations(engine.ARCHETYPE, paths, 0)])
+    assert np.percentile(t65, 10) < D15_PROXY < np.median(t65) < t65.mean()
+    assert t65.mean() / D15_PROXY == pytest.approx(1.29, abs=0.05)
+    assert np.median(t65) / D15_PROXY == pytest.approx(1.05, abs=0.05)
+    assert np.percentile(t65, 10) / D15_PROXY == pytest.approx(0.49, abs=0.05)
