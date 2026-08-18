@@ -1,0 +1,70 @@
+Sprint 3B measurements -- n_paths=2000, seed=20260815
+Placement: correlated | shock: $40,000 | block length: 5
+Digest: 48f9c1b929ce667e82e8c9d49d753c59 (D-41; must match 3A's)
+
+==============================================================================
+1. UNCORRELATED TOGGLE -- does placement move the 10th percentile?
+   -> ENGINE.md "Shock timing and size"; README ## Results if it flips
+==============================================================================
+placement      shocks     trad_65 p10     trad_65 med   after-tax p10
+correlated          1         851,000       1,817,628      -9,718,291
+correlated          3         576,048       1,217,364     -13,652,440
+uncorrelated        1         893,087       1,885,001      -9,406,379
+uncorrelated        3         666,761       1,432,749     -12,039,443
+
+  1 shock(s): trad_65 p10 correlated 851,000 vs uncorrelated 893,087  (-4.71%)
+             -> correlated placement DEFLATES the tail
+  3 shock(s): trad_65 p10 correlated 576,048 vs uncorrelated 666,761  (-13.60%)
+             -> correlated placement DEFLATES the tail
+
+  Both numbers are recorded whichever way this went (3B done-when).
+
+==============================================================================
+2. SHOCK MAGNITUDE SENSITIVITY -- $25,000 and $80,000 against $40,000
+   -> README ## Scope & Branches, beside the block-length row
+==============================================================================
+  $25,000  gross sale at 55 $ 43,656.57  trad_65 median $   1,613,286  roth_65 median $   1,135,589
+  $40,000  gross sale at 55 $ 73,959.60  trad_65 median $   1,217,364  roth_65 median $     925,751
+  $80,000  gross sale at 55 $158,505.91  trad_65 median $     295,296  roth_65 median $     390,411
+
+  Deltas are taken against the $40,000 base of $1,217,364.
+  The gross sale is superlinear in the net amount, because the
+  withdrawal climbs the bracket table as it grows (D-16's PIN).
+
+  THE ACCOUNT ORDERING REVERSES AT $67,471 -- bisected, ~7s.
+  That is 2.75x a contribution year, against the 1.63x D-39 chose.
+  Below it Traditional's deferral head start survives three shocks;
+  above it the penalty plus bracket-climb has eaten the whole 1.481x.
+
+==============================================================================
+3. D-22's PUBLISHED LOW RATIOS -- reproduce, or identify what made them
+   -> DECISIONS D-22, the measured line
+==============================================================================
+  Mid and High, the three that DO reproduce:
+    mid   0 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+    mid   1 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+    mid   3 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+    high  0 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+    high  1 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+    high  3 shocks  roth/trad 0.675000000000   1 - t_now 0.675000000000
+
+  Low, under this sprint's decided rules (D-45/D-46/D-47):
+    1 shocks  roth/trad 0.705664   D-22 published 0.689633   MISMATCH +0.016031
+    3 shocks  roth/trad 0.855412   D-22 published 0.708591   MISMATCH +0.146821
+
+  Which (year, rule) pair produces D-22's 1-shock 0.689633?
+    D-47 exact (this sprint)     closest year  7 (age 42) -> 0.689857   err 2.24e-04
+    exact, base = gross income   closest year  9 (age 44) -> 0.689497   err 1.36e-04
+    flat t_now 32.5%             closest year  9 (age 44) -> 0.689633   err 1.99e-07  <== EXACT
+    flat federal 24%             closest year  0 (age 35) -> 0.678855   err 1.08e-02
+    flat marginal at income      closest year  0 (age 35) -> 0.678855   err 1.08e-02
+
+  READING: the published pair was taken with the FLAT t_now gross-up
+  that D-16's PIN rejects, at a scattered year. It is stale for a
+  known reason, not wrong for an unknown one. D-22's measured line
+  is corrected to the values above and cites this file.
+
+==============================================================================
+Every number above belongs to a document. Copy it there before you
+close the terminal -- that is the whole reason this file exists.
+==============================================================================

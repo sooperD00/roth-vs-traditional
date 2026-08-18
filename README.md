@@ -216,6 +216,8 @@ Claims the design made, measured against the built engine, that did not survive.
 Recorded here rather than quietly rewritten — the convention is the project's own
 and D-05 and D-15 are the earlier instances.
 
+### placeholder name 
+
 **The income shape's end point never reaches the archetype.** The design deck's
 income mockup states that ending flat at $200,000 rather than declining to
 $165,000 *"costs Traditional 1.4 points of its advantage,"* and D-19 carried the
@@ -235,6 +237,8 @@ needs a profile whose *final* leg stays under $122,500, and there it is a
 fraction of the claimed size: ending at $90,000 rather than $110,000 moves the
 marker by **0.13 points**. That is the correction, rather than a defense of the
 original number.
+
+### placeholder name 
 
 **A named margin was measured and its justification did not survive.** D-39 sizes
 the retirement draw to leave 15% of the Roth's age-65 balance at 100, so the base
@@ -256,6 +260,8 @@ points and it did not fall far enough to matter. **D-39 records OPTION 1** —
 report the ruin rate as a finding and drop Sprint 4A's absolute gate — with the
 other three options costed at the re-measured number.
 
+### placeholder name 
+
 **The block bootstrap was picked for a reason that failed measurement.** It was
 chosen to fatten the tail against an IID draw and it thins it slightly — p10
 `path-drawdown` −59.6% against −63.7%, measured over the 30-year accumulation
@@ -264,6 +270,58 @@ p10 pair says *block thinner* five times out of five; the median pair splits thr
 to two at a gap of a few tenths of a point, which is sampling noise. The pick
 survives on a different argument than the one it was chosen for, which Scope &
 Branches below states in full.
+
+### placeholder name 
+
+**The block size is the single? biggest? factor affecting... ???**
+from Sprint 3B
+
+### Shock magnitude — $40,000 is a fudge factor, and it is load-bearing
+
+from Sprint 3B
+
+`SHOCK_AMOUNT = $40,000` was chosen at 1.6x a contribution year (D-39), so the
+forced sale and the skipped contribution would be the same order of magnitude.
+Sprint 3B measured $25,000 and $80,000 against it, at the Low rung, three
+shocks, 2,000 bootstrap paths. Source: `scripts/measure_3b.py`.
+
+| Shock | Gross sale at 55 | All-in cost | `trad_65` median | `roth_65` median |
+|---|---|---|---|---|
+| $25,000 | $43,657 | 42.7% | $1,613,286 | $1,135,589 |
+| $40,000 | $73,960 | 45.9% | $1,217,364 | $925,751 |
+| $80,000 | $158,506 | 49.5% | **$295,296** | **$390,411** |
+
+**At $80,000 the account ordering reverses.** Traditional finishes below Roth,
+and `trad_65` is a pre-tax balance while `roth_65` is already after tax — so on
+the median path there is no retirement tax rate, including zero, at which
+Traditional recovers. The breakeven does not move. It stops existing.
+
+Two multipliers produce it, one fixed and one growing. Traditional starts ahead
+by `1 / (1 - t_now)` = 1.481x, because the deferral buys more shares. But each
+forced sale costs Traditional 1.98x what it costs Roth, so Traditional loses
+1.34x as much *of itself* per shock. That second multiplier is the one that
+moves: the gross sale runs 1.75x, 1.85x, 1.98x across the three shock sizes,
+because the withdrawal climbs the bracket table as it grows. A fixed head start
+against a growing per-shock penalty, and enough shocks consume it.
+
+**This is the finding the deterministic model cannot produce.** With no shocks
+`roth/trad` is pinned at `1 - t_now` exactly, at every rung and every return
+rate (D-22, tests T7 and T8). The reversal is reachable only through the single
+asymmetric mechanism in the cube — the 10% penalty plus the incremental
+bracket on a forced sale. Tax deferral is leverage, and leverage amplifies both
+directions.
+
+**Read it with its limits.** Both outcomes at $80,000 are bad — those are
+near-ruin balances after a career of $24,500/year contributions. It is a median
+rather than a distribution. And whether the cell resolves to `always_roth`
+(D-42) is a Sprint 4A question; this run establishes it for the median path
+only.
+
+**The crossing is at $67,471** — 2.75x a contribution year, against the 1.63x
+D-39 chose. Below it Traditional's `1 / (1 - t_now)` head start survives three
+shocks; above it the penalty plus bracket-climb has consumed the whole 1.481x.
+Bisected over 2,000 paths at the Low rung, three shocks; the precision is the
+bisection's rather than the sample's.
 
 ---
 

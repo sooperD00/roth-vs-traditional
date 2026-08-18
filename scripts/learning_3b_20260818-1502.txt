@@ -1,0 +1,86 @@
+Section 2, three lines, and the flip is in the third:
+
+Shock	Gross sale at 55	All-in cost	trad₆₅ median	roth₆₅ median	roth/trad
+$25,000	$43,656.57	42.7%	1,613,286	1,135,589	0.704
+$40,000	$73,959.60	45.9%	1,217,364	925,751	0.760
+$80,000	$158,505.91	49.5%	295,296	390,411	1.322
+
+The 0-shock baseline is 0.675 — that's D-22's identity, 1 − t_now. The ratio climbs 0.675 → 0.704 → 0.760 → 1.322, and crossing 1.0 is the event. Nothing in the output labels it; it's two columns you have to read against each other.
+
+The mechanism is two multipliers, one fixed and one growing.
+
+Traditional starts ahead by a fixed 1/(1 − t_now) = 1.481×, because the deferral buys more shares.
+Per shock, Traditional sells 1.98× what Roth sells for the same cash. So it loses 1.981 / 1.481 = 1.337× as much of itself per shock.
+That second multiplier is the one that moves. The gross multiple runs 1.746 → 1.849 → 1.981 across the three shock sizes, because the withdrawal climbs the bracket table as it grows. Proportional damage per shock goes 1.18× → 1.25× → 1.34×.
+
+A fixed head start against a growing per-shock penalty. Enough shocks at a large enough size consumes it, and $80,000 × 3 is past the line.
+
+Why it's worth writing down
+
+1. It's a qualitative flip, not a shading. Every other result in this project moves a breakeven rate by points. This one changes which account wins, and it does so before any retirement-rate comparison. trad₆₅ is a pre-tax number and roth₆₅ is already after-tax — so on the median path there is no retirement tax rate, including zero, at which Traditional recovers. 295,296 × (1 − t) < 390,411 for every t ≥ 0. The breakeven doesn't move; it stops existing.
+
+2. The deterministic model cannot produce it. With no shocks, roth/trad is pinned at 0.675 forever — D-22 proves it, T7 and T8 assert it. The flip is reachable only through the one asymmetric mechanism in the cube. That's the direct answer to the reviewer question "why not just compare tax rates?", and it's the strongest single piece of evidence that the shock machinery earns its cost.
+
+3. It's a sensitivity result that goes against your own convenience. $40,000 is a named fudge factor (D-39, 1.6× a contribution year). The run exists to test whether that choice is load-bearing. The answer is yes — and not "the number moves 8%," but "the qualitative conclusion is not stable across the plausible range." That's the D-05 treatment applied to a second fudge factor, and it's a better story than a clean sensitivity would have been.
+
+4. It has a plain-English reading. Tax deferral is leverage. The Traditional saver holds a bigger position bought with the government's money, and the 10% penalty plus bracket-climbing is the margin call. Leverage amplifies both directions — that's a sentence a person can use, and it's not in the standard advice.
+
+The honest limits, which belong in the README with it. The flip happens in a regime where both outcomes are bad — 295,296 and 390,411 are near-ruin balances after a career of $24,500/year. It's a median, not a distribution. And whether the cell resolves to D-42's always_roth is a Sprint 4A question this run doesn't answer; the median path does, the cube hasn't been asked.
+
+---
+
+README copy:
+### Shock magnitude — $40,000 is a fudge factor, and it is load-bearing
+
+`SHOCK_AMOUNT = $40,000` was chosen at 1.6x a contribution year (D-39), so the
+forced sale and the skipped contribution would be the same order of magnitude.
+Sprint 3B measured $25,000 and $80,000 against it, at the Low rung, three
+shocks, 2,000 bootstrap paths. Source: `scripts/measure_3b.py`.
+
+| Shock | Gross sale at 55 | All-in cost | `trad_65` median | `roth_65` median |
+|---|---|---|---|---|
+| $25,000 | $43,657 | 42.7% | $1,613,286 | $1,135,589 |
+| $40,000 | $73,960 | 45.9% | $1,217,364 | $925,751 |
+| $80,000 | $158,506 | 49.5% | **$295,296** | **$390,411** |
+
+**At $80,000 the account ordering reverses.** Traditional finishes below Roth,
+and `trad_65` is a pre-tax balance while `roth_65` is already after tax — so on
+the median path there is no retirement tax rate, including zero, at which
+Traditional recovers. The breakeven does not move. It stops existing.
+
+Two multipliers produce it, one fixed and one growing. Traditional starts ahead
+by `1 / (1 - t_now)` = 1.481x, because the deferral buys more shares. But each
+forced sale costs Traditional 1.98x what it costs Roth, so Traditional loses
+1.34x as much *of itself* per shock. That second multiplier is the one that
+moves: the gross sale runs 1.75x, 1.85x, 1.98x across the three shock sizes,
+because the withdrawal climbs the bracket table as it grows. A fixed head start
+against a growing per-shock penalty, and enough shocks consume it.
+
+**This is the finding the deterministic model cannot produce.** With no shocks
+`roth/trad` is pinned at `1 - t_now` exactly, at every rung and every return
+rate (D-22, tests T7 and T8). The reversal is reachable only through the single
+asymmetric mechanism in the cube — the 10% penalty plus the incremental
+bracket on a forced sale. Tax deferral is leverage, and leverage amplifies both
+directions.
+
+**Read it with its limits.** Both outcomes at $80,000 are bad — those are
+near-ruin balances after a career of $24,500/year contributions. It is a median
+rather than a distribution. And whether the cell resolves to `always_roth`
+(D-42) is a Sprint 4A question; this run establishes it for the median path
+only. The crossing point between $40,000 and $80,000 is not measured.
+
+---
+
+That last sentence is the weak one. Locating the crossing is about six lines in measure_3b.py — a bisection on shock size for roth₆₅ median == trad₆₅ median — and it would let the README name a dollar figure instead of a range. Say the word and I'll add it as a fourth measurement.
+
+---
+
+ok put in the bisection calc:
+
+**The crossing is at $67,471** — 2.75x a contribution year, against the 1.63x
+D-39 chose. Below it Traditional's `1 / (1 - t_now)` head start survives three
+shocks; above it the penalty plus bracket-climb has consumed the whole 1.481x.
+Bisected over 2,000 paths at the Low rung, three shocks; the precision is the
+bisection's rather than the sample's.
+
+That number does real work in the sensitivity argument. $40,000 sits at 59% of the flip point — comfortably inside the safe regime, but not by an order of magnitude. A reviewer who thinks $40,000 is understated for a real medical or job-loss event is asking a question with an answer now: it takes $67,471 per event, three times, before the conclusion inverts.

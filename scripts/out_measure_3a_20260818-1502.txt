@@ -1,0 +1,44 @@
+numpy 2.4.2 | generator RandomState/MT19937 (D-43)
+deck 98 yrs, block 5, 94 distinct starts, no wrap
+
+1. BLOCK vs IID -- path-drawdown over 30y accumulation, 4000 paths, 5 seeds
+                               block       IID   published
+   median path-drawdown      -42.2%    -42.0%   -42.6 / -43.0
+   p10 path-drawdown         -59.6%    -63.7%   -59.7 / -64.3
+   year after worst year      17.1%     10.1%   +17.0 / +9.5
+   next three, cumulative     39.9%     33.2%   +39.5 / +32.1
+   ...of which negative        5.4%     20.0%   5% / 21%
+
+   SAME MEASUREMENT, 65y full path -- the reading that goes stale:
+   median / p10              -51.9%    -53.0%     -66.7%   -72.0%
+
+1b. DIRECTION BY SEED -- the p10 row is the finding, the median row is noise
+   seed 20260815:  median  BLOCK DEEPER   p10 block thinner
+   seed 20260816:  median block thinner   p10 block thinner
+   seed 20260817:  median  BLOCK DEEPER   p10 block thinner
+   seed 20260818:  median  BLOCK DEEPER   p10 block thinner
+   seed 20260819:  median block thinner   p10 block thinner
+
+2. WORST 5-YEAR RUN over the full 65y path   published -10.26%, 'which is exactly 1937-41'
+   median path, rolling window    -10.28%   <- the published figure
+   median path, aligned block      -7.27%
+   the deck's own worst window    -10.26%   (1937-41)
+   paths that actually drew it      12.6%   <- the clause
+
+3. R9 -- 0-shock Roth ruin, 2000 paths, 3 seeds (cited 53.1%, taken at the 7% solve)
+   seed 20260815: ruin 48.7%   draw $99,015 at 6.6874%
+   seed 20260816: ruin 48.2%   draw $98,807 at 6.6802%
+   seed 20260817: ruin 49.4%   draw $100,529 at 6.7397%
+
+4. D-15 -- T65 Traditional, 2000 paths, against the $2,028,066 deterministic proxy
+   mean    $   2,618,218   +29.1%
+   median  $   2,123,538    +4.7%
+   p10     $     997,415   -50.8%
+   p90     $   4,748,012  +134.1%
+
+5. BLOCK LENGTH SENSITIVITY -- cut ladder item 2, gates nothing
+   block 3   median  -44.7%   p10  -65.1%
+   block 5   median  -42.6%   p10  -59.4%   <- D-05
+   block 10  median  -41.8%   p10  -54.8%
+
+digest, 2000x65 at seed 20260815: 48f9c1b929ce667e82e8c9d49d753c59
