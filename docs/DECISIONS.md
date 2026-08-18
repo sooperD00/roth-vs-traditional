@@ -161,6 +161,8 @@ match.
 |---|---|---|
 | D-04a | **Return buttons are 7 / 9 / 12%, all real.** Default 7%. Each labeled with its nominal equivalent; 12% is labeled implausible on purpose | D-27 puts the model in real dollars, so nominal buttons would misread. 7 and 10 collapse under conversion — 10% nominal *is* ~7% real — so a straight translation loses a button. The implausible button is the one a skeptic reaches for first, and watching `t*` hold still there is L1 at full force. Caption: *this input drives the picture, not the answer.* **Supersedes D-04** |
 | D-05 | **Block bootstrap over a historical real return series. Block length 5.** Shocks placed into each path's worst accumulation years by drawdown `argsort`. **The reason for this pick was measured at gate two and did not hold; the pick survives on a different one** | Block length 5 keeps history's own bad sequences intact as sequences — 1929–32, 1937–41, 1973–74 arrive as units, and the median path's worst five-year run lands exactly on history's own, −10.26% annualized. **What it does not do is fatten the tail.** Measured against an IID draw on the same series: median maximum drawdown −42.6% against −43.0%, p10 −59.7% against −64.3%. Block is the *thinner*-tailed, more conservative model here, which is the opposite of what this decision originally claimed. One number explains it — the lag-1 autocorrelation of annual US real returns is **−0.035**, so at annual frequency there is no persistence to preserve, and the crashes in this record came packaged with their own rebounds (1931 sits in a block with 1933, 1974 with 1975, 2008 with 2009). **The forced-liquidation mechanism survives through a different channel:** a Low-rung shock sells $40,000 at a depressed price and the cost is the compounding forgone, so a *faster* rebound makes that cost larger. Measured, the year after the worst year returns +17.0% under block against +9.5% under IID. Block length remains a stated fudge factor with sensitivity at 3 and 10 in Scope & Branches, and `argsort` placement still means no correlation coefficient to calibrate or defend. **This row is the project's own methodology applied to itself** — a named fudge factor got measured, its justification failed, and the failure is written down rather than the reason quietly rewritten |
+| D-43 | **The three parameters D-05 left open, decided at Sprint 3A BEFORE the first array existed.** Generator: **`np.random.RandomState(20260815)` — MT19937.** Sampling: **overlapping starts drawn uniformly over `[0, N−5]`, NO WRAP** — 94 distinct blocks. Trailing block: **truncated** | **The generator is chosen AGAINST current numpy practice and the reason is a product reason.** NEP 19 freezes the legacy stream permanently and explicitly declines to freeze `default_rng`, which may change its stream in a minor release. D-41 requires the cube byte-reproducible **from its header** — from an integer, by a reader who has neither this environment nor its lockfile — and only the frozen stream delivers that. The modern generator is the faster and the *less* reproducible one, and nothing here is performance-bound: this project exists to show a product effect, so a production-grade engine is not the deliverable and reproducibility outranks speed. **Overlapping starts** give 94 blocks against a fixed partition's 19, and are the only scheme that can emit 1937–41 at all — deck index 9 is not a multiple of 5, so a partition anchored at 1928 cannot produce the run two documents publish, and its worst reachable block is −7.72%. **No wrap** was refused for the mirror reason: it would manufacture a 2025 → 1928 adjacency that never happened. The cost is accepted and named — edge years appear in fewer windows, so the oldest and most recent years are undersampled. **Truncation** is stated rather than left to a coincidence: 30 and 65 years are 6 and 13 whole blocks, but `current_age = 36` gives 64, which is 12.8 |
+| D-44 | **Drawdown vocabulary. Three quantities shared one word and two of them are not the same quantity.** `path-drawdown` — deepest peak-to-trough decline of the cumulative return index, **one per path**. `underwater-depth` — how far below its running peak the index sits at the end of a year, **one per year**. `worst-year-return` — the annual real return itself, **one per year** | Written at 3A because 3A and 3B both need the word and mean different things by it. **`path-drawdown` is 3A's** and is what −42.6% is; `engine.path_drawdown()` implements it. **The other two are 3B's**, and D-08's placement rule admits either — that ambiguity is 3B's to resolve and 3A does not resolve it here. The relation is the definition and is asserted in the suite: **`path-drawdown = min(underwater-depth)` over the window**, which is what keeps 3B from inventing a second, subtly different underwater curve. **`worst-year-return` drops the word entirely** — reading (a) was never a drawdown, and calling it one is most of why D-08 reads two ways. Grep behaviour is part of the pick: three distinct tokens, no shared prefix, so `grep drawdown` minus `path-drawdown` returns a small knowable set. **`path-drawdown` is computed on the return index, never on an account balance** — contributions arrive every year and buy at the bottom, masking the decline they are supposed to measure |
 | D-06 | **`optimal` is a parameter, not a choice. FOUR objectives ship as grid rows.** Objective 2, max after-tax lifetime spending, is **CUT** | Same inputs, swap the objective, watch the recommendation flip. That is still the demo. **Objective 2's precondition is gone:** `DESIGN.md`'s bad-at column for it read *needs a spending model*, and D-39 made spending a fixed common input, which deleted the thing the objective measured. Under a common draw and D-38's no-clamping rule, both accounts pay the same amount every year on every path *including ruined ones* — so lifetime spending is `35 × S` for both and the difference is **identically zero, at every `t_later`, every rung, every shock count.** Not small. Zero. Bisection has nothing to bracket. **Both repairs fail.** Spending-until-first-shortfall is a step function and is still degenerate at Mid and High. Maximum-sustainable-spending is *algebraically the same test as objective 1* — `S*_T > S*_R ⟺ trad₆₅(1−t_later) > roth₆₅`, the compounding factor and the annuity factor dividing out — so it can never produce a different row at any cell, verified including at Low where nothing is proportional. **This is a gate-two regression, recorded rather than quietly dropped:** D-39 changed a precondition and the objective ladder was not re-checked against it. Scope & Branches carries the row |
 | D-07 | **Common random numbers.** Draw the `(n_paths, n_years)` array once; reuse across every cell, both choices, every bisection step | The quantity of interest is a small difference between two large numbers. Pairing removes sampling noise from that difference, makes the cube reproducible from a seed, and makes 48 cells cheap |
 | D-08 | **Shock columns are a count (0–3); shock *timing* is correlated with drawdown.** Correlated is the default; an uncorrelated toggle exists for contrast. Shocks land in the **accumulation phase only** (ages 35–64), placed at the `n` deepest drawdown years of each path | Forced liquidation lands when prices are worst. Restricting to accumulation is not a simplification of convenience: all three rung mechanisms are defined on a contribution stream, and Mid's "contributions pause" has nothing to pause after 65 |
@@ -233,6 +235,40 @@ figures differ by about 3.4%*. That number is withdrawn; the caption is not.
 Write it from Sprint 3's output — the caption is about the bootstrap, so the
 Sprint 2A proxy is not the right number to publish there. The caption's job — telling a panelist the two
 return models are different on purpose — is unchanged and is still load-bearing.
+
+**THE BOOTSTRAP DISTRIBUTION, MEASURED AT SPRINT 3A.** 2,000 paths, `seed =
+20260815`, T65 Traditional, against the $2,028,066 deterministic proxy:
+
+| | | vs. proxy |
+|---|---|---|
+| p10 | **$997,415** | −50.8% |
+| *proxy (deterministic at 6.776%)* | *$2,028,066* | — |
+| median | **$2,123,538** | +4.7% |
+| mean | **$2,618,218** | +29.1% |
+| p90 | **$4,748,012** | +134.1% |
+
+**There are three answers, not two, and they disagree by more than the whole
+question the model answers.** The account choice at the archetype is worth a
+fraction of what the spread between the mean and the p10 is worth. Jensen is not
+a footnote: the proxy compounds the *mean* rate, the distribution compounds
+*sampled* rates, and the gap between mean and median is variance drag surviving
+into dollars.
+
+**REMAINS OPEN — Sprint 6's caption number is Nicole's call, not 3A's.** The
+reading 3A brings with the numbers: **the median.** Three reasons, in order of
+weight. **D-23 already rejected expected value as a gauge, in this project's own
+words, because the ensemble average is not what any one household lives** — and
+the mean is that average, sitting +29.1% above the proxy on the strength of a p90
+that is 2.3× the median. **The median is the one figure that is close to the
+proxy** at +4.7%, so a panelist comparing the balance graph's deterministic line
+against the dollar sentence finds a few points of difference and a label
+explaining it, which is exactly what D-15 says the caption is for; the mean makes
+that same comparison a 29-point discrepancy the caption would then have to
+defend. And **the median is already an objective the cube ships** (objective 3),
+so the caption cites a number the grid also contains. The counter-argument worth
+having: the mean is what "expected" means to a finance-literate panelist, and
+publishing the median invites *why not the mean* — which D-23's sentence answers
+in one line, so the cost is a sentence rather than an argument.
 
 ### D-22 — why the collapse is derivable, and how much of the cube it covers
 
@@ -551,6 +587,29 @@ rather than discovered:
 | Raise `ROTH_TERMINAL_MARGIN` until the slab is clean | Needs roughly 50%+, which stops being a margin and becomes a bequest motive the model does not have |
 | Read ruin as **relative** — `ruin(shocks=n) − ruin(shocks=0)` | Keeps the shock effect legible, abandons the absolute reading |
 | Size the draw off a low percentile rather than the mean path | Reopens D-39's premise, which is the thing D-39 exists to close |
+
+**RE-MEASURED AT SPRINT 3A, against 3A's own bootstrap rather than inherited.**
+2,000 paths, three seeds, draw sized at the series' own compounded rate per 2B's
+pin: **48.7%, 48.2%, 49.4%** against the cited 53.1%. The draw fell from $108,397
+to about $99,000, ruin fell about four points, and *it did not fall far enough to
+matter.* Every option's cost is unchanged.
+
+**DECIDED AT SPRINT 3A: OPTION 1 — report it as a finding and drop the absolute
+gate.** Sprint 4A's 0-shock done-when changes from *ruin is 0.0 across the slab*
+to *ruin is measured and reported on the slab, and rises with shock count.*
+
+| Rejected | Why, at the re-measured number |
+|---|---|
+| 2 · raise the margin | Dead at 48% as it was at 53%. It needs roughly 50%+, which stops being a margin and becomes a bequest motive the model does not have |
+| 3 · read ruin as relative | Not rejected so much as **absorbed** — a relative reading is still the right thing to *show*, and Sprint 4A can compute `ruin(n) − ruin(0)` from the reported numbers. Taking it as *the* rule would delete the absolute figure, and the absolute figure is the finding |
+| 4 · size the draw off a low percentile | Reopens D-39's premise, which is what D-39 exists to close |
+
+**Option 1 costs what the table says it costs** — the shock columns measure a
+marginal effect against a baseline that already ruins about half the time — and
+that cost is now a sentence the README says out loud rather than a gate that
+fails. A level real draw against a 19.30% standard deviation over 35 years ruins
+about half the time *by construction*, and a model that hid it would be the
+worse artifact.
 
 **This is the project's own methodology pointed at itself a second time**, the
 same shape as D-05: a named fudge factor was measured, its justification did not
