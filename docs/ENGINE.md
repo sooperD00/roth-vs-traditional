@@ -259,17 +259,43 @@ Life events land in each path's worst accumulation years, found by sorting on
 drawdown. There is no correlation coefficient — the placement is the correlation,
 and there is nothing to calibrate or defend.
 
-**Which drawdown, though.** D-44 splits the word into three quantities and D-08's
-rule admits two of them: `underwater-depth`, how far below its running peak the
-index sits at the end of a year, and `worst-year-return`, the annual return
-itself. They are different year sets on the same path. **Sprint 3B picks, and
-this paragraph is deliberately still ambiguous until it does.** Neither is
-`path-drawdown`, which is one number per path and is what the table above
-measures.
+**Which drawdown, though. RESOLVED AT SPRINT 3B: it is `underwater-depth`**, how
+far below its running peak the index sits at the end of a year (D-45). D-44 splits
+the word into three quantities and D-08's rule admitted two — the other candidate
+was `worst-year-return`, the annual return itself, which was never a drawdown at
+all. **This paragraph was deliberately ambiguous until the pick and is not any
+more.** Neither is `path-drawdown`, which is one number per path and is what the
+table above measures.
 
-An uncorrelated toggle scatters them randomly instead. Flipping it deflates the
-tail visibly, which is the cheapest demonstration in the project that the
-mechanism is doing real work.
+The two readings were not close: **at three shocks they agree on the year set for
+8.1% of paths.** `underwater-depth` was chosen because it carries the word
+honestly, because year 0 becomes structurally unshockable under it — the index at
+year 0 is its own running peak — and because it puts a quarter as many shocks in
+the early years where cumulative Roth basis is short of the $40,000 sale. The
+`argsort` tie-break is `kind="stable"`, which resolves to the earlier year and is
+named rather than inherited (D-46): **numpy's default is introsort and is not
+stable**, and on this deck a tie decides the shock year on up to 11% of paths.
+
+An uncorrelated toggle scatters them randomly instead, seeded from each path's own
+content so the answer does not depend on call order.
+
+**Flipping it deflates the tail, and this sentence is now measured rather than
+asserted.** It used to read *deflates the tail visibly* with nothing behind it, and
+the Sprint 3B plan hedged the same claim on purpose — the document asserted, the
+plan hedged, and they could not both be right. Measured at Low over 2,000 paths,
+`trad₆₅` at the 10th percentile:
+
+| Shocks | Correlated | Uncorrelated | Difference |
+|---|---|---|---|
+| 1 | $851,000 | $893,087 | **−4.71%** |
+| 3 | $576,048 | $666,761 | **−13.60%** |
+
+So the claim survives, and it is the cheapest demonstration in the project that
+the mechanism does real work — but note what it demonstrates now. **The
+block-vs-IID comparison already failed its own prediction** (D-05, R8): block does
+not fatten the tail relative to an IID draw, it thins it slightly. The toggle's
+job is therefore narrower than it was written. It shows that **shock placement**
+matters, not that the return model does. `scripts/measure_3b.py` is the source.
 
 A shock is $40,000 real. That is a named fudge factor, chosen at 1.6× a
 contribution year so that the forced sale and the skipped contribution are the
@@ -281,7 +307,7 @@ than three settings of a severity dial:
 
 | Rung | What happens |
 |---|---|
-| Low | Sell at the shocked year's price. Traditional takes the 10% early-withdrawal penalty plus ordinary income; Roth basis comes out free |
+| Low | Sell at the shocked year's price. Traditional takes the 10% early-withdrawal penalty plus ordinary income at the **exact incremental** rate (D-16's PIN), on a base net of that year's deferral (D-47); Roth basis comes out free, **in full and untracked** (D-16, 3B) |
 | Mid | No sale. Contributions stop that year and resume after |
 | High | Absorbed by cash. The portfolio never notices |
 
@@ -309,16 +335,22 @@ should not die on the interesting cases.
 
 # Tests
 
-Three suites, 189 tests. `tests/test_tax.py` — 35 tests, each defending a number
+Three suites, 247 tests. `tests/test_tax.py` — 35 tests, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` — opened at Sprint 2A, 146 tests: 54 over the
+imported. `tests/test_engine.py` — opened at Sprint 2A, 204 tests: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
 the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint
-2C over the search, the bracket, the sentinel and the `Result` fields, and **19
+2C over the search, the bracket, the sentinel and the `Result` fields, **19
 added at Sprint 3A** over the bootstrap, the D-43 parameters, the digest,
 `path-drawdown`, the overflow gate D-39 called *a gate whose failing input
-cannot yet be constructed*, and the three measurement records. **One test was
+cannot yet be constructed*, and the three measurement records, and **59 added at
+Sprint 3B** over the three rung branches, the placement reading and its tie-break,
+Low's inversion and its guard, D-22's slab, D-39's draw scope, Sprint 4A's ruin
+monotonicity, the cache key D-48 widened, and one recorded measurement — D-22's
+published Low ratios, which do not reproduce and whose cause is identified.
+**A second test was DELETED at 3B**, `test_a_nonzero_shock_count_raises_...`,
+for the reason 3A set the precedent for. **One test was
 DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
 `NotImplementedError` that no longer exists, and a test of scaffolding outlives
 its subject silently. `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
@@ -328,8 +360,8 @@ tests below are a different set entirely.
 
 No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4 closes
 by collecting and mapping** T1–T8 into it, each docstring naming the sentence it
-protects. **T1 and T2 are green as of Sprint 2B; T3, T4 and T5 as of Sprint 2C.**
-T6–T8 are Sprint 3. Each asserts a claim made elsewhere in the docs:
+protects. **T1 and T2 are green as of Sprint 2B; T3, T4 and T5 as of Sprint 2C; T6, T7 and
+T8 as of Sprint 3B.** Each asserts a claim made elsewhere in the docs:
 
 | Test | Defends |
 |---|---|
@@ -338,9 +370,9 @@ T6–T8 are Sprint 3. Each asserts a claim made elsewhere in the docs:
 | T3 · At the $185,000 test profile with the cap binding, Roth shelters strictly more | The same-dollars trap, and why the limit matters |
 | T4 · A no-crossing cell returns a sentinel rather than raising | The demo survives the interesting cases |
 | T5 · **In the base case**, the today's-law marker is strictly below `t*` | You defer at marginal and withdraw across the whole structure from zero. **The scope is load-bearing and this row used to drop it:** at D-40's early-career preset the marker is 15.9% against `t*` = 12.0%, and that inversion is *why* the preset carries the flip. §6 has always read *in the base case*; this row and remaining-sprints' 2C done-when did not. Corrected at Sprint 2C, with the preset asserted as T5's teeth |
-| T6 · Low rung — a shock realizes a sale; Traditional takes the penalty, Roth basis is free | The forced-liquidation branch |
-| T7 · Mid rung — a shock skips a contribution year and nothing is sold | The shares not bought |
-| T8 · High rung — a shock leaves the portfolio untouched | The control case |
+| T6 ✅ · Low rung — a shock realizes a sale; Traditional takes the penalty, Roth basis is free | The forced-liquidation branch. **The only asymmetric mechanism in the cube**, and 3B measured it larger than D-22 had it |
+| T7 ✅ · Mid rung — a shock skips a contribution year and nothing is sold | The shares not bought |
+| T8 ✅ · High rung — a shock leaves the portfolio untouched | The control case. Bit-identical to the 0-shock run, not merely proportional to it |
 
 T6–T8 assert the *mechanism*, not the magnitude. Three rungs are three code
 branches, so three tests — a severity dial would have needed one.
