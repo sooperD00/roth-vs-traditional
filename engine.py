@@ -504,7 +504,8 @@ class Result:
     ruin: dict             # {"roth": f, "trad": f}
 
 
-def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07):
+def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07,
+               seed: int = SEED):
     """Build the (n_paths, n_years) real-return array.
 
     kind="constant" -> shape (1, n_years) filled with `rate`. This IS the
@@ -513,14 +514,55 @@ def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07):
     ever drifting apart. n_paths is IGNORED here and that is deliberate: at
     n_paths > 1 a constant array holds n identical rows, so objectives 1, 3 and
     4 would collapse onto the same number while costing n times the arithmetic.
+    `seed` is ignored here too -- there is nothing random to seed.
 
     kind="block" -> block bootstrap over return_series.py, BLOCK_LENGTH=5. Bad
     years must arrive in RUNS or the forced-liquidation argument is mechanical
-    only.
+    only. n_paths IS honored here, which is the one place the two kinds differ
+    in their reading of the same argument.
 
     P4's gate is CLEARED (D-41, R5): return_series.py holds the real 98-year
     series, STUB is False, and its self-test passes. The runtime guard that
-    remains is STUB itself -- this path raises while it is True.
+    remains is STUB itself -- this path raises while it is True, BEFORE it
+    raises on anything else, so a stub deck fails loudly rather than quietly.
+
+    THE THREE PARAMETERS D-41 MAKES CONTRACT (Sprint 3A). Decided in writing
+    before the first array existed, which is the done-when's own wording, and
+    recorded in DECISIONS D-43. Short form, because a reader looking for "how is
+    a path built" should not have to leave this file:
+
+      GENERATOR: np.random.RandomState(seed), MT19937. Chosen AGAINST current
+      numpy practice and the reason is a product reason rather than a numerical
+      one. NEP 19 freezes the legacy stream permanently and explicitly declines
+      to freeze `default_rng`, which may change its stream in a minor release.
+      D-41 says the cube must be byte-reproducible FROM ITS HEADER -- from an
+      integer, by a reader who has neither this environment nor its lockfile.
+      Only the frozen stream delivers that. The modern generator is the faster
+      and the less reproducible one, and nothing here is performance-bound.
+
+      SAMPLING: overlapping starts, drawn uniformly over [0, N - 5], NO WRAP.
+      Ninety-four distinct blocks against a fixed partition's nineteen. It is
+      also the only scheme that can reproduce a published figure: ENGINE.md and
+      D-05 both carry "the median path's worst five-year run lands at -10.26%
+      annualized, which is exactly 1937-41", and 1937 is deck index 9. A
+      partition anchored at 1928 cannot emit that block AT ALL -- its worst
+      reachable run is -7.72%, 1928-32 -- so the partition reading falsifies a
+      sentence in two documents. Wrapping was refused for the opposite reason:
+      it would manufacture a 2025 -> 1928 adjacency that never happened. The
+      cost is accepted and named -- edge years appear in fewer windows, so the
+      oldest and most recent years are undersampled.
+
+      TRAILING BLOCK: TRUNCATED. Free at both published profiles -- 30 and 65
+      are 6 and 13 whole blocks -- but free by coincidence is not decided, and
+      current_age = 36 gives 64 years, which is 12.8. One control-tweak away,
+      not hypothetical.
+
+    THE DRAW ORDER IS ROW-MAJOR AND THAT BUYS SOMETHING. One randint call fills
+    (n_paths, n_blocks) in C order, so path i's blocks are consumed before path
+    i+1's. Consequence: at a fixed seed and n_years, a 4,000-path array's first
+    2,000 rows ARE the 2,000-path array, bit for bit. Sample sizes nest instead
+    of re-randomizing, so a sensitivity run at a larger n is a superset rather
+    than a different experiment. Asserted in tests/test_engine.py.
     """
     if n_years < 1:
         raise ValueError(f"n_years must be positive, got {n_years}")
@@ -532,14 +574,73 @@ def make_paths(kind: str, n_paths: int, n_years: int, rate: float = 0.07):
                 "return_series.STUB is True -- the block bootstrap cannot deal "
                 "from a stub deck (D-41)"
             )
-        # [SPRINT-3-CLEANUP] The bootstrap itself is Sprint 3's first deliverable
-        # (remaining-sprints, Sprint 3). Raising rather than returning a constant
-        # array: a silent fallback to determinism would make every stochastic
-        # gate in Sprints 3 and 4 pass for the wrong reason.
-        raise NotImplementedError(
-            "block bootstrap is Sprint 3 -- see remaining-sprints.md"
+        if n_paths < 1:
+            raise ValueError(f"n_paths must be positive, got {n_paths}")
+        deck = np.asarray(return_series.REAL_RETURNS, dtype=float)
+        if deck.size < BLOCK_LENGTH:
+            raise ValueError(
+                f"the deck holds {deck.size} years and a block is "
+                f"{BLOCK_LENGTH} (D-05): there is no block to draw"
+            )
+        n_blocks = -(-n_years // BLOCK_LENGTH)          # ceil, then truncate
+        starts = np.random.RandomState(seed).randint(
+            0, deck.size - BLOCK_LENGTH + 1, size=(n_paths, n_blocks)
         )
+        runs = starts[:, :, None] + np.arange(BLOCK_LENGTH)
+        return deck[runs].reshape(n_paths, n_blocks * BLOCK_LENGTH)[:, :n_years]
     raise ValueError(f"unknown kind {kind!r}: expected 'constant' or 'block'")
+
+
+def paths_digest(paths) -> str:
+    """A stable 16-byte fingerprint of a paths array, as hex.
+
+    EXTRACTED AT SPRINT 3A FROM _accumulations(), WHICH ALREADY COMPUTED IT.
+    D-41 requires the cube to be byte-reproducible from its header, so Sprint 4A
+    writes this into that header -- and the expression was already living inside
+    a cache key, where nothing published could reach it. Two call sites, one
+    definition; the alternative was the same three lines in two places, which is
+    the "second place to keep it in step" this file refuses elsewhere.
+
+    Hex rather than bytes because a JSON header has to carry it. The cache does
+    not care which it gets.
+    """
+    return hashlib.blake2b(
+        np.ascontiguousarray(paths, dtype=float).tobytes(), digest_size=16
+    ).hexdigest()
+
+
+def path_drawdown(paths):
+    """PATH-DRAWDOWN: one number per path. The deepest peak-to-trough decline of
+    the cumulative return index, over whatever window it is handed.
+
+    THE NAME IS THE DELIVERABLE (Sprint 3A, D-44). Three quantities in this
+    project were all called "drawdown" and two of them are not this one:
+
+        path-drawdown      deepest peak-to-trough decline of the index.
+                           ONE PER PATH. What -42.6% is. This function
+        underwater-depth   how far below its running peak the index sits at the
+                           end of a given year. ONE PER YEAR. Sprint 3B's, and
+                           path-drawdown is its minimum over the window
+        worst-year-return  the annual real return itself. ONE PER YEAR. Also
+                           Sprint 3B's, and NOT a drawdown -- calling it one is
+                           most of why D-08's placement rule reads two ways
+
+    Sprint 3B picks which of the last two D-08 means and owns the argsort
+    tie-break D-07 needs. This function decides neither and must not be read as
+    doing so.
+
+    COMPUTED ON THE RETURN INDEX, NOT ON AN ACCOUNT BALANCE. The published
+    figure is a property of the return MODEL, and a balance carries
+    contributions -- which arrive every year, buy at the bottom, and mask the
+    decline they are supposed to be measured against. There is no profile in
+    this function's arguments and that absence is the point.
+    """
+    a = np.atleast_2d(np.asarray(paths, dtype=float))
+    if a.shape[1] < 1:
+        raise ValueError("path_drawdown needs at least one year")
+    index = np.cumprod(1.0 + a, axis=1)
+    peak = np.maximum.accumulate(index, axis=1)
+    return (index / peak - 1.0).min(axis=1)
 
 
 def draw_return_rate(paths) -> float:
@@ -677,7 +778,8 @@ def retirement_draw(roth_65: float, n_decumulation_years: int,
 #
 # Keyed on the array's CONTENTS, not its id(). D-07 says the array is drawn once
 # and reused, so id() would work in practice and silently collide the first time
-# it does not.
+# it does not. The fingerprint moved OUT to paths_digest() at Sprint 3A, because
+# D-41's cube header needs the same expression and it was living in a cache key.
 _ACCUMULATION_CACHE: dict = {}
 _ACCUMULATION_CACHE_MAX = 8
 
@@ -689,10 +791,7 @@ def _accumulations(profile: Profile, paths, shocks: int) -> tuple:
     them as read-only -- Accumulation is a plain dataclass, so a caller that
     mutated one would poison every later cache hit.
     """
-    digest = hashlib.blake2b(
-        np.ascontiguousarray(paths, dtype=float).tobytes(), digest_size=16
-    ).digest()
-    key = (profile, shocks, paths.shape, digest)
+    key = (profile, shocks, paths.shape, paths_digest(paths))
     hit = _ACCUMULATION_CACHE.get(key)
     if hit is None:
         hit = tuple(accumulate(profile, row, shocks=shocks) for row in paths)
@@ -914,8 +1013,11 @@ def outcome(profile, objective, shocks, policy, paths, rate, account) -> float:
     Decumulate 65->99: both accounts fund the same net draw; Traditional grosses
     up by 1/(1 - t_later).
 
-    Shocks land in the ACCUMULATION phase only, at the `shocks` deepest
-    drawdown years of each path (D-08). Three rung branches, three mechanisms
+    Shocks land in the ACCUMULATION phase only, at the `shocks` worst years of
+    each path (D-08). WHICH READING OF "WORST" IS SPRINT 3B'S -- D-08's rule
+    admits both underwater-depth and worst-year-return and they are different
+    year sets on the same path. Neither is path-drawdown, which is one number
+    per path and is 3A's (see path_drawdown). Three rung branches, three mechanisms
     (D-16): low sells SHOCK_AMOUNT at that year's price and Traditional takes
     EARLY_WITHDRAWAL_PENALTY while Roth basis comes out free; mid skips the
     contribution year and sells nothing; high does neither. The rung comes from
@@ -1183,6 +1285,24 @@ def _selftest():
         f"< {preset_policy.breakeven:.1%} FLIPS | D-42 cell {capped.status}, "
         f"ruin trad {capped.ruin['trad']:.0%} roth {capped.ruin['roth']:.0%} "
         f"| bracket {BRACKET}, dollars {rules.dollars}"
+    )
+
+    # --- Sprint 3A ------------------------------------------------------------
+    # THE DIGEST IS THE POINT OF PRINTING THIS. D-41 wants the cube reproducible
+    # from its header by a reader who has neither this machine nor its lockfile,
+    # and MT19937 is frozen so the hex below must match on any numpy. It is the
+    # cheapest cross-machine check in the project: one command, one string.
+    block = make_paths("block", N_PATHS, ARCHETYPE.n_years)
+    accum = block[:, :ARCHETYPE.n_accumulation_years]
+    dd = path_drawdown(accum)
+    assert block.shape == (N_PATHS, 65), block.shape
+    assert set(np.unique(block)) <= set(return_series.REAL_RETURNS), "off-deck"
+    assert np.isfinite(draw_return_rate(block)), "the D-39 overflow is back"
+    print(
+        f"engine.py 3A OK -- block {block.shape} seed {SEED} digest "
+        f"{paths_digest(block)} | deck-real rate {draw_return_rate(block):.4%} "
+        f"| path-drawdown over {ARCHETYPE.n_accumulation_years}y: median "
+        f"{np.median(dd):.1%}, p10 {np.percentile(dd, 10):.1%}"
     )
 
 
