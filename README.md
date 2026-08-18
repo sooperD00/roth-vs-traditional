@@ -14,7 +14,7 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 2C complete — 4 of 12 sprint units (2 splits 2A / 2B / 2C; 10 is closeout) |
+| **Progress** | Sprint 2C complete — 4 of 14 sprint units (2 splits 2A / 2B / 2C, 3 splits 3A / 3B, 4 splits 4A / 4B; 10 is closeout) |
 | **Runs today** | `tax.py`, `return_series.py`, `engine.py` through `breakeven()` — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold — the P3a deploy probe, 171 passing tests |
 | **Not yet written** | `engine.py`'s block bootstrap and the three rung mechanisms behind `accumulate`'s `shocks` parameter; `spike_grid.py`; the real `app.py` — Sprint 6 replaces the probe |
 
