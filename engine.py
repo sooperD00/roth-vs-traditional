@@ -119,6 +119,39 @@ that is why they live here rather than in a decision row of their own.
      under current rules. That second half is the only line in this block with no
      document behind it.
 
+SPRINT 3B DECIDED FOUR THINGS THE DOCUMENTS LEFT OPEN, and all four were written
+into DECISIONS BEFORE the first branch, which is the rule that made D-43 hold.
+Same accounting as the two blocks above: stated at the function that implements
+it, collected here so "what did 3B decide" is one place.
+
+  1. D-08 MEANS UNDERWATER-DEPTH (D-45). D-44 named two candidates and D-08
+     admits either; they are different year sets on the same path and the
+     difference is not cosmetic -- at 3 shocks on the published block array they
+     agree for 8.1% of paths. Picked for three reasons that were measured rather
+     than argued: it is the reading that carries the word "drawdown" honestly,
+     year 0 is structurally unshockable under it (the index is its own peak
+     there), and it puts a quarter as many shocks where cumulative Roth basis is
+     under $40,000. See underwater_depth().
+  2. THE ARGSORT TIE-BREAK IS `kind="stable"`, WHICH MEANS THE EARLIER YEAR
+     (D-46) -- and it is named rather than inherited, because NUMPY'S DEFAULT IS
+     NOT STABLE. Two documents said it was. Introsort is deterministic on one
+     build and is not frozen across versions, which is the same exposure D-43
+     chose MT19937 to close. See shock_years().
+  3. LOW'S GROSS-UP BASE IS `income(age) - contribution` (D-47), not gross
+     income. The deferral already came off the top, so the withdrawal stacks on
+     what is left. Worth 2.4% to 5.5% of the sale, and it decides whether the
+     age-55 sale crosses the 32% edge. See forced_sale_gross().
+  4. THE UNCORRELATED TOGGLE IS A MODULE CONSTANT (D-48), SHOCK_PLACEMENT, and
+     it is CARRIED IN _accumulations' CACHE KEY. The signature could not take it
+     -- Section 5 publishes accumulate() and 2A's 54 tests sit on it -- and a
+     global the cache cannot see would return the correlated answer to the
+     uncorrelated run.
+
+  AND ONE THING THAT IS NOT A DECISION: D-16's Low row now says the Roth sale
+  comes out of basis IN FULL, with no basis tracked. The case is reachable and
+  nothing had ruled on it. Tracking it would add an asymmetric mechanism on the
+  Roth side, and D-22 counts exactly one asymmetric mechanism in the cube.
+
 OBJECTIVE ENCODING (D-06, CONTEXT part C). Four ints, and 2 is not one of them:
   1  mean of the after-tax terminal distribution   ("max expected terminal")
   3  median                                        ("max median outcome")
@@ -148,6 +181,17 @@ BLOCK_LENGTH = 5       # D-05. Stated fudge factor; 3 and 10 measured in Sprint 
 SHOCK_AMOUNT = 40_000  # D-39. Real. 1.6x a contribution year, so the forced
                        # sale and the skipped contribution are the same order
                        # of magnitude. $25k and $80k measured in Sprint 3.
+
+SHOCK_PLACEMENT = "correlated"   # D-48. "correlated" | "uncorrelated". D-08's
+                       # placement IS the correlation, so the contrast case is a
+                       # toggle rather than a coefficient. A MODULE CONSTANT and
+                       # not a parameter: accumulate()'s signature is published
+                       # in Section 5 and 2A's 54 tests sit on it. THE PRICE IS
+                       # PAID IN _accumulations' CACHE KEY, which carries this
+                       # constant -- see there. A global that the cache cannot
+                       # see would serve the second measurement run the first
+                       # one's answer, silently, in the exact experiment whose
+                       # published sentence is under test (ENGINE.md).
 ROTH_TERMINAL_MARGIN = 0.15   # D-39. The draw leaves this fraction of the
                               # Roth's age-65 balance at 100, so the base case
                               # is not sitting exactly at zero where any shock
@@ -424,24 +468,63 @@ def accumulate(profile: Profile, path, shocks: int = 0) -> Accumulation:
             f"path has {len(path)} years, accumulation needs {n} "
             f"(n_years = {TERMINAL_AGE} - current_age, D-20)"
         )
-    if shocks:
-        # [SPRINT-3-CLEANUP] The three rung mechanisms are Sprint 3B's first
-        # deliverable (D-16, remaining-sprints Sprint 3B). 3A took the bootstrap
-        # and this tag is the one that survives it. Raising rather than ignoring
-        # the count, for the reason make_paths("block", ...) used to raise for.
-        raise NotImplementedError(
-            f"shocks={shocks}: the rung mechanisms are Sprint 3 -- see D-16 and "
-            "remaining-sprints.md. The parameter is pinned here (Sprint 2B), "
-            "the branch is not"
-        )
+    if shocks < 0:
+        raise ValueError(f"shocks must be a non-negative count, got {shocks}")
     t_now = profile.t_now
+    # THE RUNG IS DERIVED, NEVER PASSED (Section 5). Sprint 4 sweeps the rung axis
+    # by replacing `stops`, which is what lets the two published signatures stand.
+    rung = profile.rung
+    # Placed on the ACCUMULATION WINDOW only (D-08). Empty at shocks=0, so the
+    # 0-shock path below is the same arithmetic 2A's 54 tests measured.
+    shocked = shock_years(path[:n], shocks)
     trad = roth = 0.0
     trad_by_year, roth_by_year = [], []
     for i in range(n):
         r = float(path[i])
         c_trad, c_roth = contributions(profile, profile.current_age + i)
+
+        # MID -- the shares not bought. No sale; the contribution simply does not
+        # happen this year and resumes after. That is the whole mechanism, and it
+        # is why D-22's multiple survives it: the paused stream removes c from
+        # Traditional and c*(1 - t_now) from Roth, so both scale identically.
+        if i in shocked and rung == "mid":
+            c_trad = c_roth = 0.0
+
         trad = trad * (1.0 + r) + c_trad      # PERIOD END. D-20.
         roth = roth * (1.0 + r) + c_roth
+
+        # LOW -- sell at the shocked year's price, AFTER the year's return, which
+        # is what "at that year's price" means under D-20's period-end rule. The
+        # two accounts pay different amounts for the same $40,000 of cash and THAT
+        # ASYMMETRY IS THE ONLY ONE IN THE CUBE (D-22): Traditional grosses up
+        # through the penalty and the incremental bracket, Roth's basis comes out
+        # free. NO CLAMP (D-38) -- a balance may go negative here and stay there.
+        if i in shocked and rung == "low":
+            gross_income = profile.income(profile.current_age + i)
+            # SHOCK_AMOUNT IS PASSED, NOT DEFAULTED, AND THAT IS NOT STYLE. A
+            # default argument binds at def time, so the $25,000 / $80,000
+            # sensitivity runs would have moved the module constant and changed
+            # only the Roth side -- a broken measurement that still produces a
+            # plausible number. Read here at call time instead.
+            trad -= forced_sale_gross(
+                gross_income,
+                tax.contribution(gross_income, profile.savings_rate),
+                profile.state_while_working,
+                SHOCK_AMOUNT,
+            )
+            # D-16, amended at 3B: the sale comes out of BASIS IN FULL and no
+            # basis is tracked. Measured before it was written down -- under D-45's
+            # placement 5.05% of paths take at least one shock where cumulative
+            # Roth contributions are under $40,000, and in DETERMINISTIC mode the
+            # first shock always is. Tracking it would put a second asymmetric
+            # mechanism on the ROTH side, which is a mechanism D-22 says the cube
+            # does not contain, so the simplification is stated rather than found.
+            roth -= SHOCK_AMOUNT
+
+        # HIGH takes no branch at all, and that absence is the control case
+        # (D-16). It is the same arithmetic as shocks=0, which is why T8 is one
+        # equality rather than a mechanism assertion.
+
         trad_by_year.append(trad)
         roth_by_year.append(roth)
     return Accumulation(trad, roth, t_now, trad_by_year, roth_by_year)
@@ -636,12 +719,200 @@ def path_drawdown(paths):
     decline they are supposed to be measured against. There is no profile in
     this function's arguments and that absence is the point.
     """
+    # COMPUTED HERE RATHER THAN AS underwater_depth(paths).min(axis=1), AND THAT
+    # IS DELIBERATE. The relation between the two names IS D-44's definition, and
+    # the suite asserts it -- so it has to be an assertion between two
+    # implementations, not a tautology. Sprint 2A's identity test states the same
+    # rule from the other side: deriving one quantity from the other is bit-exact
+    # and asserts nothing. 3A wrote these three lines; 3B left them alone.
     a = np.atleast_2d(np.asarray(paths, dtype=float))
     if a.shape[1] < 1:
         raise ValueError("path_drawdown needs at least one year")
     index = np.cumprod(1.0 + a, axis=1)
     peak = np.maximum.accumulate(index, axis=1)
     return (index / peak - 1.0).min(axis=1)
+
+
+# --- The three rung mechanisms (D-16, Sprint 3B) ------------------------------
+# D-44's other two vocabulary words live here, next to path-drawdown, because
+# "grep drawdown minus path-drawdown returns a small knowable set" is part of
+# what that decision bought.
+
+
+def underwater_depth(paths):
+    """UNDERWATER-DEPTH: one number per YEAR. How far below its running peak the
+    cumulative return index sits at the END of each year (D-44).
+
+    Shape in, shape out: (n_paths, n_years) -> (n_paths, n_years).
+
+    THIS IS THE PLACEMENT QUANTITY AND path_drawdown IS NOT (D-45). D-08 places
+    shocks at "the n deepest drawdown years of each path", which needs one number
+    per YEAR; path_drawdown has already collapsed the year axis and cannot say
+    which year to shock. The relation is the definition -- path-drawdown is the
+    minimum of this curve over the window -- and it is asserted in the suite
+    rather than encoded here.
+
+    D-45 PICKED THIS READING OVER worst-year-return, and the two are not close:
+    on the published block array at 3 shocks they agree on the year set for 8.1%
+    of paths. Two consequences fall out of the pick and both were measured:
+
+      YEAR 0 CAN NEVER BE SHOCKED. The index at year 0 is its own running peak,
+      so this curve is exactly 0.0 there on every path. worst-year-return placed
+      3.2% of its shocks in year 0, where cumulative Roth basis is one
+      contribution against a $40,000 sale (D-16).
+
+      DETERMINISTIC MODE IS PLACEMENT-INDEPENDENT. On a constant array the index
+      never falls, so every year reads exactly 0.0 and every year of a constant
+      array is also tied on return -- both readings then resolve through D-46's
+      tie-break to the same year set. The headline cannot move on a choice the
+      cube axis makes.
+
+    COMPUTED ON THE RETURN INDEX, NEVER ON AN ACCOUNT BALANCE, for the reason
+    path_drawdown states: contributions arrive every year and buy at the bottom,
+    masking the decline they are supposed to measure.
+    """
+    a = np.atleast_2d(np.asarray(paths, dtype=float))
+    if a.shape[1] < 1:
+        raise ValueError("underwater_depth needs at least one year")
+    index = np.cumprod(1.0 + a, axis=1)
+    peak = np.maximum.accumulate(index, axis=1)
+    return index / peak - 1.0
+
+
+def shock_years(accumulation_path, n_shocks: int) -> tuple:
+    """Which years of ONE accumulation window take a shock. Sorted, ascending.
+
+    THE ARGUMENT IS THE ACCUMULATION WINDOW, NOT THE PATH, and the caller slices
+    it. D-08 confines shocks to the accumulation phase because all three rung
+    mechanisms are defined on a contribution stream and Mid has nothing to pause
+    after 65. The curve itself would not notice -- a running peak is a prefix
+    operation, so year i reads the same over 30 years or 65 -- but the ARGSORT
+    would, and it is the argsort that places.
+
+    THE TIE-BREAK IS NAMED, NOT INHERITED (D-46). `kind="stable"` breaks a tie
+    toward the EARLIER year, which is also the more conservative reading: an
+    earlier shock has more compounding left to forgo. Two facts, one flag.
+
+    NUMPY'S DEFAULT IS NOT STABLE and two documents said it was -- the default is
+    introsort, corrected at D-46. This is not academic. Ties are ordinary here
+    because a path is dealt from a 98-value deck: 12.85% of paths carry an exact
+    tie at the n=3 boundary under worst-year-return and 3.15% under this reading,
+    and default-vs-stable picks a different shock year on 11.0% and 2.25% of
+    paths respectively. Introsort is deterministic on one build and is not frozen
+    across numpy versions, which is exactly the property D-43 chose MT19937 to
+    get.
+
+    UNCORRELATED (D-48) SCATTERS INSTEAD, and it is seeded from the path's own
+    content rather than from a shared stream. A module-level generator would make
+    the answer depend on call order, which _accumulations' cache is free to
+    change; a fingerprint of the row makes it a function of the array alone.
+    paths_digest() is reused rather than a second fingerprint written, and
+    RandomState carries D-43's frozen-stream argument down to here.
+    """
+    a = np.asarray(accumulation_path, dtype=float).ravel()
+    if n_shocks <= 0:
+        return ()
+    if n_shocks > a.size:
+        raise ValueError(
+            f"{n_shocks} shocks into a {a.size}-year accumulation window: D-08 "
+            "places at most one shock per year"
+        )
+    if SHOCK_PLACEMENT == "uncorrelated":
+        seed = int(paths_digest(a)[:8], 16)
+        picks = np.random.RandomState(seed).choice(a.size, n_shocks, replace=False)
+    elif SHOCK_PLACEMENT == "correlated":
+        picks = np.argsort(underwater_depth(a)[0], kind="stable")[:n_shocks]
+    else:
+        raise ValueError(
+            f"SHOCK_PLACEMENT {SHOCK_PLACEMENT!r}: expected 'correlated' or "
+            "'uncorrelated' (D-48)"
+        )
+    return tuple(int(i) for i in np.sort(picks))
+
+
+def forced_sale_gross(gross_income: float, contribution: float, state: bool,
+                      net_amount: float = SHOCK_AMOUNT) -> float:
+    """LOW'S SALE: the gross withdrawal that NETS `net_amount` after the 10%
+    early-withdrawal penalty and the exact incremental income tax (D-16's PIN).
+
+        net = W - PENALTY*W - [tax_on(base + W) - tax_on(base)] - STATE_RATE*W
+
+    THE RATE IS INCREMENTAL, NOT FLAT, AND THAT IS THE WHOLE PIN. Using t_now
+    here is D-21's error running one direction over: t_now is the rate the
+    CONTRIBUTION avoided, in a different year at a different income, and a
+    withdrawal is a different event. D-16 measures three flat readings spanning
+    3.5 points of t*, and Low-with-shocks is the entire varying part of the cube.
+
+    THE BASE IS `gross_income - contribution` (D-47), not gross income. That
+    year's deferral already came off the top -- which is the same fact t_now is
+    computed from -- so a withdrawal stacks on what is left. Taking the base
+    gross overstates W by 2.4% to 5.5% across the archetype's ages, and at age 55
+    it is the difference between the sale crossing the 32% edge and not. The
+    error runs in the direction that OVERSTATES Low's penalty, which is the
+    direction that would flatter this project's own lesson. Both arguments are in
+    D-47; the subtraction lives here so no call site can forget it.
+
+    IT ADDS NO TAX NUMBER (D-16, D-21). Everything it reads -- the bracket table,
+    the standard deduction, the penalty, the state rate -- is tax.py's, and it
+    reaches for none of tax.py's private names. It takes the contribution rather
+    than deriving it, which is the shape tax.deferral_rate() already uses: the
+    cap-binding is stated out loud at the call site instead of buried in a min().
+
+    CLOSED FORM, NOT A SOLVER, and the third one in this project to say so.
+    net(W) is piecewise linear in W, and within a band the slope is
+    1 - PENALTY - STATE_RATE - rate, whose floor is 1 - 0.10 - 0.085 - 0.37 =
+    0.445. Strictly positive, so net is strictly increasing and the inverse is
+    unique -- there is no branch where it is ambiguous. Verified against a
+    300-step bisection at 8.7e-11 over 84 cases spanning the guard region, all
+    seven bands, both state settings and all three D-39 shock sizes.
+
+    GUARD BELOW THE STANDARD DEDUCTION, and it is the same guard
+    tax.gross_for_net() carries for the same reachability reason. Where the base
+    sits under $16,100 the first dollars of the sale are absorbed by the unused
+    deduction, and the band arithmetic below assumes taxable(base + W) is
+    taxable(base) + W. Without this the function is silently wrong -- $3,922 at a
+    base of zero, no exception. Neither published profile reaches it (the
+    archetype's lowest base is $60,000 at age 38), but the app takes gross income
+    as a control, and $20,000 of income at a 20% deferral gives a $16,000 base.
+
+    Sprint 3B gate, archetype, state on, $40,000 net:
+        age 35  base $140,500  ->  $69,565.22
+        age 38  base  $60,000  ->  $66,285.22
+        age 55  base $175,500  ->  $73,959.60      (48.9% effective, all in)
+    """
+    if net_amount < 0.0:
+        raise ValueError(f"a forced sale cannot net a negative amount: {net_amount}")
+    base = gross_income - contribution                   # D-47
+    base_tax = tax.tax_on(base)
+    penalty = tax.EARLY_WITHDRAWAL_PENALTY
+    s = tax.STATE_RATE if state else 0.0
+
+    # Band 0: the sale is still inside an unused standard deduction, so there is
+    # no income tax on it at all and only the penalty and the state rate bite.
+    w = net_amount / (1.0 - penalty - s)
+    if base + w <= tax.STANDARD_DEDUCTION:
+        return w
+
+    lo = 0.0
+    for hi, rate in tax.BRACKETS:
+        slope = 1.0 - penalty - s - rate
+        if slope <= 0.0:
+            raise AssertionError(
+                f"net(W) is not increasing in the {rate:.0%} band: penalty "
+                f"{penalty:.0%} + state {s:.1%} + rate leaves slope {slope:.3f}. "
+                "The inverse is no longer unique and this closed form is void"
+            )
+        # tax_on(base + W) inside this band is the tax at the band's lower edge
+        # plus rate * (taxable(base + W) - lo). The edge is read back out of
+        # tax_on() rather than re-derived, so no second copy of _bands() exists.
+        anchor = tax.tax_on(lo + tax.STANDARD_DEDUCTION)
+        w = (net_amount + anchor + rate * (base - tax.STANDARD_DEDUCTION - lo)
+             - base_tax) / slope
+        taxable_after = base + w - tax.STANDARD_DEDUCTION
+        if lo <= taxable_after and (hi == float("inf") or taxable_after <= hi):
+            return w
+        lo = float(hi)
+    raise AssertionError("unreachable: the last band's upper edge is infinite")
 
 
 def draw_return_rate(paths) -> float:
@@ -792,7 +1063,19 @@ def _accumulations(profile: Profile, paths, shocks: int) -> tuple:
     them as read-only -- Accumulation is a plain dataclass, so a caller that
     mutated one would poison every later cache hit.
     """
-    key = (profile, shocks, paths.shape, paths_digest(paths))
+    # THE KEY CARRIES EVERY MODULE CONSTANT THE ACCUMULATION READS AND THAT IS
+    # D-48's RULE, stated once here rather than per constant. SHOCK_PLACEMENT and
+    # SHOCK_AMOUNT are both globals that nothing in this signature would notice
+    # moving, and both are moved deliberately -- by the toggle measurement and by
+    # the $25,000 / $80,000 sensitivity run. A cache that could not see them
+    # would serve the first run's answer to the second, silently, in the two
+    # experiments this sprint exists to report.
+    # Carried unconditionally rather than only when shocks > 0: a 0-shock entry
+    # recomputed after a flip costs one accumulation, and a conditional key is a
+    # second rule to keep in step. _DRAW_CACHE needs no such widening -- D-39
+    # sizes the draw shock-free, so neither constant can reach it.
+    key = (profile, shocks, SHOCK_PLACEMENT, SHOCK_AMOUNT,
+           paths.shape, paths_digest(paths))
     hit = _ACCUMULATION_CACHE.get(key)
     if hit is None:
         hit = tuple(accumulate(profile, row, shocks=shocks) for row in paths)
@@ -1304,6 +1587,47 @@ def _selftest():
         f"{paths_digest(block)} | deck-real rate {draw_return_rate(block):.4%} "
         f"| path-drawdown over {ARCHETYPE.n_accumulation_years}y: median "
         f"{np.median(dd):.1%}, p10 {np.percentile(dd, 10):.1%}"
+    )
+
+    # --- Sprint 3B ------------------------------------------------------------
+    # THE THREE RATIOS ARE THE POINT OF PRINTING THIS. D-22 publishes roth/trad
+    # at 0.675 for Mid and High and at 0.689633 / 0.708591 for Low at 1 and 3
+    # shocks -- figures measured at gate two by code that is not in this repo,
+    # before the placement reading, the tie-break, the base and the basis rule
+    # existed. This line is where they get a source.
+    low = Profile(income_points=ARCHETYPE.income_points,
+                  stops=tuple(i < 3 for i in range(10)))
+    high = Profile(income_points=ARCHETYPE.income_points,
+                   stops=tuple(i < 10 for i in range(10)))
+    assert (low.rung, ARCHETYPE.rung, high.rung) == ("low", "mid", "high")
+    sale = forced_sale_gross(
+        ARCHETYPE.income(55),
+        tax.contribution(ARCHETYPE.income(55), ARCHETYPE.savings_rate),
+        ARCHETYPE.state_while_working,
+    )
+
+    def _ratio(p, k):
+        acc_k = accumulate(p, paths[0], shocks=k)
+        return acc_k.roth / acc_k.trad
+
+    target = 1.0 - a.t_now
+    for p, name in ((ARCHETYPE, "mid"), (high, "high")):
+        for k in (1, 2, 3):
+            assert abs(_ratio(p, k) - target) <= 4 * np.spacing(target), (
+                f"D-22: {name} broke the multiple at {k} shocks"
+            )
+    assert abs(_ratio(low, 1) - target) > 4 * np.spacing(target), "T6 has no teeth"
+    # Placement is EMPTY at 0 shocks and identical across readings on a constant
+    # array -- the deterministic headline cannot move on D-45's pick.
+    assert shock_years(paths[0][:ARCHETYPE.n_accumulation_years], 3) == (0, 1, 2)
+    assert accumulate(low, paths[0]).trad == a.trad, "0-shock Low is the base case"
+    print(
+        f"engine.py 3B OK -- placement {SHOCK_PLACEMENT} via underwater-depth, "
+        f"tie-break stable/earliest | Low sale at 55 gross {sale:,.2f} for "
+        f"{SHOCK_AMOUNT:,} net ({(sale - SHOCK_AMOUNT) / sale:.2%} all-in) | "
+        f"roth/trad mid {_ratio(ARCHETYPE, 3):.12f} high {_ratio(high, 3):.12f} "
+        f"vs 1-t_now {target:.12f} | LOW 1 shock {_ratio(low, 1):.6f} "
+        f"3 shocks {_ratio(low, 3):.6f} (D-22 published .689633 / .708591)"
     )
 
 
