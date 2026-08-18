@@ -1120,18 +1120,13 @@ def test_accumulate_gained_a_defaulted_shocks_parameter():
     assert explicit.trad == a.trad and explicit.roth == a.roth
 
 
-def test_a_nonzero_shock_count_raises_rather_than_returning_the_zero_shock_answer():
-    """The same refusal make_paths("block", ...) already makes.
-
-    A silent fallback would make every shocked gate in Sprints 3 and 4 pass for
-    the wrong reason: the 12 informative cells of the cube would report the 36
-    uninformative ones' answer (D-22).
-    """
-    paths, _ = decum_slice(engine.ARCHETYPE)
-    with pytest.raises(NotImplementedError, match="Sprint 3"):
-        engine.accumulate(engine.ARCHETYPE, paths[0], shocks=1)
-    with pytest.raises(NotImplementedError):
-        engine.outcome(engine.ARCHETYPE, 1, 2, None, paths, 0.40, "trad")
+# NOTE: test_a_nonzero_shock_count_raises_rather_than_returning_the_zero_shock_
+# answer() lived here through Sprint 3A and is DELETED at 3B rather than skipped.
+# It asserted a NotImplementedError that this sprint removes, and a test of
+# scaffolding outlives its subject silently -- 3A set the precedent by deleting
+# test_block_paths_still_raise for the same reason. Its sibling above survives
+# and still guards the signature. The branches it was standing in for are in the
+# Sprint 3B block at the end of this file.
 
 
 # --- Guards on outcome() ------------------------------------------------------
@@ -1750,10 +1745,17 @@ def test_path_drawdown_is_the_minimum_of_the_underwater_curve():
     path-drawdown is ONE PER PATH; underwater-depth is ONE PER YEAR; the first
     is the minimum of the second over the window. Asserting it here is what
     keeps 3B from inventing a second, subtly different underwater curve.
+
+    REWIRED AT SPRINT 3B, WHICH IS THIS TEST DOING ITS JOB. It computed the
+    curve inline while `underwater_depth()` did not exist; now it imports the
+    real one, so the assertion runs between two implementations instead of
+    between the module and a copy of itself. The two bodies stay separate on
+    purpose -- deriving path_drawdown from underwater_depth would make this
+    bit-exact and assert nothing, which is the trap Sprint 2A's identity test
+    names in so many words.
     """
     paths = engine.make_paths("block", 20, 30, seed=SEED_3A)
-    index = np.cumprod(1.0 + paths, axis=1)
-    underwater = index / np.maximum.accumulate(index, axis=1) - 1.0
+    underwater = engine.underwater_depth(paths)
     assert np.allclose(engine.path_drawdown(paths), underwater.min(axis=1))
     assert (engine.path_drawdown(paths) <= 0.0).all()
 
@@ -1872,3 +1874,565 @@ def test_d15_has_three_answers_and_they_disagree_by_more_than_the_question():
     assert t65.mean() / D15_PROXY == pytest.approx(1.29, abs=0.05)
     assert np.median(t65) / D15_PROXY == pytest.approx(1.05, abs=0.05)
     assert np.percentile(t65, 10) / D15_PROXY == pytest.approx(0.49, abs=0.05)
+
+
+# =============================================================================
+# SPRINT 3B -- the three rung mechanisms. T6, T7, T8 and the decisions upstream
+# of them. Everything above this line ran before the branches existed.
+# =============================================================================
+# Restated by hand from DECISIONS and remaining-sprints, per the module rule.
+SHOCK = 40_000                  # D-39. Real, per life event
+PENALTY = 0.10                  # IRC 72(t), D-21. Low's branch only
+D22_MULTIPLE = 0.675            # D-22. roth/trad at Mid and High, == 1 - t_now
+D22_LOW_1 = 0.689633            # D-22's published Low ratio at 1 shock -- GATE
+D22_LOW_3 = 0.708591            # TWO'S MEASUREMENT, and 3B does not reproduce
+                                # it. See the reproduction test at the end
+LOW_STOPS = tuple(i < 3 for i in range(10))    # D-33 band 1-3, D-32 canonical
+HIGH_STOPS = tuple(i < 10 for i in range(10))  # D-33 band 7-10
+SALE_AT_55 = 73_959.60          # 3B gate. $40,000 net at the archetype's peak
+SALE_AT_38 = 66_285.22          # 3B gate. The D-19 trough, a different bracket
+
+
+def rung_profile(stops, base=None):
+    """The archetype's income at another rung. Section 5: sweep by REPLACING
+    stops, never by passing a rung."""
+    base = base or engine.ARCHETYPE
+    return engine.Profile(income_points=base.income_points, stops=stops)
+
+
+LOW = rung_profile(LOW_STOPS)
+HIGH = rung_profile(HIGH_STOPS)
+
+
+# --- D-45, the placement reading ---------------------------------------------
+def test_underwater_depth_is_one_number_per_year():
+    """D-44's shape, and the whole reason path_drawdown could not place a shock.
+
+    One per PATH cannot say which year to shock -- it has already collapsed the
+    axis placement needs.
+    """
+    paths = engine.make_paths("block", 7, 30, seed=SEED_3A)
+    assert engine.underwater_depth(paths).shape == (7, 30)
+    assert engine.path_drawdown(paths).shape == (7,)
+
+
+def test_underwater_depth_is_zero_at_a_new_high_and_never_positive():
+    """The index cannot sit above its own running peak. Year 0 is always its own
+    peak, which is why D-45 can say year 0 is structurally unshockable."""
+    paths = engine.make_paths("block", 50, 30, seed=SEED_3A)
+    uw = engine.underwater_depth(paths)
+    assert (uw <= 0.0).all()
+    assert (uw[:, 0] == 0.0).all()
+
+
+def test_placement_never_lands_in_year_zero_under_d45():
+    """D-45's structural consequence, asserted rather than assumed.
+
+    worst-year-return -- the reading D-45 did not take -- put 3.2% of its shocks
+    in year 0, where cumulative Roth basis is a single contribution against a
+    $40,000 sale. This reading cannot, at any shock count.
+    """
+    paths = engine.make_paths("block", 200, 30, seed=SEED_3A)
+    for row in paths:
+        for n in (1, 2, 3):
+            assert 0 not in engine.shock_years(row, n)
+
+
+def test_placement_is_confined_to_the_accumulation_window():
+    """D-08: shocks land in accumulation only, because all three mechanisms are
+    defined on a contribution stream and Mid has nothing to pause after 65.
+
+    The caller slices; this asserts the slice is what places. A running peak is
+    a prefix operation, so the CURVE would not notice the longer array -- the
+    ARGSORT would, and it is the argsort that places.
+    """
+    paths = engine.make_paths("block", 30, 65, seed=SEED_3A)
+    n_acc = engine.ARCHETYPE.n_accumulation_years
+    for row in paths:
+        assert all(y < n_acc for y in engine.shock_years(row[:n_acc], 3))
+
+
+def test_more_shocks_is_a_superset_of_fewer():
+    """argsort placement nests. If it ever did not, the shock axis would not be
+    a severity axis and D-08's count would mean four unrelated experiments."""
+    paths = engine.make_paths("block", 100, 30, seed=SEED_3A)
+    for row in paths:
+        one, two, three = (set(engine.shock_years(row, n)) for n in (1, 2, 3))
+        assert one <= two <= three
+
+
+# --- D-46, the tie-break ------------------------------------------------------
+def test_the_tie_break_is_stable_and_that_means_the_earlier_year():
+    """D-46, and it is a property this file asserts rather than a flag it trusts.
+
+    Ties are ordinary here: a path is dealt from a 98-value deck, and on a
+    CONSTANT array every year of the underwater curve is exactly 0.0. The
+    conservative reading falls out -- an earlier shock has more compounding left
+    to forgo.
+    """
+    flat = engine.make_paths("constant", 1, 30, 0.07)[0]
+    assert (engine.underwater_depth(flat) == 0.0).all()
+    assert engine.shock_years(flat, 3) == (0, 1, 2)
+
+
+def test_numpys_default_argsort_is_not_stable_which_is_why_d46_names_it():
+    """THE CORRECTION D-46 CARRIES. Two documents read *argsort's default is
+    stable but unstated*; the default is introsort and is not stable.
+
+    Deterministic on one build, not frozen across versions -- the same exposure
+    D-43 chose MT19937 to close, arriving one sprint later. If numpy ever makes
+    its default stable this test fails, and the decision text becomes wrong in a
+    way worth being told about.
+    """
+    tied = np.array([5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0])
+    assert not (np.argsort(tied) == np.argsort(tied, kind="stable")).all()
+
+
+def test_deterministic_mode_is_placement_independent():
+    """D-45's second consequence, and it is why the headline cannot move on a
+    choice that belongs to a cube axis.
+
+    On a constant array every year ties under BOTH candidate readings -- the
+    underwater curve is flat at 0.0 and the annual return is one repeated value
+    -- so D-46 resolves both to the same year set.
+    """
+    flat = engine.make_paths("constant", 1, 30, 0.07)[0]
+    by_depth = engine.shock_years(flat, 3)
+    by_worst_year = tuple(sorted(np.argsort(flat, kind="stable")[:3]))
+    assert by_depth == by_worst_year == (0, 1, 2)
+
+
+# --- D-47 and D-16's PIN, Low's gross-up --------------------------------------
+@pytest.mark.parametrize(
+    "age, expected, why",
+    [
+        (38, SALE_AT_38, "D-19's parental-leave trough -- a different bracket"),
+        (55, SALE_AT_55, "D-19's peak, where the sale crosses the 32% edge"),
+    ],
+)
+def test_the_forced_sale_nets_the_shock_amount_exactly(age, expected, why):
+    """D-16's PIN as a round trip. The sale must NET $40,000 after BOTH the 10%
+    penalty and the exact incremental income tax.
+
+    Asserted forward as well as against the published figure, because a gross
+    that reproduces a number without netting the right amount is a number that
+    was typed rather than solved.
+    """
+    p = engine.ARCHETYPE
+    gross_income = p.income(age)
+    contribution = tax.contribution(gross_income, p.savings_rate)
+    w = engine.forced_sale_gross(gross_income, contribution, True)
+    base = gross_income - contribution
+    bill = tax.tax_on(base + w) - tax.tax_on(base) + tax.STATE_RATE * w
+    assert w == pytest.approx(expected, abs=0.01), why
+    assert w - PENALTY * w - bill == pytest.approx(SHOCK, abs=1e-6)
+
+
+def test_the_gross_up_is_incremental_not_flat_which_is_d16s_pin():
+    """D-16: using t_now here is D-21's error running one direction over.
+
+    t_now is the rate the CONTRIBUTION avoided, in a different year at a
+    different income. A withdrawal is a different event. At the archetype's peak
+    the incremental method and the flat readings disagree by thousands, and
+    Low-with-shocks is the entire varying part of the cube.
+    """
+    p = engine.ARCHETYPE
+    inc = p.income(55)
+    exact = engine.forced_sale_gross(inc, tax.contribution(inc, p.savings_rate), True)
+    flat_t_now = SHOCK / (1 - PENALTY - ARCH_T_NOW)
+    flat_federal = SHOCK / (1 - PENALTY - 0.24)
+    assert exact > flat_t_now > flat_federal
+    assert exact - flat_t_now > 4_000
+
+
+def test_the_gross_up_base_is_net_of_that_years_deferral():
+    """D-47. The contribution already came off the top, so the withdrawal stacks
+    on what is left -- the same fact t_now itself is computed from.
+
+    Taking gross income as the base overstates the sale, in the direction that
+    OVERSTATES Low's penalty and so flatters this project's own lesson. At the
+    peak it is the difference between crossing the 32% edge and not.
+    """
+    p = engine.ARCHETYPE
+    inc = p.income(55)
+    c = tax.contribution(inc, p.savings_rate)
+    fixed = engine.forced_sale_gross(inc, c, True)
+    unfixed = engine.forced_sale_gross(inc, 0.0, True)
+    assert unfixed > fixed
+    assert (unfixed - fixed) / unfixed == pytest.approx(0.055, abs=0.005)
+    assert tax.taxable(inc - c + fixed) < 256_225 < tax.taxable(inc + unfixed)
+
+
+def test_the_forced_sale_guards_below_the_standard_deduction():
+    """The same guard tax.gross_for_net() carries, for the same reachability
+    reason: a low income gives a low base, and the app takes income as a control.
+
+    Without it the band arithmetic extrapolates and returns a gross that does not
+    net the amount asked for -- silently, with no exception.
+    """
+    for base in (0.0, 5_000.0, 16_000.0, 16_100.0, 16_200.0):
+        w = engine.forced_sale_gross(base, 0.0, True)
+        bill = tax.tax_on(base + w) - tax.tax_on(base) + tax.STATE_RATE * w
+        assert w - PENALTY * w - bill == pytest.approx(SHOCK, abs=1e-6), base
+
+
+def test_the_forced_sale_is_a_closed_form_not_a_search():
+    """The third inversion in this project to say so, after tax.gross_for_net()
+    and retirement_draw(). No tolerance argument and no iteration count.
+
+    net(W) is piecewise linear with a slope floor of 1 - 0.10 - 0.085 - 0.37 =
+    0.445, so it is strictly increasing and the inverse is unique. Checked
+    against a bisection across every band and both state settings.
+    """
+    assert "tol" not in engine.forced_sale_gross.__code__.co_varnames
+    for base in (0.0, 30_000.0, 60_000.0, 175_500.0, 300_000.0, 900_000.0):
+        for state in (True, False):
+            lo, hi = 0.0, 1e8
+            for _ in range(200):
+                mid = 0.5 * (lo + hi)
+                bill = tax.tax_on(base + mid) - tax.tax_on(base)
+                if state:
+                    bill += tax.STATE_RATE * mid
+                if mid - PENALTY * mid - bill < SHOCK:
+                    lo = mid
+                else:
+                    hi = mid
+            assert engine.forced_sale_gross(
+                base, 0.0, state
+            ) == pytest.approx(0.5 * (lo + hi), abs=1e-6)
+
+
+# --- T6 -----------------------------------------------------------------------
+def test_T6_a_low_rung_shock_realizes_a_sale_and_breaks_the_multiple():
+    """T6 (section 6). D-16's low branch, D5, D-39.
+
+    THE MECHANISM, NOT THE MAGNITUDE. Both accounts fund the same $40,000 of
+    cash and pay different amounts for it: Traditional grosses up through the
+    10% penalty and the incremental bracket, Roth's basis comes out free. That
+    asymmetry is the ONLY one in the cube (D-22), and the identity breaking is
+    how it shows.
+    """
+    paths, _ = decum_slice(LOW)
+    base = engine.accumulate(LOW, paths[0])
+    shocked = engine.accumulate(LOW, paths[0], shocks=1)
+    target = 1.0 - base.t_now
+
+    assert abs(base.roth / base.trad - target) <= 4 * math.ulp(target)
+    assert abs(shocked.roth / shocked.trad - target) > 4 * math.ulp(target)
+    assert base.trad - shocked.trad > base.roth - shocked.roth
+    assert shocked.trad < base.trad and shocked.roth < base.roth
+
+
+def test_T6_traditional_pays_the_penalty_and_roth_basis_comes_out_free():
+    """T6's second half, at the code rather than at the ratio.
+
+    The Roth loses exactly the shock amount compounded forward; Traditional
+    loses the grossed-up sale compounded over the same years. The ratio between
+    those two losses IS the penalty-plus-bracket asymmetry, and nothing else in
+    the accumulation phase can produce it.
+    """
+    paths, _ = decum_slice(LOW)
+    base = engine.accumulate(LOW, paths[0])
+    shocked = engine.accumulate(LOW, paths[0], shocks=1)
+    year = engine.shock_years(paths[0][:LOW.n_accumulation_years], 1)[0]
+    growth = 1.07 ** (LOW.n_accumulation_years - 1 - year)
+
+    roth_loss = base.roth - shocked.roth
+    trad_loss = base.trad - shocked.trad
+    inc = LOW.income(LOW.current_age + year)
+    expected_sale = engine.forced_sale_gross(
+        inc, tax.contribution(inc, LOW.savings_rate), True
+    )
+    assert roth_loss == pytest.approx(SHOCK * growth, rel=1e-9)
+    assert trad_loss == pytest.approx(expected_sale * growth, rel=1e-9)
+    assert trad_loss / roth_loss == pytest.approx(expected_sale / SHOCK, rel=1e-9)
+
+
+def test_T6_no_balance_is_clamped_when_a_shock_exceeds_it():
+    """D-38 reaches the accumulation phase too, and this is where it could have
+    been forgotten.
+
+    A shock in an early year can take more than the account holds. The balance
+    goes negative and stays negative; ruin is recorded, never enforced. A floor
+    here would make the terminal difference non-monotone exactly the way D-38
+    says it does in decumulation.
+    """
+    young = engine.Profile(
+        income_points=((35, 40_000), (38, 40_000), (55, 40_000), (65, 40_000)),
+        stops=LOW_STOPS,
+    )
+    paths, _ = decum_slice(young)
+    a = engine.accumulate(young, paths[0], shocks=3)
+    assert min(a.trad_by_year) < 0.0, "a clamp crept into the accumulation loop"
+
+
+# --- T7 -----------------------------------------------------------------------
+@pytest.mark.parametrize("shocks", [1, 2, 3])
+@pytest.mark.parametrize("rate", RATES)
+def test_T7_a_mid_rung_shock_skips_the_contribution_and_preserves_the_multiple(
+    shocks, rate
+):
+    """T7 (section 6). D-16's mid branch -- the shares not bought.
+
+    ONE EQUALITY, and D-22 is why it is only one: pausing removes c from
+    Traditional and c*(1 - t_now) from Roth, so the paused stream scales
+    identically and the multiple survives. Nothing is sold, so the balance is
+    strictly the base case minus the contributions that never happened.
+
+    4-ULP BOUND, NOT `==`. The identity is exact in real arithmetic and cannot
+    be bit-exact in binary -- the 2A version of this same gate failed at six of
+    eight (profile, rate) pairs before the bound went in.
+    """
+    paths, _ = decum_slice(engine.ARCHETYPE, rate)
+    assert engine.ARCHETYPE.rung == "mid"
+    base = engine.accumulate(engine.ARCHETYPE, paths[0])
+    shocked = engine.accumulate(engine.ARCHETYPE, paths[0], shocks=shocks)
+    target = 1.0 - base.t_now
+
+    assert abs(shocked.roth / shocked.trad - target) <= 4 * math.ulp(target)
+    assert shocked.trad < base.trad, "a paused contribution has to cost something"
+
+
+def test_T7_mid_sells_nothing_and_the_cost_is_exactly_the_shares_not_bought():
+    """T7's mechanism, stated so a reviewer does not have to infer it.
+
+    The whole loss is the contributions that never happened, compounded from the
+    year they would have landed. If Mid ever sold anything, this equality breaks
+    and the branch has quietly become Low.
+    """
+    paths, _ = decum_slice(engine.ARCHETYPE)
+    p = engine.ARCHETYPE
+    base = engine.accumulate(p, paths[0])
+    shocked = engine.accumulate(p, paths[0], shocks=3)
+    years = engine.shock_years(paths[0][:p.n_accumulation_years], 3)
+
+    forgone = sum(
+        engine.contributions(p, p.current_age + y)[0]
+        * 1.07 ** (p.n_accumulation_years - 1 - y)
+        for y in years
+    )
+    assert base.trad - shocked.trad == pytest.approx(forgone, rel=1e-9)
+
+
+# --- T8 -----------------------------------------------------------------------
+@pytest.mark.parametrize("shocks", [1, 2, 3])
+@pytest.mark.parametrize("rate", RATES)
+def test_T8_a_high_rung_shock_leaves_the_portfolio_untouched(shocks, rate):
+    """T8 (section 6). D-16's high branch, the control case.
+
+    ONE EQUALITY, and the strongest form of it: High is not merely proportional
+    to the base case, it IS the base case. Absorbed by cash means the portfolio
+    never notices, so this is bit-exact rather than bounded -- there is no second
+    recurrence to round differently.
+    """
+    paths, _ = decum_slice(HIGH, rate)
+    assert HIGH.rung == "high"
+    base = engine.accumulate(HIGH, paths[0])
+    shocked = engine.accumulate(HIGH, paths[0], shocks=shocks)
+    target = 1.0 - base.t_now
+
+    assert shocked.trad == base.trad and shocked.roth == base.roth
+    assert abs(shocked.roth / shocked.trad - target) <= 4 * math.ulp(target)
+
+
+def test_T8_has_teeth_because_the_other_two_rungs_move():
+    """The companion every identity test in this file has.
+
+    If High's equality held at Low and Mid too, it would be asserting that the
+    shock parameter does nothing -- which is precisely the silent fallback
+    Sprint 2B's raise existed to prevent.
+    """
+    paths, _ = decum_slice(engine.ARCHETYPE)
+    for profile in (LOW, engine.ARCHETYPE):
+        base = engine.accumulate(profile, paths[0])
+        shocked = engine.accumulate(profile, paths[0], shocks=1)
+        assert shocked.trad != base.trad, profile.rung
+
+
+# --- D-22's slab, and the 36 cells Sprint 4A asserts exactly -------------------
+@pytest.mark.parametrize("shocks", [0, 1, 2, 3])
+def test_the_mid_and_high_slabs_hold_the_multiple_at_every_shock_count(shocks):
+    """D-22's gate, one sprint before the cube asserts it over 48 cells.
+
+    32 of 48 cells are Mid and High at every shock count, plus Low's 0-shock
+    row, for 36 asserted exactly. Only Low with shocks >= 1 varies. Sprint 4A's
+    cheapest bug detector is this slab moving -- if it does, the defect is in
+    the sweep and not in the engine, and this test says the engine was clean.
+    """
+    paths, _ = decum_slice(engine.ARCHETYPE)
+    for profile in (engine.ARCHETYPE, HIGH):
+        a = engine.accumulate(profile, paths[0], shocks=shocks)
+        target = 1.0 - a.t_now
+        assert target == pytest.approx(D22_MULTIPLE, abs=1e-12)
+        assert abs(a.roth / a.trad - target) <= 4 * math.ulp(target)
+    low = engine.accumulate(LOW, paths[0], shocks=0)
+    assert abs(low.roth / low.trad - (1.0 - low.t_now)) <= 4 * math.ulp(
+        1.0 - low.t_now
+    ), "Low's 0-shock row is the 36th cell and no branch may run in it"
+
+
+# --- The signature the whole sprint was shaped around -------------------------
+def test_the_shocked_run_changed_no_published_signature():
+    """The 3B done-when, asserted rather than trusted.
+
+    accumulate(profile, path, shocks=...) is section 5's, pinned at 2B precisely
+    so 2A's 54 tests never moved. The rung is DERIVED from stops; the placement
+    reading and the uncorrelated toggle are a module constant. If a `rung=` or a
+    `placement=` parameter ever appears, this fails.
+    """
+    names = engine.accumulate.__code__.co_varnames[
+        : engine.accumulate.__code__.co_argcount
+    ]
+    assert names == ("profile", "path", "shocks")
+    assert "rung" not in engine.outcome.__code__.co_varnames[:7]
+    assert "rung" not in engine.breakeven.__code__.co_varnames[:5]
+
+
+def test_a_negative_shock_count_is_rejected():
+    """A count is a count. Silently treating -1 as 0 is the same class of failure
+    the deleted NotImplementedError test used to guard."""
+    paths, _ = decum_slice(engine.ARCHETYPE)
+    with pytest.raises(ValueError):
+        engine.accumulate(engine.ARCHETYPE, paths[0], shocks=-1)
+
+
+def test_more_shocks_than_years_is_rejected():
+    """D-08 places at most one shock per year, so four shocks into a three-year
+    window is not a smaller effect -- it is an unanswerable request."""
+    with pytest.raises(ValueError):
+        engine.shock_years([0.07, 0.07, 0.07], 4)
+
+
+# --- D-39's draw scope, MOVED HERE FROM 2B where it was vacuous ---------------
+@pytest.mark.parametrize("shocks", [0, 1, 2, 3])
+def test_the_draw_is_identical_across_shock_counts(shocks):
+    """D-39's SCOPE PIN, and it needed a shock mechanism to mean anything.
+
+    In 2B `shocks` was an unused parameter and this passed because nothing
+    happened. The draw is solved ONCE per (profile, rate) on the SHOCK-FREE Roth
+    accumulation and held fixed across every path, rung and shock count. A draw
+    that adapted would shrink spending to whatever the damaged balance could
+    afford, and ruin would never fire -- which defines away what Sprint 4
+    measures.
+    """
+    paths, _ = decum_slice(LOW)
+    assert engine._solve_draw(LOW, paths) == engine._solve_draw(LOW, paths)
+    a = engine.accumulate(LOW, paths[0], shocks=shocks)
+    assert a.roth != engine.accumulate(LOW, paths[0]).roth or shocks == 0
+    assert engine._solve_draw(LOW, paths) == pytest.approx(DRAW, abs=1.0)
+
+
+# --- Sprint 4A's gate, discharged a sprint early -------------------------------
+def test_ruin_is_non_decreasing_in_shock_count_at_low():
+    """SPRINT 4A'S DONE-WHEN, AND IT IS A PROPERTY OF THESE BRANCHES.
+
+    D-39 recorded option 1 at 3A, which changed 4A's gate from *ruin is 0.0
+    across the 0-shock slab* to *ruin is measured and reported, AND RISES WITH
+    SHOCK COUNT*. Checking it here costs one run and is the only 4A dependency
+    this sprint can discharge from inside itself.
+
+    Read at t_now rather than at each cell's own t*, because the question is
+    whether the MECHANISM is monotone -- comparing four cells at four different
+    rates would be comparing four different questions (section 5's own ruin
+    note).
+    """
+    paths = engine.make_paths("block", 300, LOW.n_years, seed=SEED_3A)
+    fractions = []
+    for shocks in (0, 1, 2, 3):
+        _, ruined = engine._outcome_paths(
+            LOW, shocks, None, paths, LOW.t_now, "trad"
+        )
+        fractions.append(float(np.mean(ruined)))
+    assert fractions == sorted(fractions), fractions
+    assert fractions[3] > fractions[0], "three shocks have to cost something"
+
+
+# --- D-48, the toggle and the cache hazard it opened --------------------------
+def test_the_uncorrelated_toggle_scatters_and_is_reproducible(monkeypatch):
+    """D-48. The contrast case for D-08's *the placement IS the correlation*.
+
+    Seeded from the path's own content rather than from a shared stream, so the
+    answer is a function of the array and not of call order -- which
+    _accumulations' cache is free to change underneath it.
+    """
+    paths = engine.make_paths("block", 40, 30, seed=SEED_3A)
+    monkeypatch.setattr(engine, "SHOCK_PLACEMENT", "uncorrelated")
+    first = [engine.shock_years(row, 3) for row in paths]
+    second = [engine.shock_years(row, 3) for row in reversed(list(paths))]
+    assert first == list(reversed(second)), "placement depends on call order"
+    monkeypatch.setattr(engine, "SHOCK_PLACEMENT", "correlated")
+    correlated = [engine.shock_years(row, 3) for row in paths]
+    assert sum(a != b for a, b in zip(first, correlated)) > 30
+
+
+def test_the_accumulation_cache_carries_the_placement_constant(monkeypatch):
+    """D-48's PRICE, and the reason the toggle is not just a global.
+
+    The cache is keyed on (profile, shocks, placement, shape, digest). Without
+    the placement term the uncorrelated measurement run would be served the
+    correlated run's accumulations -- silently, in the one experiment whose
+    published sentence ENGINE.md puts at stake.
+    """
+    paths = engine.make_paths("block", 25, LOW.n_years, seed=SEED_3A)
+    engine._ACCUMULATION_CACHE.clear()
+    correlated = [a.trad for a in engine._accumulations(LOW, paths, 2)]
+    monkeypatch.setattr(engine, "SHOCK_PLACEMENT", "uncorrelated")
+    uncorrelated = [a.trad for a in engine._accumulations(LOW, paths, 2)]
+    assert correlated != uncorrelated, "the cache served a stale placement"
+
+
+def test_an_unknown_placement_setting_raises_rather_than_defaulting():
+    """A typo in a module constant that silently means *correlated* would make
+    the toggle measurement report the same number twice."""
+    original = engine.SHOCK_PLACEMENT
+    try:
+        engine.SHOCK_PLACEMENT = "uncorelated"        # the plausible typo
+        with pytest.raises(ValueError, match="D-48"):
+            engine.shock_years([0.07] * 30, 1)
+    finally:
+        engine.SHOCK_PLACEMENT = original
+
+
+# --- D-22's published Low ratios: a RECORDED MEASUREMENT, not a gate ----------
+def test_d22s_published_low_ratios_do_not_reproduce_and_this_records_why():
+    """D-22 publishes roth/trad at 0.689633 and 0.708591 for Low at 1 and 3
+    shocks, *measured on a constant-return path*. THEY DO NOT REPRODUCE, and the
+    reason is identified rather than guessed.
+
+    Those figures were taken at gate two by code that is not in this repo,
+    before the placement reading, the tie-break, the base and the basis rule
+    existed. Searching every (shock year, gross-up rule) pair, ONE combination
+    reproduces 0.689633 to six decimals: a FLAT `t_now` gross-up with the shock
+    at year 9. That is the reading D-16's PIN exists to reject, and it
+    independently corroborates D-16's own table, whose flat-`t_now` row was
+    measured in the same pass.
+
+    So this is a recorded measurement in the shape 3A used for its three, not a
+    gate: the published pair is stale for a known reason, D-22 is corrected, and
+    the value that replaces it has a runnable source. Asserting the OLD numbers
+    would be asserting gate two's arithmetic against this sprint's decisions.
+    """
+    paths, _ = decum_slice(LOW)
+    ours = {}
+    for shocks in (1, 3):
+        a = engine.accumulate(LOW, paths[0], shocks=shocks)
+        ours[shocks] = a.roth / a.trad
+
+    assert ours[1] == pytest.approx(0.705664, abs=5e-6)
+    assert ours[3] == pytest.approx(0.855412, abs=5e-6)
+    assert ours[1] > D22_LOW_1 and ours[3] > D22_LOW_3
+
+    # The identification. Flat t_now at year 9 IS the published 1-shock figure.
+    def flat_t_now_at(year):
+        trad = roth = 0.0
+        w = SHOCK / (1 - PENALTY - ARCH_T_NOW)
+        for i in range(LOW.n_accumulation_years):
+            c_trad, c_roth = engine.contributions(LOW, LOW.current_age + i)
+            trad = trad * 1.07 + c_trad
+            roth = roth * 1.07 + c_roth
+            if i == year:
+                trad -= w
+                roth -= SHOCK
+        return roth / trad
+
+    assert flat_t_now_at(9) == pytest.approx(D22_LOW_1, abs=1e-6)
