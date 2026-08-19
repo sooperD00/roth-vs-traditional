@@ -258,7 +258,7 @@ a footnote: the proxy compounds the *mean* rate, the distribution compounds
 *sampled* rates, and the gap between mean and median is variance drag surviving
 into dollars.
 
-**DECIDED — the caption carries the MEDIAN.** *(nlr 8/18)* The pick was Nicole's
+**DECIDED — the caption carries the MEDIAN.** The pick was Nicole's
 to make and this is it; 3A brought the reading and the reasons, and they are the
 reasons the pick rests on. Three, in order of weight. **D-23 already rejected expected value as a gauge, in this project's own
 words, because the ensemble average is not what any one household lives** — and

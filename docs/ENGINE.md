@@ -25,8 +25,7 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: the engine is complete; one path inside it still raises — and after
-Sprint 3A it is not `make_paths` any more.** Sprint 2A
+**Status: the engine is complete and no path inside it raises.** Sprint 2A
 landed the profile, the income curve, contributions, accumulation, the D-33
 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both
 decumulation loops, the D-26 policy branch, the four objective reductions, ruin
@@ -37,9 +36,16 @@ the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape.
 `RandomState`/overlapping-starts/truncation parameters D-05 left open (D-43),
 `paths_digest()` for D-41's cube header, `path_drawdown()` and the D-44
 vocabulary. It also closed the two shock-free decisions Sprint 4A was blocked on:
-R9's ruin question (D-39, option 1) and D-15's reconciliation. **What still
-raises is `accumulate(..., shocks>0)` — the three rung mechanisms, and they are
-Sprint 3B's.**
+R9's ruin question (D-39, option 1) and D-15's reconciliation. **Sprint 3B landed
+the three rung mechanisms behind `accumulate(..., shocks>0)`** — the last stub in
+the module — inside the signature §5 publishes and 2A's 54 accumulation tests sit
+on. `underwater_depth()` implements D-45's placement reading, the `argsort`
+tie-break is D-46's stable one, `forced_sale_gross()` carries D-47's
+deferral-net base, and D-48 puts the placement toggle and the shock amount in
+module constants that `_accumulations()`'s cache key now reads.
+
+**What is left is not engine work.** `spike_grid.py` and the cube are Sprint 4A;
+the real `app.py` is Sprint 6. Both import this module rather than extending it.
 
 **Three parameters more were decided nowhere in this corpus and are now D-43.**
 The generator is `RandomState(20260815)`, MT19937 — picked *against* current
@@ -252,6 +258,23 @@ whole section above is about — so **block length is the bigger fudge factor of
 the two**, and it is the one with no measurement behind its value. That is the
 honest reading, and it is why the number stays named rather than derived. Sprint
 4's cube runs at five regardless; nothing published moves.
+
+**One quantity, three published values, and the difference is the sample.** `p10
+path-drawdown` at block 5 appears three times in this project at three slightly
+different numbers, and none of them supersedes another:
+
+| Value | Where it appears | What produced it |
+|---|---|---|
+| **−59.6%** | The block-versus-IID table above, and DECISIONS, DESIGN, CONTEXT, TRADEOFFS and the README | `measure_3a.py` §1 — 4,000 paths **averaged over five seeds** |
+| **−59.4%** | The block-length table directly above | `measure_3a.py` §5 — 4,000 paths at **seed 20260815 only** |
+| **−59.3%** | `uv run python engine.py`, the `3A OK` line | 2,000 paths (D-41's `N_PATHS`) at seed 20260815 |
+
+**Quote the five-seed figure.** It is the one the sensitivity in §1b actually
+tested for direction, and it is the one every document already carries. The
+self-test's −59.3% is a different job: it runs at the cube's own path count so
+that a change in the deck or the generator shows up in the line a developer sees
+on every run. A reader who finds two of these and assumes one is a typo has found
+the reason this note exists.
 
 # Shock timing and size
 

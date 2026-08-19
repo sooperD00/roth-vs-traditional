@@ -228,8 +228,9 @@ second, subtly different underwater curve.
 **`worst-year-return` loses the word entirely, and that is the point of the
 split.** It was never a drawdown. Calling it one is most of why D-08's placement
 rule — *shocks land at the `n` worst years* — reads two ways, and those two
-readings pick different years on the same path. Sprint 3B chooses; Sprint 3A
-deliberately did not.
+readings pick different years on the same path. Sprint 3A deliberately did not
+choose. **Sprint 3B chose `underwater-depth` (D-45), and the two readings were
+not close** — at three shocks they agree on the year set for 8.1% of paths.
 
 **One computed on the return index, never on a balance.** `path-drawdown` is a
 property of the return *model*. An account balance carries contributions, which
@@ -239,8 +240,8 @@ argument.
 
 *(The naming also had to survive grep. Three distinct tokens with no shared
 prefix means `grep drawdown` minus `path-drawdown` returns a set small enough to
-read — which is how the remaining ambiguous uses in this file get found when 3B
-resolves them.)*
+read — which is how the remaining ambiguous uses in this file were found once 3B
+resolved them.)*
 
 ---
 
