@@ -54,6 +54,38 @@ numpy practice because NEP 19 freezes the legacy stream and declines to freeze
 lockfile. Block starts are drawn from overlapping windows with no wrap. A
 trailing partial block is truncated.
 
+**The digest is reproducible on three conditions, and only one of them is a decision.**
+
+| Condition | Status |
+|---|---|
+| The generator stream is frozen | **Decided.** D-43 chose `RandomState`/MT19937 against current numpy practice for exactly this reason |
+| The array is C-contiguous | **Handled in the function.** `ascontiguousarray` normalises stride before the bytes are taken, so a view or a transpose cannot change the hash of the same values |
+| `float64` is in the machine's native byte order | **An assumption, and it is unstated anywhere else** |
+
+The third one is the one to know about. `tobytes()` takes native order, so an 
+identical array on a big-endian machine hashes differently. Every machine this 
+project has run on is little-endian and the published digest holds across them; 
+pinning `dtype='<f8'` would close the gap and has not been done, because the 
+failure requires hardware nobody is going to point at this. **Named here rather 
+than fixed, so that a digest mismatch on strange hardware reads as a known limit 
+instead of a corrupted deck.**
+
+**What the digest actually guarantees**
+
+`paths_digest()` is a blake2b-128 fingerprint of the path array, and Sprint 
+4A writes it into the cube's header. It is the fast failure: a reader who 
+rebuilds the array and gets a different digest knows they are not looking at 
+the same experiment before comparing a single cell.
+
+**It fingerprints the inputs, not the cube.** Everything upstream of the array 
+is inside it — seed, `n_paths`, `n_years`, the kind, the block length, the 
+contents of `return_series.py`. Everything downstream is outside it. Changing 
+`SHOCK_AMOUNT` from $40,000 to $80,000 moves every cell in the cube and leaves 
+the digest byte-identical, because shocks are applied inside `accumulate()`, 
+long after the array exists. That boundary is the reason the header carries a 
+separate fingerprint over the model constants: the two cover disjoint halves 
+of what makes two runs differ, and neither is redundant with the other.
+
 **Three search parameters were decided nowhere in this corpus and are pinned in
 `engine.py`'s module docstring rather than invented per caller:** the bisection
 bracket is `(0.01, 0.95)` — the interval D-26's row already sweeps, cited rather
@@ -355,6 +387,23 @@ everything again.
 The status field exists because the tail objectives genuinely have no crossing
 point inside a plausible range. That is an answer, not an error, and the demo
 should not die on the interesting cases.
+
+### Scaling past one profile
+
+The cube is computed at the reference archetype (D-14), which is what makes it a build artifact rather than a request. A production version does not delete that property. It multiplies it, and it splits the answer in two.
+
+The two halves have different profile sensitivity. `breakeven()` is a bisection over a deterministic identity, dominated by the user's own tax position, and cheap. The spread — the dots, the fan, the collapse across rungs — is dominated by rung and shock count, and it costs a path set. So the production shape is the shape this app already has (D-15): the line is computed live per user, the cloud is served from the nearest precomputed cell. What changes is only the number of cubes behind the cloud.
+
+| Approach | Good at | Bad at |
+|---|---|---|
+| One cube, one archetype (today) | Free, byte-reproducible from a seed, honest when labeled | Every user reads an illustration, not their own answer |
+| One cube per named segment, nearest-match at request | Still precomputed; *modeled for a profile like yours* is defensible | Needs a stated assignment rule, and the rule becomes product surface |
+| Profile axes on the lattice, interpolate between cells | One artifact, continuous-feeling | The response surface is piecewise — bracket edges, the contribution limit, the early-withdrawal penalty, the deferral cap. Interpolating across a discontinuity is wrong in a way that looks right |
+| Compute per request, cache on a profile hash | Exact. No interpolation, no staleness | The app now contains stochastic code, against D-12, and a bisection over 2,000 paths is a latency budget rather than a render |
+
+(Batch precompute does not die immediately. A coarse 180-profile lattice is 8,640 cells, roughly 45 minutes at the measured warm per-cell cost. It dies at the two axes after that.)
+
+The claim that would have to be measured first: the segment approach is only honest if the cloud really is insensitive to profile *within* a segment. That is testable with the machinery already here — run the cube at two archetypes and report how far the dots move. If they move a lot, segments are a convenience, not a model. Not measured. `TODO`.
 
 # Tests
 
