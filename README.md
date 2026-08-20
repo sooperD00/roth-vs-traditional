@@ -116,10 +116,10 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 250 tests, all green
+uv run pytest                    # 257 tests, all green
 uv run python engine.py          # engine self-test — 2A, 2B, 2C, 3A and 3B's published scalars
 uv run python return_series.py   # return-series self-test
-uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
+uv run streamlit run app.py      # the app — strip, threshold axis, balance graph
 uv run python scripts/measure_3a.py   # 3A — block-vs-IID, block length, R9, D-15
 uv run python scripts/measure_3b.py   # 3B — placement toggle, shock magnitude, D-22's Low pair
 uv run python spike_grid.py           # 4A — sweeps 48 cells, validates, writes cube.json (~17 s)
