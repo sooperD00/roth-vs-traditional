@@ -183,15 +183,14 @@ def measure_x_and_y(cells):
     not made; Low -> Mid is a ~$74,000 gross sale at a depressed price with the
     penalty on top, and D-35 says the demonstration lives at Low.
 
-    [SPRINT-6-CLEANUP] $X AND $Y ARE STILL COMPUTED-VS-DERIVED UNDEFINED, and
-    the deferral was re-confirmed at the second plan pass rather than inherited.
-    `dollars` already carries both operands, so each is an argmax and a
-    subtraction: $X reads one cell, $Y reads two. D-12 forbids stochastic code,
-    not arithmetic, and Sprint 6 already commits to computing the deterministic
-    line. $Y could not be a clean cube field in any case -- it spans two cells
-    and D-36 leaves it undefined at High, so as a per-cell field it would either
-    duplicate a neighbour's data or ship null across a third of the cube. This
-    function is the worked example Sprint 6 inherits instead of a blank.
+    DECIDED AT SPRINT 6 -- $X AND $Y ARE COMPUTED IN THE APP, NOT DERIVED INTO
+    THE CUBE. `dollars` already carries both operands, so each is an argmax and
+    a subtraction: $X reads one cell, $Y reads two. D-12 forbids stochastic
+    code, not arithmetic. $Y could not have been a clean cube field in any case
+    -- it spans two cells and D-36 leaves it undefined at High, so as a per-cell
+    field it would either duplicate a neighbour's data or ship null across a
+    third of the cube. `app.x_and_y()` is the port of this function, and this
+    function stays as the worked example it was written to be.
     """
     banner(3, "THE $X / $Y GRID -- all four objectives, both deltas, gate 3",
            "remaining-sprints, Sprint 4A's risk table")
