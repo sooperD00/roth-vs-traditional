@@ -360,6 +360,82 @@ that carries the bisected crossing. The reasoning that promoted this from a
 sensitivity row to a `## Results` entry is in
 `scripts/learning_3b_20260818-1502.txt`.*
 
+### Delta as 
+
+### The sentence, and the parameter that decides it
+
+I estimated during design that moving up a resilience rung would be worth about
+four times getting the account right. The reasoning was L3 itself: if the
+break-even only moves for people without a buffer, the buffer should dominate
+the arithmetic. The cube rejects that, at the setting the app prints.
+
+At the cell the app's sentence reads — objective 4, one shock, the Low rung:
+
+| | δ = 2 points | δ = 10 points |
+|---|---|---|
+| **$X** — getting the account right | $264,662 | $1,602,313 |
+| **$Y** — moving up one rung | $756,988 | $756,988 |
+| ratio | 2.86× | **0.47×** |
+
+**$Y does not move.** That is not a rounding artifact, and it is the same fact
+one of the cube's invariants already rests on: under current rules a Roth
+terminal value does not depend on the future tax rate at all. Roth is the better
+account on every cell in this grid, so $Y is a difference between two Roth
+outcomes and the rate never enters it. $X is a difference between Roth and
+Traditional, and Traditional's after-tax terminal falls as the rate rises — so
+$X grows with δ while $Y sits still. It grows 6.05× for a 5× increase in δ,
+slightly faster than linear because the withdrawal gross-up is 1/(1 − t).
+
+So δ chooses which magnitude is larger. I solved for the crossing on all four
+objectives:
+
+| objective | δ where $Y = $X |
+|---|---|
+| 1 — mean terminal | 6.10 points |
+| 3 — median terminal | 5.58 points |
+| 4 — p10 terminal | 4.82 points |
+| 5 — P(not running out) | 5.56 points |
+
+Below roughly five points the buffer dominates and the design estimate holds in
+direction if not in size. Above it the account choice dominates. **The app
+prints δ = 10.** The crossing is tight across all four objectives, so this is
+structural rather than a property of the one cell the sentence quotes.
+
+**δ is not a model parameter.** It is the assumed size of the user's miss — how
+wrong their guess about their own future marginal rate turns out to be — and
+nothing in the model constrains it. I fixed δ at 10 before running the sweep, on
+the grounds that a two-point miss is optimistic for a forecast reaching fifty
+years out. That choice, made for a defensible reason and made blind to the
+result, is what inverted the headline.
+
+I did not move δ afterward and I did not switch objectives. Either would have
+produced a sentence that reports the parameter I picked rather than the model I
+built. All four objectives ship in `cube.json` at both deltas and the crossing
+is published here, so a reader sees the choice instead of inheriting its result.
+
+**The claim the sentence was built to carry survives, and a different instrument
+carries it.** The break-even at the Low rung:
+
+| rung | 0 shocks | 1 | 2 | 3 |
+|---|---|---|---|---|
+| Low | 32.5000% | 30.8987% | 28.0158% | 24.4070% |
+| Mid | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
+| High | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
+
+**8.13 points of movement at one rung and none at the other two** — not
+approximately none, exactly none, at every shock count and every objective, for
+a reason the engine can derive rather than measure. That is the account question
+being contested for people without a buffer and settled for everyone else. The
+dot panel shows it without arithmetic and without a parameter I had to choose.
+
+One note on the magnitudes in the first table. Objective 4 is the tenth
+percentile of the after-tax terminal value, and nothing in the engine floors a
+balance at zero: a path that runs out at 72 keeps compounding a negative number
+for 28 more years. The p10 figures behind that $1,602,313 are −$9,506,737 for
+Roth and −$11,109,050 for Traditional. The spread is not wealth gained. It is
+depth of hole avoided at the tenth percentile, which is a second reason the
+dollar sentence is the weaker of the two instruments on this page.
+
 ---
 
 ## Two known biases, both deferred, both measured

@@ -645,11 +645,26 @@ def write_cube(cube, path):
     json writes floats via repr(), which is shortest-round-trip, and dict order
     is insertion order in Python 3.7+, so two runs at the same seed produce
     byte-identical files. That gate no longer carries an asterisk.
+
+    WRITTEN AS BYTES, NOT AS TEXT, AND THAT IS THE WHOLE POINT OF THIS LINE.
+    `write_text()` opens in TEXT mode, and on Windows text mode translates every
+    "\\n" to "\\r\\n" on the way out -- so the function whose job is deterministic
+    bytes would hand the platform a chance to edit them. Found at the Sprint 4A
+    review by a CROSS-MACHINE hash comparison: the same cube came out 23,216
+    bytes on Linux and 24,280 on Windows, a difference of exactly 1,064 bytes
+    against 1,064 lines. The content was identical; the line endings were not.
+
+    THE DONE-WHEN CANNOT SEE THIS. Two runs on one machine agree with each
+    other whichever convention that machine uses, so byte-identity passes while
+    D-41's actual claim -- reproducible by a reader who has neither this
+    environment nor its lockfile -- is broken. Same class as ENGINE.md's
+    native-byte-order note for paths_digest, one layer up, and this one needs no
+    strange hardware. `.gitattributes` pins the checkout side; this pins the
+    write side. Both are needed: a fix here still loses to a Git conversion.
     """
     path = pathlib.Path(path)
-    path.write_text(
-        json.dumps(cube, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
-    )
+    payload = json.dumps(cube, indent=2, ensure_ascii=True) + "\n"
+    path.write_bytes(payload.encode("utf-8"))
     return path
 
 

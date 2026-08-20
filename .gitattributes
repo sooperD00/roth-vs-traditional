@@ -1,0 +1,18 @@
+# cube.json's BYTES are load-bearing, not just its content.
+#
+# D-41 requires the cube byte-reproducible from its header by a reader who has
+# neither this environment nor its lockfile, and Sprint 4A's hardest done-when
+# is that two runs produce byte-identical files. A Git end-of-line conversion
+# on checkout defeats both silently: the file's content survives, its sha256
+# does not, and nothing in the repo would notice.
+#
+# Found at the Sprint 4A review. The same cube came out 23,216 bytes on Linux
+# and 24,280 on Windows -- exactly 1,064 bytes against 1,064 lines. spike_grid's
+# write_cube() now writes BYTES rather than text, which pins the write side.
+# This pins the checkout side. Both are needed; either alone still loses.
+#
+# Scoped narrowly ON PURPOSE. The captured measurement outputs under scripts/
+# already carry CRLF in this repo and that is fine -- they are notes, not
+# artifacts anyone hashes. Normalizing them would rewrite committed history for
+# no gain, which is the kind of tidy-up this project declines elsewhere.
+cube.json text eol=lf

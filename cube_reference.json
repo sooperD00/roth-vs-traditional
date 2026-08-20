@@ -1,0 +1,1064 @@
+{
+  "header": {
+    "seed": 20260815,
+    "n_paths": 2000,
+    "return_model": "block",
+    "block_length": 5,
+    "paths_digest": "48f9c1b929ce667e82e8c9d49d753c59",
+    "deterministic_reference": 0.07,
+    "deltas": [
+      2,
+      10
+    ],
+    "engine_version": "m3",
+    "constants_fingerprint": "c00a62111fef4a93d5eaee2377420afb",
+    "profile": {
+      "name": "archetype",
+      "income_points": [
+        [
+          35,
+          165000
+        ],
+        [
+          38,
+          75000
+        ],
+        [
+          55,
+          200000
+        ],
+        [
+          65,
+          200000
+        ]
+      ],
+      "savings_rate": 0.2,
+      "current_age": 35,
+      "state_while_working": true,
+      "state_in_retirement": false,
+      "d2_roth_to_cap": false
+    },
+    "rungs": {
+      "low": "1110000000",
+      "mid": "1111110000",
+      "high": "1111111111"
+    },
+    "policy": null,
+    "captions": {
+      "ruin": "ONE reading, per-cell, copied from Result as-is (D-50). A crossing cell reports at its own t*; a non-crossing cell has no t* and reports at t_now. Only ruin.trad varies with the rate, and only on the 12 Low cells with shocks >= 1. The comparable common-rate reading is scripts/measure_4a.py's, not a second column.",
+      "breakeven_objective_5": "Objective 5's break-even is the LEFT EDGE OF A PLATEAU, not a point (D-51). P(not running out) counts a discrete event over n_paths, so its difference is a staircase whose zero set has WIDTH -- 0.1616 pp at the archetype, one step being 1/n_paths. bisection closes on the plateau's left edge. These cells read about 0.08 pp below t_now for that reason and NOT because the slab varies. D-22's claim is asserted directly instead: the after-tax difference is exactly 0.0 at t_now.",
+      "dollars_objective_4": "Objective 4 is the 10th percentile of the after-tax TERMINAL distribution, and D-38 floors nothing, so it is a signed number that may be deeply negative. That is arithmetic bisection handles, not a broken cell.",
+      "dollars_objective_5": "`dollars` ON THE 12 OBJECTIVE-5 CELLS IS NOT IN DOLLARS. outcome() returns the objective's reduction, and objective 5's reduction is P(not running out) -- a fraction in [0, 1], not a terminal value. The field is filled because Section 5 fills it on every crossing cell and because `roth != trad` still means delta was applied; it is captioned because a reader computing $X from this row would be subtracting two probabilities and printing the answer as money. D-23 pins the app's sentence to objective 4, so the app never reads this. The README's four-objective table does, and must name the unit."
+    }
+  },
+  "cells": [
+    {
+      "rung": "low",
+      "objective": 1,
+      "shocks": 0,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 3,
+      "shocks": 0,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 4,
+      "shocks": 0,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 5,
+      "shocks": 0,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 1,
+      "shocks": 1,
+      "breakeven": 0.30880226928373544,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 6350728.571641787,
+          "trad": 5663289.295230388
+        },
+        "10": {
+          "roth": 6350728.571641787,
+          "trad": 2913532.189584842
+        }
+      },
+      "ruin": {
+        "trad": 0.549,
+        "roth": 0.5495
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 3,
+      "shocks": 1,
+      "breakeven": 0.30540646807983285,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -913985.414954632,
+          "trad": -1175767.2097874694
+        },
+        "10": {
+          "roth": -913985.414954632,
+          "trad": -2305513.873201467
+        }
+      },
+      "ruin": {
+        "trad": 0.546,
+        "roth": 0.5495
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 4,
+      "shocks": 1,
+      "breakeven": 0.30898714934983407,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -9506736.840598127,
+          "trad": -9771399.25818326
+        },
+        "10": {
+          "roth": -9506736.840598127,
+          "trad": -11109050.069554217
+        }
+      },
+      "ruin": {
+        "trad": 0.549,
+        "roth": 0.5495
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 5,
+      "shocks": 1,
+      "breakeven": 0.3096104228983766,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.4505,
+          "trad": 0.435
+        },
+        "10": {
+          "roth": 0.4505,
+          "trad": 0.371
+        }
+      },
+      "ruin": {
+        "trad": 0.5495,
+        "roth": 0.5495
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 1,
+      "shocks": 2,
+      "breakeven": 0.28776263232115873,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 3240842.82969193,
+          "trad": 2661037.877351942
+        },
+        "10": {
+          "roth": 3240842.82969193,
+          "trad": 341818.0679920181
+        }
+      },
+      "ruin": {
+        "trad": 0.625,
+        "roth": 0.624
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 3,
+      "shocks": 2,
+      "breakeven": 0.28384270404685064,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -2098817.1905631484,
+          "trad": -2360458.037517876
+        },
+        "10": {
+          "roth": -2098817.1905631484,
+          "trad": -3194977.0583146065
+        }
+      },
+      "ruin": {
+        "trad": 0.624,
+        "roth": 0.624
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 4,
+      "shocks": 2,
+      "breakeven": 0.28015835631654606,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -10779297.482653169,
+          "trad": -11139253.408802617
+        },
+        "10": {
+          "roth": -10779297.482653169,
+          "trad": -12269707.820267573
+        }
+      },
+      "ruin": {
+        "trad": 0.622,
+        "roth": 0.624
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 5,
+      "shocks": 2,
+      "breakeven": 0.2837120355478385,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.376,
+          "trad": 0.3635
+        },
+        "10": {
+          "roth": 0.376,
+          "trad": 0.3065
+        }
+      },
+      "ruin": {
+        "trad": 0.6235,
+        "roth": 0.624
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 1,
+      "shocks": 3,
+      "breakeven": 0.25830967182324127,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 222110.89688170893,
+          "trad": -253268.24852565766
+        },
+        "10": {
+          "roth": 222110.89688170893,
+          "trad": -2154784.830155147
+        }
+      },
+      "ruin": {
+        "trad": 0.7065,
+        "roth": 0.7025
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 3,
+      "shocks": 3,
+      "breakeven": 0.24365350241050027,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -3255293.217927891,
+          "trad": -3455567.167378476
+        },
+        "10": {
+          "roth": -3255293.217927891,
+          "trad": -4191722.739467203
+        }
+      },
+      "ruin": {
+        "trad": 0.6985,
+        "roth": 0.7025
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 4,
+      "shocks": 3,
+      "breakeven": 0.24406957998229278,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -12472860.607435713,
+          "trad": -12800991.673410632
+        },
+        "10": {
+          "roth": -12472860.607435713,
+          "trad": -13862606.586995644
+        }
+      },
+      "ruin": {
+        "trad": 0.6985,
+        "roth": 0.7025
+      }
+    },
+    {
+      "rung": "low",
+      "objective": 5,
+      "shocks": 3,
+      "breakeven": 0.2512092347408085,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.2975,
+          "trad": 0.2845
+        },
+        "10": {
+          "roth": 0.2975,
+          "trad": 0.244
+        }
+      },
+      "ruin": {
+        "trad": 0.7025,
+        "roth": 0.7025
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 1,
+      "shocks": 0,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 3,
+      "shocks": 0,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 4,
+      "shocks": 0,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 5,
+      "shocks": 0,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 1,
+      "shocks": 1,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 8447257.971458528,
+          "trad": 7681203.073892422
+        },
+        "10": {
+          "roth": 8447257.971458528,
+          "trad": 4616983.483628027
+        }
+      },
+      "ruin": {
+        "trad": 0.5025,
+        "roth": 0.5025
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 3,
+      "shocks": 1,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -145571.8968886421,
+          "trad": -507313.898818617
+        },
+        "10": {
+          "roth": -145571.8968886421,
+          "trad": -1749339.6562439858
+        }
+      },
+      "ruin": {
+        "trad": 0.5025,
+        "roth": 0.5025
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 4,
+      "shocks": 1,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8749748.821782192,
+          "trad": -9089210.798223132
+        },
+        "10": {
+          "roth": -8749748.821782192,
+          "trad": -10372420.061717564
+        }
+      },
+      "ruin": {
+        "trad": 0.5025,
+        "roth": 0.5025
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 5,
+      "shocks": 1,
+      "breakeven": 0.32324268331475225,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.4975,
+          "trad": 0.481
+        },
+        "10": {
+          "roth": 0.4975,
+          "trad": 0.4125
+        }
+      },
+      "ruin": {
+        "trad": 0.5025,
+        "roth": 0.5025
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 1,
+      "shocks": 2,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 7314562.66649036,
+          "trad": 6582069.111293686
+        },
+        "10": {
+          "roth": 7314562.66649036,
+          "trad": 3652094.8905069977
+        }
+      },
+      "ruin": {
+        "trad": 0.5275,
+        "roth": 0.5275
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 3,
+      "shocks": 2,
+      "breakeven": 0.3250000000000005,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -672929.541482552,
+          "trad": -981794.2487420095
+        },
+        "10": {
+          "roth": -672929.541482552,
+          "trad": -2044350.088085866
+        }
+      },
+      "ruin": {
+        "trad": 0.5275,
+        "roth": 0.5275
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 4,
+      "shocks": 2,
+      "breakeven": 0.32499999999999896,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -9261296.149179732,
+          "trad": -9504429.261592396
+        },
+        "10": {
+          "roth": -9261296.149179732,
+          "trad": -10837097.254523873
+        }
+      },
+      "ruin": {
+        "trad": 0.5275,
+        "roth": 0.5275
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 5,
+      "shocks": 2,
+      "breakeven": 0.3244628884231796,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.4725,
+          "trad": 0.4525
+        },
+        "10": {
+          "roth": 0.4725,
+          "trad": 0.388
+        }
+      },
+      "ruin": {
+        "trad": 0.527,
+        "roth": 0.5275
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 1,
+      "shocks": 3,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 6214361.396701542,
+          "trad": 5514466.397646758
+        },
+        "10": {
+          "roth": 6214361.396701542,
+          "trad": 2714886.401427633
+        }
+      },
+      "ruin": {
+        "trad": 0.554,
+        "roth": 0.554
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 3,
+      "shocks": 3,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -1084748.6576402974,
+          "trad": -1323621.4259222145
+        },
+        "10": {
+          "roth": -1084748.6576402974,
+          "trad": -2417256.539698458
+        }
+      },
+      "ruin": {
+        "trad": 0.554,
+        "roth": 0.554
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 4,
+      "shocks": 3,
+      "breakeven": 0.3250000000000005,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -9582833.776394432,
+          "trad": -9910683.888107266
+        },
+        "10": {
+          "roth": -9582833.776394432,
+          "trad": -11273360.848535785
+        }
+      },
+      "ruin": {
+        "trad": 0.554,
+        "roth": 0.554
+      }
+    },
+    {
+      "rung": "mid",
+      "objective": 5,
+      "shocks": 3,
+      "breakeven": 0.3242007864195452,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.446,
+          "trad": 0.432
+        },
+        "10": {
+          "roth": 0.446,
+          "trad": 0.375
+        }
+      },
+      "ruin": {
+        "trad": 0.554,
+        "roth": 0.554
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 1,
+      "shocks": 0,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 3,
+      "shocks": 0,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 4,
+      "shocks": 0,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 5,
+      "shocks": 0,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 1,
+      "shocks": 1,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 3,
+      "shocks": 1,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 4,
+      "shocks": 1,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 5,
+      "shocks": 1,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 1,
+      "shocks": 2,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 3,
+      "shocks": 2,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 4,
+      "shocks": 2,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 5,
+      "shocks": 2,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 1,
+      "shocks": 3,
+      "breakeven": 0.32499999999999984,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 9658471.149953835,
+          "trad": 8856528.45450639
+        },
+        "10": {
+          "roth": 9658471.149953835,
+          "trad": 5648757.672716623
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 3,
+      "shocks": 3,
+      "breakeven": 0.3250000000000003,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 337228.5562321507,
+          "trad": 10554.574727142784
+        },
+        "10": {
+          "roth": 337228.5562321507,
+          "trad": -1327649.0725965723
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 4,
+      "shocks": 3,
+      "breakeven": 0.32500000000000007,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": -8272602.692016256,
+          "trad": -8510632.763957728
+        },
+        "10": {
+          "roth": -8272602.692016256,
+          "trad": -9864603.837159228
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    },
+    {
+      "rung": "high",
+      "objective": 5,
+      "shocks": 3,
+      "breakeven": 0.3242180108298972,
+      "status": "crosses",
+      "dollars": {
+        "2": {
+          "roth": 0.513,
+          "trad": 0.5025
+        },
+        "10": {
+          "roth": 0.513,
+          "trad": 0.4355
+        }
+      },
+      "ruin": {
+        "trad": 0.487,
+        "roth": 0.487
+      }
+    }
+  ]
+}
