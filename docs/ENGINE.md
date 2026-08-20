@@ -44,8 +44,10 @@ tie-break is D-46's stable one, `forced_sale_gross()` carries D-47's
 deferral-net base, and D-48 puts the placement toggle and the shock amount in
 module constants that `_accumulations()`'s cache key now reads.
 
-**What is left is not engine work.** `spike_grid.py` and the cube are Sprint 4A;
-the real `app.py` is Sprint 6. Both import this module rather than extending it.
+**What is left is not engine work.** `spike_grid.py` and the cube shipped at
+Sprint 4A and the real `app.py` is Sprint 6. Both import this module rather than
+extending it, and 4A closed without changing a line of it — the sweep reads
+`breakeven()` and `outcome()` through the public signatures §5 publishes.
 
 **Three parameters more were decided nowhere in this corpus and are now D-43.**
 The generator is `RandomState(20260815)`, MT19937 — picked *against* current
@@ -75,7 +77,10 @@ instead of a corrupted deck.**
 `paths_digest()` is a blake2b-128 fingerprint of the path array, and Sprint 
 4A writes it into the cube's header. It is the fast failure: a reader who 
 rebuilds the array and gets a different digest knows they are not looking at 
-the same experiment before comparing a single cell.
+the same experiment before comparing a single cell. **`spike_grid.py --check` 
+performs that rebuild.** Until 4A nothing in the repo did, so the digest was a 
+header field no code verified — the reader this paragraph describes was 
+hypothetical and is now a command.
 
 **It fingerprints the inputs, not the cube.** Everything upstream of the array 
 is inside it — seed, `n_paths`, `n_years`, the kind, the block length, the 
@@ -288,8 +293,8 @@ record and shallows it. Five sits between the two. The p10 spread across the
 range is about ten points, which is larger than the block-versus-IID gap the
 whole section above is about — so **block length is the bigger fudge factor of
 the two**, and it is the one with no measurement behind its value. That is the
-honest reading, and it is why the number stays named rather than derived. Sprint
-4's cube runs at five regardless; nothing published moves.
+honest reading, and it is why the number stays named rather than derived. The
+Sprint 4A cube ran at five; nothing published moves.
 
 **One quantity, three published values, and the difference is the sample.** `p10
 path-drawdown` at block 5 appears three times in this project at three slightly
@@ -384,9 +389,18 @@ break-even expressed in tax points cannot make that comparison. They were
 specified before the engine was written, since adding them later means running
 everything again.
 
-The status field exists because the tail objectives genuinely have no crossing
-point inside a plausible range. That is an answer, not an error, and the demo
-should not die on the interesting cases.
+The status field exists because the tail objectives can genuinely have no
+crossing point inside a plausible range. That is an answer, not an error, and the
+demo should not die on the interesting cases.
+
+**Measured at Sprint 4A: every one of the 48 cells crosses, so no cell in this
+cube exercises the field.** The sentinel path is not untested — T4 is green at
+Sprint 2C on D-42's `$185,000` flat profile, which is a different archetype — but
+the non-crossing case is a property of a profile this cube does not contain. The
+field stays, and the reason moves from *the tail objectives do not cross here* to
+*a profile the app can be handed will not cross, and the demo must survive it*.
+Recorded rather than repaired: a sprint cannot assert the presence of a case the
+model does not contain.
 
 ### Scaling past one profile
 

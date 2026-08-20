@@ -1,0 +1,198 @@
+Sprint 4A measurements -- reading cube.json
+Header: seed=20260815 n_paths=2000 | block, block 5 | engine m3
+Digest: 48f9c1b929ce667e82e8c9d49d753c59 (D-41)
+Fingerprint: c00a62111fef4a93d5eaee2377420afb (D-52)
+
+==============================================================================
+1. THE L3 COLLAPSE -- Low's spread against the Mid/High single value
+   -> DECISIONS D-22's measured line; README ## Results
+==============================================================================
+  t_now = 32.5000%. Mid and High sit here at every shock count and every objective.
+
+  rung   shocks        obj 1        obj 3        obj 4        obj 5      spread
+  low         0    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+  low         1    30.8802%     30.5406%     30.8987%     30.9610%     0.4204%
+  low         2    28.7763%     28.3843%     28.0158%     28.3712%     0.7604%
+  low         3    25.8310%     24.3654%     24.4070%     25.1209%     1.4656%
+  mid         0    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+  mid         1    32.5000%     32.5000%     32.5000%     32.3243%     0.1757%
+  mid         2    32.5000%     32.5000%     32.5000%     32.4463%     0.0537%
+  mid         3    32.5000%     32.5000%     32.5000%     32.4201%     0.0799%
+  high        0    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+  high        1    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+  high        2    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+  high        3    32.5000%     32.5000%     32.5000%     32.4218%     0.0782%
+
+  READING: at Low the break-even walks from 32.50% at 0 shocks down to 24.37% at 3.
+  That is 8.13 points of movement on the rung that has no buffer,
+  against ZERO points at Mid and High. The dot panels carry this as
+  three rows that fan out at one rung and stack on top of each other
+  at the other two -- which IS L3, rendered rather than asserted.
+
+  Objective 5's column runs about 0.08 points low at Mid and High and
+  that is D-51's plateau edge, not a spread. Read the other three
+  columns for the identity.
+
+==============================================================================
+2. RUIN AT A COMMON RATE -- the Low rung read at t_now
+   -> README ## Results; DECISIONS D-39's line
+==============================================================================
+  All four rows read at t_now = 32.5000%, not at each cell's own t*. D-50.
+
+  rung   shocks    ruin trad    ruin roth   delta vs 0
+  low         0      48.70%       48.70%       +0.00%
+  low         1      55.95%       54.95%       +7.25%
+  low         2      65.40%       62.40%      +16.70%
+  low         3      74.20%       70.25%      +25.50%
+  mid         0      48.70%       48.70%       +0.00%
+  mid         1      50.25%       50.25%       +1.55%
+  mid         2      52.75%       52.75%       +4.05%
+  mid         3      55.40%       55.40%       +6.70%
+  high        0      48.70%       48.70%       +0.00%
+  high        1      48.70%       48.70%       +0.00%
+  high        2      48.70%       48.70%       +0.00%
+  high        3      48.70%       48.70%       +0.00%
+
+  D-39's clause -- ruin rises with shock count at Low: HOLDS, non-decreasing across 0->3 and +25.50% end to end.
+  Verified at 3B over 300 paths; this is the 2,000-path reading at
+  the same rate. Recorded whichever way it went.
+
+==============================================================================
+3. THE $X / $Y GRID -- all four objectives, both deltas, gate 3
+   -> remaining-sprints, Sprint 4A's risk table
+==============================================================================
+
+  delta = 2 points
+  rung    obj shocks              $X              $Y    $Y/$X  better
+  low       1      1        687,439       2,096,529    3.05x  roth
+  low       3      1        261,782         768,414    2.94x  roth
+  low       4      1        264,662         756,988    2.86x  roth
+  low       5      1       0.015500        0.000000    3.03x  roth   <== FRACTIONS, not $
+  mid       1      1        766,055       1,211,213    1.58x  roth
+  mid       3      1        361,742         482,800    1.33x  roth
+  mid       4      1        339,462         477,146    1.41x  roth
+  mid       5      1       0.016500        0.000000    0.94x  roth   <== FRACTIONS, not $
+  (High is the top rung: $Y is UNDEFINED there, D-36, and the app says so rather than printing zero.)
+
+  delta = 10 points   <== the app's sentence (D-17)
+  rung    obj shocks              $X              $Y    $Y/$X  better
+  low       1      1      3,437,196       2,096,529    0.61x  roth
+  low       3      1      1,391,528         768,414    0.55x  roth
+  low       4      1      1,602,313         756,988    0.47x  roth  <== D-23
+  low       5      1       0.079500        0.000000    0.59x  roth   <== FRACTIONS, not $
+  mid       1      1      3,830,274       1,211,213    0.32x  roth
+  mid       3      1      1,603,768         482,800    0.30x  roth
+  mid       4      1      1,622,671         477,146    0.29x  roth
+  mid       5      1       0.085000        0.000000    0.18x  roth   <== FRACTIONS, not $
+  (High is the top rung: $Y is UNDEFINED there, D-36, and the app says so rather than printing zero.)
+
+  READING, AND IT IS THE SPRINT'S SHARPEST FINDING.
+    $Y IS INVARIANT IN delta: 756,988 at 2 points and 756,988 at 10.
+    Not a coincidence and not a bug -- it is the SAME FACT the
+    Roth-across-delta invariant rests on. Under current rules Roth's
+    terminal does not depend on t_later at all, Roth is the better
+    choice at t* + delta on every cell here, so $Y is a difference
+    of two delta-independent numbers. D-17 predicted exactly this:
+    delta sets $X outright while leaving $Y nearly untouched.
+
+    SO delta CHOOSES THE VERDICT. At delta = 2, $Y/$X is 2.86x and L3 reads strong.
+    At delta = 10 -- the value the app prints -- it is 0.47x and L3 reads
+    WEAK: getting the account right is worth about twice what moving
+    up a rung is worth, not a quarter of it.
+
+    THE DESIGN DECK ESTIMATED $Y AT 'ABOUT FOUR TIMES THE ACCOUNT
+    CHOICE.' Measured at D-23's cell it is 0.47x -- off by roughly 8x, in the
+    direction that costs the lesson. DECISIONS Section 0 already
+    labels that figure a design-phase estimate and warns Sprint 4's
+    third gate may find $Y near $X. It did not land near $X. It
+    landed BELOW it. Gate 3 FIRES.
+
+    Do not switch objectives to fix this. D-23 pins the cell, D-17
+    sized delta = 10 AGAINST the L3 claim on purpose, and the README
+    publishes all four objectives precisely so the choice is visible.
+    The dot plot carries L3 on its own -- 8.13 points of collapse at
+    Low against zero at Mid and High -- and that is the demonstration
+    D-35 says lives at Low. The sentence is the weaker instrument
+    here, and this is the number that says so.
+
+    FINDING, SEPARATE: objective 5's `dollars` are FRACTIONS. Its
+    reduction is P(not running out), so $X there is a difference of
+    two probabilities. Captioned in the cube header; the README's
+    four-objective table must name the unit or drop the row.
+
+  DOES THE CELL THE APP READS ACTUALLY CROSS? (objective 4, 1 shock)
+    low    status crosses      breakeven 30.8987%
+    mid    status crosses      breakeven 32.5000%
+    high   status crosses      breakeven 32.5000%
+    -> ALL THREE CROSS. `dollars` is null on non-crossing cells (D-17) and D-35 forbids
+       the app to print nothing, so a null here would hand Sprint 6
+       an unhandled case under time pressure. It does not.
+
+==============================================================================
+4. RISK GATES 1 AND 2 -- recorded whichever way they went
+   -> remaining-sprints, Sprint 4A's risk table
+==============================================================================
+  GATE 1 -- objective 4's p10 against a $0 floor
+    rung   shocks          p10 trad          p10 roth  floored?
+    low         1      -11,109,050        -9,506,737        no
+    low         3      -13,862,607       -12,472,861        no
+    mid         1      -10,372,420        -8,749,749        no
+    mid         3      -11,273,361        -9,582,834        no
+    -> DID NOT FIRE, as predicted. D-38 floors nothing, so these are
+       signed and deeply negative. A reader meeting them for the
+       first time in cube.json will think something broke; the
+       header's `dollars_objective_4` caption is why it did not.
+
+  GATE 2 -- objective 5's discrimination
+    rung   shocks   P(not ruined) trad      roth   crossed?
+    low         0              51.30%    51.30%    crosses
+    low         3              25.80%    29.75%    crosses
+    mid         0              51.30%    51.30%    crosses
+    mid         3              44.60%    44.60%    crosses
+    -> DID NOT FIRE. The fractions sit mid-range, not pinned at 0 or 1,
+       and every objective-5 cell crosses. R3's sentinel was not
+       needed here.
+
+  FINDING, AND IT IS A DONE-WHEN THAT CANNOT PASS AS WRITTEN: 0 of 48 cells
+  do not cross. The done-when reads *a non-crossing cell survives
+  the sweep -- lands in cube.json with a null breakeven and a
+  status*, and at this archetype there is no such cell to survive.
+  T4 is green at 2C on T3's cell, which is a DIFFERENT profile
+  (D-42's $185,000 flat), so the sentinel path is exercised -- just
+  not by this cube. The bullet becomes a REPORTED count rather than
+  a V, because a sprint cannot assert the presence of a case the
+  model does not contain. Recorded, not repaired.
+
+==============================================================================
+5. WHERE $Y AND $X CROSS -- the delta that chooses the verdict
+   -> README ## Results, 'The sentence, and the parameter that decides it'
+==============================================================================
+  $X grows with delta and $Y does not, so the difference is monotone
+  and bisects. The app prints delta = 10 (D-17).
+
+  objective                   delta where $Y = $X     $X = $Y there  better
+  1 -- mean terminal                      6.10 pt         2,096,529  roth
+  3 -- median terminal                    5.58 pt           768,414  roth
+  4 -- p10 terminal                       4.82 pt           756,988  roth
+  5 -- P(not running out)                 5.56 pt          0.046500  roth
+
+  READING. The four crossings sit inside one point of each other, so
+  the inversion is STRUCTURAL rather than a property of the one cell
+  D-23 pins. Below roughly five points the buffer dominates and the
+  design deck's estimate holds in direction if not in size. Above it
+  the account choice dominates.
+
+  delta IS NOT A MODEL PARAMETER. It is the assumed size of the
+  user's miss, and nothing in the model constrains it. It was fixed
+  at 10 BEFORE this sweep ran, on the grounds that a two-point miss
+  is optimistic for a forecast reaching fifty years out. That choice,
+  made blind to the result, is what inverted the headline -- so the
+  crossing is published rather than the parameter being moved.
+
+  Objective 5's row is in FRACTIONS. Its reduction is P(not running
+  out), so $X there subtracts two probabilities (header caption).
+
+==============================================================================
+Every number above belongs to a document. Copy it there before you
+close the terminal -- that is the whole reason this file exists.
+==============================================================================

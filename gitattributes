@@ -15,4 +15,13 @@
 # already carry CRLF in this repo and that is fine -- they are notes, not
 # artifacts anyone hashes. Normalizing them would rewrite committed history for
 # no gain, which is the kind of tidy-up this project declines elsewhere.
-cube.json text eol=lf
+#
+# cube_reference.json is the SAME cube produced on a different OS -- the agent's
+# Linux container writes it, this machine writes cube.json, and the two sha256
+# sums are compared. That IS the cross-machine gate, so it is the one file in
+# the repo whose entire job is to be hashed against another file. It needs this
+# pin MORE than cube.json does, not less: unpinned, a Windows checkout converts
+# it to CRLF and the comparison fails against a correctly-written cube.json --
+# the gate reporting a defect it invented.
+cube.json           text eol=lf
+cube_reference.json text eol=lf

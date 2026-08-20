@@ -1,4 +1,4 @@
-"""Sprint 4A's measurements. Four runs, and each one lands in a named document.
+"""Sprint 4A's measurements. Five runs, and each one lands in a named document.
 
 WHY THIS FILE EXISTS RATHER THAN A stdout NOTE. Same reason measure_3a.py and
 measure_3b.py exist, and 3A stated it best: a published figure with no runnable
@@ -6,10 +6,11 @@ source and a checked done-when whose result lives only in a terminal scrollback
 are the same defect pointed two ways. Every number this prints is one a document
 is about to claim.
 
-IT READS THE FINISHED CUBE AND RUNS NO SWEEP. Three of the four findings are
-lookups over cube.json. The fourth -- ruin at a COMMON rate -- is the one thing
-the cube deliberately does not carry (D-50), and it is the reason this file may
-call engine._outcome_paths while spike_grid.py may not. `app.py` calls zero
+IT READS THE FINISHED CUBE AND RUNS NO SWEEP. Three of the five findings are
+lookups over cube.json. The other two are quantities defined at a rate no cell
+was evaluated at -- ruin at a COMMON t_now, which the cube deliberately does not
+carry (D-50), and the delta at which $Y and $X cross -- and that is the reason
+this file may call engine._outcome_paths while spike_grid.py may not. `app.py` calls zero
 engine privates; tests/test_engine.py calls them 35 times and every file in
 scripts/ calls _outcome_paths directly. Measurement code and tests reach in;
 deliverables do not.
@@ -23,6 +24,8 @@ WHERE EACH NUMBER GOES
     2  ruin at t_now         README ## Results; D-39's line
     3  the $X / $Y grid      remaining-sprints, Sprint 4A's risk table (gate 3)
     4  risk gates 1 and 2    the same table
+    5  the delta crossings   README ## Results -- the four figures section 3
+                             implies and did not compute
 """
 
 import json
@@ -364,6 +367,91 @@ def measure_risk_gates(cube, cells, paths):
     print("  model does not contain. Recorded, not repaired.")
 
 
+
+# =============================================================================
+def measure_delta_crossing(cells, paths):
+    """THE delta AT WHICH $Y AND $X CROSS, on each of the four objectives.
+
+    ADDED AT THE SPRINT 4A DOCS PASS, and the reason is the convention this
+    file's own docstring states: a published figure with no runnable source is
+    a defect. Section 3 shows that delta chooses the verdict -- 2.86x at two
+    points, 0.47x at ten -- and the README then publishes the four crossings
+    that say WHERE the verdict changes. Those four numbers were solved by hand
+    and had no source here. This section is that source.
+
+    It is the only part of this file that calls the engine for a value the cube
+    does not already carry, and it does so for the same reason section 2 does:
+    the quantity is defined at a rate no cell was evaluated at. $Y is invariant
+    in delta and $X grows with it, so the difference is monotone and bisects.
+
+    Definitions are section 3's, unchanged. $X = |roth - trad| at the Low rung.
+    $Y = the change in the better choice's outcome between Low and Mid, same
+    objective and shock count. D-23 pins the cell at 1 shock.
+    """
+    banner(5, "WHERE $Y AND $X CROSS -- the delta that chooses the verdict",
+           "README ## Results, 'The sentence, and the parameter that decides it'")
+
+    shocks = 1
+    profiles = {
+        name: engine.Profile(income_points=engine.ARCHETYPE.income_points,
+                             stops=tuple(i < cleared
+                                         for i in range(len(engine.LADDER_STOPS))))
+        for name, cleared in (("low", 3), ("mid", 6))
+    }
+
+    def x_and_y(objective, delta):
+        low, mid = cells[("low", objective, shocks)], cells[("mid", objective, shocks)]
+        rate_low = low["breakeven"] + delta / 100.0
+        rate_mid = mid["breakeven"] + delta / 100.0
+        call = lambda p, r, a: engine.outcome(
+            p, objective, shocks, None, paths, r, a)
+        low_roth = call(profiles["low"], rate_low, "roth")
+        low_trad = call(profiles["low"], rate_low, "trad")
+        account = "roth" if low_roth > low_trad else "trad"
+        here = low_roth if account == "roth" else low_trad
+        return abs(low_roth - low_trad), abs(call(profiles["mid"], rate_mid, account) - here), account
+
+    print("  $X grows with delta and $Y does not, so the difference is monotone")
+    print("  and bisects. The app prints delta = 10 (D-17).")
+    print()
+    print(f"  {'objective':<26}{'delta where $Y = $X':>21}{'$X = $Y there':>18}  better")
+
+    labels = {1: "1 -- mean terminal", 3: "3 -- median terminal",
+              4: "4 -- p10 terminal", 5: "5 -- P(not running out)"}
+    crossings = {}
+    for objective in (1, 3, 4, 5):
+        lo, hi = 0.5, 20.0
+        for _ in range(60):                      # float exhaustion, 2C's rule
+            mid_delta = (lo + hi) / 2.0
+            x, y, _ = x_and_y(objective, mid_delta)
+            if y - x > 0.0:
+                lo = mid_delta
+            else:
+                hi = mid_delta
+        delta = (lo + hi) / 2.0
+        x, y, account = x_and_y(objective, delta)
+        crossings[objective] = delta
+        magnitude = f"{x:,.0f}" if objective != 5 else f"{x:.6f}"
+        print(f"  {labels[objective]:<26}{delta:>18.2f} pt{magnitude:>18}  {account}")
+
+    print()
+    print("  READING. The four crossings sit inside one point of each other, so")
+    print("  the inversion is STRUCTURAL rather than a property of the one cell")
+    print("  D-23 pins. Below roughly five points the buffer dominates and the")
+    print("  design deck's estimate holds in direction if not in size. Above it")
+    print("  the account choice dominates.")
+    print()
+    print("  delta IS NOT A MODEL PARAMETER. It is the assumed size of the")
+    print("  user's miss, and nothing in the model constrains it. It was fixed")
+    print("  at 10 BEFORE this sweep ran, on the grounds that a two-point miss")
+    print("  is optimistic for a forecast reaching fifty years out. That choice,")
+    print("  made blind to the result, is what inverted the headline -- so the")
+    print("  crossing is published rather than the parameter being moved.")
+    print()
+    print(f"  Objective 5's row is in FRACTIONS. Its reduction is P(not running")
+    print(f"  out), so $X there subtracts two probabilities (header caption).")
+    return crossings
+
 # =============================================================================
 def main():
     cube, cells = load(CUBE_PATH)
@@ -388,6 +476,7 @@ def main():
     measure_ruin_at_t_now(paths)
     measure_x_and_y(cells)
     measure_risk_gates(cube, cells, paths)
+    measure_delta_crossing(cells, paths)
 
     print()
     print("=" * 78)

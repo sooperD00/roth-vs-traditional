@@ -780,6 +780,12 @@ writes it here. **Thirteen fields:**
                     "dollars_objective_4": ..., "dollars_objective_5": ... } }
 
 **`captions` is the thirteenth and it is not in the block the plan decided.**
+`remaining-sprints.md` §Sprint 4A carries a twelve-field block headed *supersedes
+§5's field list*, and that heading is now backwards: it superseded the seven-field
+list §5 held before this sprint, and this list supersedes it in turn. The plan's
+block predates the sprint discovering that four sentences had to travel with the
+artifact and no field carried them. **One field list, here, and the plan section
+says so.**
 Four sentences in the corpus are required to travel with the artifact and none
 of them had a field: D-50 says the header states the rate `ruin` is read at,
 D-51 says it states why objective 5's break-even sits left of `t_now`, and two
@@ -987,7 +993,7 @@ both the total and the order of cuts. Actuals go in the README.
 | R8 | **The block bootstrap's stated reason failed measurement.** It does not fatten the tail relative to an IID draw; it thins it slightly. A reviewer who knows time-series work may reach for this | Owned, not hidden. D-05 carries the measurement, the README has a section on it, and the pick survives on the recovery-forgone channel. `n ≈ 19.6` independent blocks is the same critique the README already makes of Bengen — say it first |
 | R9 | ~~**The 0-shock slab ruins about half the time under the bootstrap** — 53.1% measured~~ **CLOSED at Sprint 3A.** Re-measured on 3A's own bootstrap at 2,000 paths, three seeds: **48.7%, 48.2%, 49.4%**. It moved four points and it did not move far enough to matter | **DECIDED: OPTION 1** — report the ruin rate as a finding, drop Sprint 4A's absolute gate. D-39's subsection carries the re-measurement and the three rejected options costed at the new number. Sprint 4A's done-when changes from *ruin is 0.0 across the slab* to *ruin is measured and reported on the slab, and rises with shock count* |
 | R2 | ~~Deploy. Repo is private, ruling out Streamlit Cloud; no local Docker~~ **CLOSED at P3a, 2026-08-15 — the probe is live.** Railway from GitHub, start command set explicitly in a committed `railway.toml`, guarded by `tests/test_deploy_config.py` | P3a ran as a scheduled hard gate on Sprint 6 rather than a floating pre-flight — it needed no project code, so it ran in parallel with Sprints 2A–5. **The framework-detection gap is the smaller half of this risk; see the subsection below for the half that fails silently.** **Scope of the closure:** the mechanism is proven and Sprint 9's five-minute budget now rests on a deploy that has stood up once. Sprint 6 still replaces `app.py` wholesale, and that rename is the one live exposure left |
-| R3 | Objectives 4 and 5 may not cross in range | T4 |
+| R3 | ~~Objectives 4 and 5 may not cross in range~~ **DID NOT FIRE at Sprint 4A.** All 48 cells cross, at every rung, objective and shock count. Objective 5 discriminates rather than pinning at 0 or 1 — `P(not running out)` sits at 51.30% on the 0-shock slab and falls to 25.80% / 29.75% at Low with three shocks | T4, still green at 2C on D-42's `$185,000` flat profile. **The row stays open in scope rather than closed**, because the sentinel is unexercised at cube scale: no cell in THIS cube fails to cross, so the guarantee rests on a profile the cube does not contain and on a test one archetype away. Sprint 6 can be handed a profile that does not cross, and D-35 forbids the app to print nothing |
 | R4 | Dots are archetype-based while the line is personalized | D-15 label. Owned in the README, not hidden |
 | R5 | ~~Return series must exist before Sprint 3~~ **CLOSED at gate two.** `return_series.py` holds 98 real annual returns, 1928–2025, `STUB = False`, and `python return_series.py` passes its self-test | D-41. Confirmed by P4 in `remaining-sprints.md` and by the Sprint 3 gate line, both of which read *cleared*. This row stayed open one pass longer than the fact did |
 | R6 | **The archetype's draw is 54% of final income**, below any published replacement band | D-39. Reported as an outcome with the reason stated: a $24,500 cap cannot fund 80% of a $200,000 income, and the gap is Social Security plus the grayed taxable account. If a panelist reads it as an error, that sentence is the answer |

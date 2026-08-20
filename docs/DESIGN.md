@@ -49,8 +49,21 @@ objective, columns = shock count. Cells = the break-even rate.
 > and D-39 removed it. A gate-two regression, caught by asking what else a common
 > draw flattens.
 
-<!-- Demo moment: same inputs, swap the objective, watch the recommendation flip.
-     That IS "explain the numerical dynamics." One radio button. -->
+**The demo moment this ladder buys.** Same inputs, swap the objective, watch the
+recommendation move. That is *explain the numerical dynamics* delivered as one
+radio button rather than a paragraph.
+
+> **MEASURED AT SPRINT 4A, and the demo is narrower than this section assumed.**
+> Across objectives 1, 3 and 4 the break-even spread is **1.4656 points at the
+> Low rung with three shocks** and **exactly 0.0000 at Mid and High**, at every
+> shock count. Swapping the objective moves the answer only for the user who has
+> no buffer. **That is not a defect and it is not a smaller lesson than the one
+> intended** — it is L3 read down a column instead of across a row, and it says
+> the definition of optimal is contested for exactly the population the
+> fragility argument is about. The radio button stays. Its caption changes from
+> *watch this move* to *watch who this moves for*. Objective 5 reads about 0.08
+> points low across the whole grid for a solver reason (D-51), not a modeling
+> one.
 
 ## The scenario grid — objective × life events
 
@@ -274,12 +287,22 @@ against what.
 **What moved.** The threshold bar embedded in this mockup is **wrong** — see 3.5
 and part 4. The layout around it is current.
 
-**One number to treat with care.** The mockup reads *"moving from mid to high
-resiliency is worth ~$Y — about four times the account choice."* That ratio is a
-design-phase estimate and exists nowhere in `DECISIONS.md`. Sprint 4's third gate
-explicitly warns that `$Y` may come out near `$X`. If it does, that is a finding
-and gets reported; the dot plot carries L3 either way. **Do not quote the 4×
-until the cube runs.**
+**One number to treat with care, and the cube has now run.** The mockup reads
+*"moving from mid to high resiliency is worth ~$Y — about four times the account
+choice."* That ratio was a design-phase estimate and existed nowhere in
+`DECISIONS.md`. Sprint 4A's third gate warned that `$Y` might come out near `$X`.
+
+> **MEASURED AT SPRINT 4A. It fired, and it landed the other side of the
+> prediction.** At D-23's cell — objective 4, one shock, the Low rung, δ = 10 —
+> `$X` is **$1,602,313** against `$Y` at **$756,988**, a ratio of **0.47×**. `$Y`
+> is not near `$X`. It is half of it, so the estimate is off by roughly eight
+> times in the direction that costs the lesson. **The 4× is retired, not
+> restated.** `$Y` is also invariant in δ, which means δ chooses the verdict: at
+> δ = 2 the ratio is 2.86× and L3 reads strong. **The dot plot carries L3 without
+> the sentence** — 8.13 points of collapse at Low against zero at Mid and High —
+> which is what this section already said it would do either way. The README's
+> `## Results` carries the full reading and `scripts/measure_4a.py` §3 and §5 are
+> the runnable source.
 
 ## 3.2 — Income shape
 

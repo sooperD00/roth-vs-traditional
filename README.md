@@ -14,9 +14,9 @@ Built as a design spike for an energy-analytics panel. The brief is in
 | | |
 |---|---|
 | **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 3B complete — **7 of 14 sprint units.** Done: 1, 2A, 2B, 2C, P3a, 3A, 3B. Remaining: 4A, 4B, 6, 7, 8, 9, 10. *(P3a counts; Sprint 5 folded into 4B and does not. 2 split into 2A / 2B / 2C, 3 into 3A / 3B, 4 into 4A / 4B; 10 is closeout.)* |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` end to end — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold, plus the block bootstrap, `paths_digest()` and `path_drawdown()` as of Sprint 3A, **and all three rung mechanisms as of Sprint 3B.** No path in the engine raises any more. The P3a deploy probe, 247 passing tests |
-| **Not yet written** | `spike_grid.py` — Sprint 4A; the real `app.py` — Sprint 6 replaces the probe |
+| **Progress** | Sprint 4A complete — **8 of 14 sprint units.** Done: 1, 2A, 2B, 2C, P3a, 3A, 3B, 4A. Remaining: 4B, 6, 7, 8, 9, 10. *(P3a counts; Sprint 5 folded into 4B and does not. 2 split into 2A / 2B / 2C, 3 into 3A / 3B, 4 into 4A / 4B; 10 is closeout.)* |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` end to end — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold, plus the block bootstrap, `paths_digest()` and `path_drawdown()` as of Sprint 3A, and all three rung mechanisms as of Sprint 3B. No path in the engine raises any more. **`spike_grid.py` writes the 48-cell `cube.json` as of Sprint 4A**, validates it against ten invariants, and re-derives it from the header under `--check`. The P3a deploy probe, 247 passing tests |
+| **Not yet written** | The real `app.py` — Sprint 6 replaces the probe |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -122,6 +122,9 @@ uv run python return_series.py   # return-series self-test
 uv run streamlit run app.py      # P3a deploy probe — Sprint 6 replaces it
 uv run python scripts/measure_3a.py   # 3A — block-vs-IID, block length, R9, D-15
 uv run python scripts/measure_3b.py   # 3B — placement toggle, shock magnitude, D-22's Low pair
+uv run python spike_grid.py           # 4A — sweeps 48 cells, validates, writes cube.json (~17 s)
+uv run python spike_grid.py --check cube.json   # re-derives the committed cube from its header
+uv run python scripts/measure_4a.py   # 4A — the L3 collapse, ruin at t_now, the $X/$Y grid, δ
 ```
 
 Without uv:
@@ -131,10 +134,14 @@ pip install -e . && pip install pytest
 python -m pytest                 # run from the repo root
 ```
 
-Not yet runnable:
+**Byte-identity is a property of two runs, so it is two commands.** Write the
+cube twice and compare; `cube_reference.json` is the same cube written by a
+different OS, which is the half a same-machine comparison cannot see.
 
 ```bash
-uv run python spike_grid.py      # Sprint 4 — writes cube.json
+uv run python spike_grid.py --out /tmp/cube_a.json
+uv run python spike_grid.py --out /tmp/cube_b.json
+sha256sum /tmp/cube_a.json /tmp/cube_b.json cube.json cube_reference.json
 ```
 
 ---
@@ -147,13 +154,16 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | `return_series.py` | ✅ | 98 annual real total returns, 1928–2025. Damodaran + CPI from the same workbook, Fisher-deflated on load. Self-tests on run |
 | `tests/test_tax.py` | ✅ | 35 tests. Literals are restated by hand rather than imported — a hand-verification that imports the constant it is verifying tests nothing |
 | `engine.py` | ✅ | Sprint 2A landed the profile, income curve, contributions, accumulation, the D-33 ladder and the constant-path builder. Sprint 2B landed the retirement draw, both decumulation loops, the D-26 policy branch, the four objective reductions, ruin detection and `outcome()`, and deleted `marker_withdrawal` — it was a pure alias for `tax.gross_for_net`. Sprint 2C landed `breakeven()` — the bisection, the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape — and pinned the three search parameters no document had decided: the bracket `(0.01, 0.95)`, float exhaustion as the stopping rule, and the rate `ruin` is read at. Sprint 3A landed the block bootstrap inside `make_paths` — the D-43 generator, sampling scheme and truncation rule — plus `paths_digest()` for D-41's cube header and `path_drawdown()` for D-44's vocabulary. Sprint 3B landed the three rung branches inside `accumulate(..., shocks>0)` without changing the signature 2A's 54 tests sit on: `underwater_depth()` for D-45's placement reading, the D-46 stable tie-break, `forced_sale_gross()` with D-47's deferral-net base, and the D-48 module constants `SHOCK_PLACEMENT` and `SHOCK_AMOUNT` — both carried in `_accumulations()`'s cache key. **Nothing in the engine raises any more.** Specified in [`docs/ENGINE.md`](docs/ENGINE.md) |
-| `spike_grid.py` | ⬜ | Sprint 4. Writes the 48-cell cube and prints the markdown grid |
+| `spike_grid.py` | ✅ | Sprint 4A. Sweeps 48 cells — 3 rungs × 4 objectives × 4 shock counts — writes `cube.json` and prints the markdown grid. **Contains no math (D-11):** every published number comes back from `engine.outcome()` or `engine.breakeven()`, and `--audit` lists the three arithmetic expressions that are not model arithmetic. `validate_cube(cube, paths=None)` holds the ten invariants D-49 assigns it, split by operand per D-51 — 27 cells within 128 ulps of `t_now`, 9 objective-5 cells asserting the after-tax difference is exactly `0.0`. With `paths=None` it rebuilds the path array from the header and checks it against `paths_digest` before using it, which is what makes `--check` re-derive rather than re-read |
+| `cube.json` | ✅ | Sprint 4A. The 48 cells the app reads, plus a thirteen-field header: the seed and the two digests that make it reproducible, the archetype minus `stops`, the swept rung axis, and four `captions` carrying sentences that must travel with the artifact. **Byte-reproducible from the header alone** — `.gitattributes` pins it to `eol=lf`, because a checkout conversion breaks the sha without touching the content |
+| `cube_reference.json` | ✅ | The same cube written on a **different OS** — the agent's Linux container — and committed so the local run can be hashed against it. Two runs on one machine agree with each other whichever line-ending convention that machine uses, so the same-machine gate cannot see the failure that actually happened; this file is the half that can. Byte-identical to `cube.json` today, and the day it is not, one of the two machines has moved |
 | `tests/test_engine.py` | 🟡 | Opened at Sprint 2A — 204 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint 2C over the search, the bracket, the sentinel and the `Result` fields, 19 added at Sprint 3A over the bootstrap, the D-43 parameters, the digest, `path-drawdown` and the three measurement records, and 59 added at Sprint 3B over the three rung branches, the placement reading and its tie-break, Low's inversion, D-22's slab, the cache key D-48 widened and one recorded measurement. **Two tests were deleted rather than skipped** — `test_block_paths_still_raise` at 3A and `test_a_nonzero_shock_count_raises_...` at 3B, both asserting a `NotImplementedError` that no longer exists. 206 written minus 2 deleted is the 204. Sprint 4B closes by collecting and mapping T1–T8 into it rather than creating it; **T1 and T2 are green as of 2B, T3, T4 and T5 as of 2C, T6, T7 and T8 as of 3B** |
 | `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
 | `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
 | `tests/test_deploy_config.py` | ✅ | 8 tests on `railway.toml`. No assertion names the entry file — the one test that checks it reads the name out of the start command, so Sprint 6's rename keeps the guard |
 | `scripts/measure_3a.py` | ✅ | Sprint 3A. Not the engine, and nothing imports it. Five documents cite one block-vs-IID measurement taken at gate two by code that was **not in this repo**; this file makes all five checkable by one command. It also carries the IID arm, which lives here rather than as a third `make_paths` kind because nothing in the model consumes an IID path set |
+| `scripts/measure_4a.py` | ✅ | Sprint 4A. Five runs over the finished cube, each landing in a named document: the L3 collapse (D-22, `## Results` below), ruin at a common `t_now` — the one reading the cube deliberately does not carry (D-50) — the `$X`/`$Y` grid at both δ, the two risk gates, and the δ at which `$Y` and `$X` cross on each objective. Not a deliverable, which is why it may call `engine._outcome_paths` and `spike_grid.py` may not |
 | `scripts/measure_3b.py` | ✅ | Sprint 3B. Three runs, each landing in a named document: the correlated/uncorrelated placement toggle (`ENGINE.md`), the $25,000 / $80,000 shock-magnitude sensitivity and its bisected crossing (`## Results` below), and D-22's published Low ratios, which do **not** reproduce — the run identifies the rule that produced them rather than guessing. Its stdout names the destination of every figure it prints |
 
 ---
@@ -163,6 +173,7 @@ uv run python spike_grid.py      # Sprint 4 — writes cube.json
 | File | What it is | Open it when |
 |---|---|---|
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | **The build contract.** Wins over every other document | You want the authoritative answer |
+| [`docs/DECISIONS-4A-slab-and-fingerprint.md`](docs/DECISIONS-4A-slab-and-fingerprint.md) | D-51, D-52 and one rejection, recorded before the first cell was written | You want the reasoning behind the slab check and the fingerprint |
 | [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) | Every option considered, what each is good and bad at, which one shipped | You want to know what else was on the table |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design rationale — the model, the five mockups, and what gate two overturned | You want the reasoning and the pictures |
 | [`docs/ENGINE.md`](docs/ENGINE.md) | How the math works, and the five choices inside it that change an answer | You want the numerical dynamics |
@@ -258,8 +269,11 @@ once. Over 2,000 block-bootstrap paths, shock-free, **the Roth balance goes
 negative before 100 about half the time.** That is sequence risk rather than a
 tuning error: a level real draw against a 19.30% standard deviation over 35 years
 ruins about half the time by construction, and no plausible margin closes it.
-Sprint 4's gate reads *ruin is 0.0 across the 0-shock slab* and cannot pass as
-written.
+Sprint 4A's gate had read *ruin is 0.0 across the 0-shock slab*, which cannot
+pass; R9 closed on option 1 and replaced it with *ruin is measured and reported
+on the slab, and rises with shock count*. **Both halves ran at 4A.** The slab
+came in at 48.70%, and at the Low rung ruin climbs 48.70% → 55.95% → 65.40% →
+74.20% across zero to three shocks.
 
 **The figure was re-measured at Sprint 3A rather than inherited, and it moved the
 way that would have flattered us.** The original 53.1% was taken with the draw
@@ -301,9 +315,8 @@ them.
 
 **The p10 spread across that range is about ten points, which is wider than the
 block-versus-IID gap the entry above is about.** The arbitrary number moves the
-tail more than the modeling choice does. Nothing published moves with it —
-Sprint 4's cube runs at five regardless, and the direction is what the
-sensitivity was for.
+tail more than the modeling choice does. Nothing published moves with it — the
+cube ran at five, and the direction is what the sensitivity was for.
 
 *Measured at Sprint 3A by `scripts/measure_3a.py` §5, 4,000 paths at seed
 20260815; output in `scripts/out_measure_3a_20260818-1502.txt`. The three-row
@@ -360,8 +373,6 @@ that carries the bisected crossing. The reasoning that promoted this from a
 sensitivity row to a `## Results` entry is in
 `scripts/learning_3b_20260818-1502.txt`.*
 
-### Delta as 
-
 ### The sentence, and the parameter that decides it
 
 I estimated during design that moving up a resilience rung would be worth about
@@ -416,17 +427,26 @@ is published here, so a reader sees the choice instead of inheriting its result.
 **The claim the sentence was built to carry survives, and a different instrument
 carries it.** The break-even at the Low rung:
 
-| rung | 0 shocks | 1 | 2 | 3 |
+| rung, objective 4 | 0 shocks | 1 | 2 | 3 |
 |---|---|---|---|---|
 | Low | 32.5000% | 30.8987% | 28.0158% | 24.4070% |
 | Mid | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
 | High | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
 
 **8.13 points of movement at one rung and none at the other two** — not
-approximately none, exactly none, at every shock count and every objective, for
-a reason the engine can derive rather than measure. That is the account question
-being contested for people without a buffer and settled for everyone else. The
-dot panel shows it without arithmetic and without a parameter I had to choose.
+approximately none, exactly none, at every shock count on objectives 1, 3 and 4,
+for a reason the engine can derive rather than measure. That is the account
+question being contested for people without a buffer and settled for everyone
+else. The dot panel shows it without arithmetic and without a parameter I had to
+choose.
+
+**Objective 5 reads about 0.08 points low across the whole slab, and that is the
+solver rather than the model.** `P(not running out)` counts a discrete event over
+2,000 paths, so its difference is a staircase and its zero set has width — 0.1616
+points at the archetype — and the bisection closes on the plateau's left edge.
+The claim underneath is exact and is asserted directly instead: the after-tax
+difference is `0.0` at `t_now`, on all nine of those cells, with no tolerance.
+D-51 carries the reading and `cube.json`'s header carries the caption.
 
 One note on the magnitudes in the first table. Objective 4 is the tenth
 percentile of the after-tax terminal value, and nothing in the engine floors a
@@ -435,6 +455,12 @@ for 28 more years. The p10 figures behind that $1,602,313 are −$9,506,737 for
 Roth and −$11,109,050 for Traditional. The spread is not wealth gained. It is
 depth of hole avoided at the tenth percentile, which is a second reason the
 dollar sentence is the weaker of the two instruments on this page.
+
+*Measured at Sprint 4A by `scripts/measure_4a.py` — the collapse table in §1, the
+`$X`/`$Y` pairs in §3, the four crossings in §5, all read off `cube.json` at seed
+20260815 over 2,000 paths. Output in
+`scripts/out_measure_4a_20260819-2237.txt`, which captures §1–§4; §5 was added at
+the docs pass and joins the capture on the next run.*
 
 ---
 
@@ -510,13 +536,17 @@ asserted.
 | 10 | Sprint 2C | `reading-list-archive/reading-list-sprint-2C.txt` | [`docs/sprints/Sprint2C.txt`](docs/sprints/Sprint2C.txt) · _(link)_ |
 | 11 | Sprint 3A | `reading-list-archive/reading-list-sprint-3A-paths.txt` | [`docs/sprints/Sprint3A.txt`](docs/sprints/Sprint3A.txt) · _(link)_ |
 | 12 | Sprint 3B | `reading-list-sprint-3B-rungs.txt` | [`docs/sprints/Sprint3B.txt`](docs/sprints/Sprint3B.txt) · _(link)_ |
+| 13 | Sprint 4A planning | `planning-archive/Sprint-4A-planning-round-2.txt` | [`docs/sprints/Decisions-Gating-4A.txt`](docs/sprints/Decisions-Gating-4A.txt) · [`DECISIONS-4A-slab-and-fingerprint.md`](docs/DECISIONS-4A-slab-and-fingerprint.md) |
+| 14 | Sprint 4A | `reading-list-sprint-4A-cube.txt` | [`docs/sprints/Sprint4A.txt`](docs/sprints/Sprint4A.txt) · _(link)_ |
 
 `prompts/` also holds `readinglist.sh`, which builds a reading list from a sprint
 name, and `designing-a-read-policy.txt`, the session that decided what a reading
 list should contain. A reading list moves to `reading-list-archive/` once its
-sprint has run. **`reading-list-sprint-4A-cube.txt` and
-`reading-list-sprint-4B-mapping.txt` are written and their sprints have not
-run** — they are in the directory ahead of the work, not missing from this table.
+sprint has run. `planning-archive/` holds the plan-tightening sessions — the
+passes that decided a sprint's shape before its reading list was built, which is
+why they sit beside the lists rather than in them. **`reading-list-sprint-4A-cube.txt` is still in `prompts/` rather than
+`reading-list-archive/`**, and moves there at the 4B docs pass along with every
+other closed sprint's list. 4B's own reading list is not written yet.
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three

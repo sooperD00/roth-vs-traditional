@@ -128,7 +128,7 @@ WHAT THIS CANNOT SEE -- check these by hand every time
      in this output asserted flat rather than labelled a draft, so a wrong line
      there reads as an instruction rather than as a guess. Check it by hand
      against the sprint's own seam paragraph before pasting.
-        Sprint 4A  forbidden: tests/test_engine.py -- ~1,555 lines, and the
+        Sprint 4A  forbidden: tests/test_engine.py -- 2,438 lines, and the
                    largest thing this script would otherwise hand you
         Sprint 4B  forbidden: engine.py, spike_grid.py
      Not recoverable by grep, for the same reason item 1 is not: the plan
