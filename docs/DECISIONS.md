@@ -184,6 +184,8 @@ match.
 | D-15 | **User inputs move the vertical line, not the dots.** The dot plot is labeled *modeled for the reference profile*. **Two different mismatches separate the line from the dots, and only one of them is a labeling problem** | The interaction still lands — set the state toggle and the line slides through the cloud — but the app must not imply the dots are personalized. **Profile mismatch:** the line is the user's, the dots are the archetype's. That is what the label fixes. **Return-model mismatch:** the line is deterministic at 7% real (D-04a) while the dots come from a bootstrap whose mean path compounds at **6.78%** — the historical series' own geometric mean, which `return_series.py` forbids rescaling. **This does not move `t*`.** The scalar multiple holds per path, so the 0-shock slab lands on `t_now` at any return rate; that is T2 and D-22's validation gate, and it is why L1 survives the mismatch untouched. **It moves dollars.** So a reviewer comparing a figure on the balance graph against a figure in the $X/$Y sentence will find them a few points apart, and the answer is that they are computed on different return models deliberately. Label it where the dollar sentence lives. Do not close the gap by editing the series. **RESTORED in Sprint 2A: the deterministic proxy at the series' own geometric mean puts T65 at $2,028,066 against $2,108,867 at 7%, a 3.83% gap.** That is a proxy, not the bootstrap. **SPRINT 3A MEASURED THE REAL DISTRIBUTION and it is in the subsection below, which is the one place it lives.** **Sprint 6's caption carries the MEDIAN, $2,123,538** — decided by Nicole 8/18, reasons in the subsection |
 | D-22 | **Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return.** `make_paths(kind, ...)` builds either a constant array or a bootstrap array; the engine cannot tell which it received. **Supersedes D-13** | The block bootstrap has no `sigma` — that parameter belonged to the parametric model D-05 rejected. Expressing the deterministic path as a shape rather than a setting makes D-13's claim structural: one function, one code path, nothing to drift. Two consequences: at `n_paths=1` objectives 1, 3 and 4 collapse, so the headline is objective-independent by construction; and objective 5 degenerates to a step function that will not bisect, so the deterministic path must reject it. **Validation gate, and it is DERIVABLE rather than measured — see the note below** |
 | D-38 | **The engine never clamps a balance at zero.** Balances are allowed to go negative; ruin is a recorded boolean, not an absorbing floor | Objectives 1–3 bisect on the *difference* between two terminal values. That difference is monotone in `t_later` and crosses zero at `t_now` — but only if the arithmetic is allowed to run. Clamping makes both sides pile up at $0 over a range of rates, the difference goes flat, and bisection returns whichever endpoint it started nearest. D-22's gate cannot hold with a floor in the code. Objectives 4 and 5 read the flag; nobody reads a clamped balance. **This extends to the D-26 bequest, and that is the one place a clamp looks like tax logic rather than a floor** — see D-26's subsection, where it is the difference between a headline and a sentinel |
+| D-51 | **The 36-cell slab check is TWO assertions over two operands, not one over 36 cells.** Recorded at the Sprint 4A assessment BEFORE the first cell. **Objectives 1, 3 and 4 — 27 cells — assert `breakeven` within `128` ulps of `t_now`**, the `T2C_ULP_K` bound 2C already set for this tension, restated as a literal with its citation in the assert message because `tests/test_engine.py` holds the constant and 4A may not open it. Measured worst at 4A: **9 ulps.** **Objective 5 — 9 cells — asserts nothing about `breakeven` at all.** It asserts D-22's actual claim instead: `outcome(trad) − outcome(roth) == 0.0` at `t_now`, **exactly, no tolerance**. Verified bit-exact on all nine. `breakeven` on those cells is a plateau EDGE and ships as-is with a caption. **`validate_cube(cube, paths=None)` rebuilds the path array from the header when `paths` is None**, which widens D-49 | The done-when said *equal `t_now` exactly* and *assert as an identity, not a tolerance*, and the two clauses point at different operands. **D-22's exact identity is `roth/trad`, an accumulation ratio, asserted bit-exact at 3B inside 4 ULP. The slab check reads `breakeven()`'s output, which is a SOLVER RESULT** and stops at float exhaustion (2C), so it cannot be bit-exact and 2C said so in writing. **Objective 5 is worse than imprecise, it is a different shape.** `P(not running out)` counts a discrete event over `n_paths`, so its difference is a STAIRCASE with step `1/n_paths` and its zero set has WIDTH — measured **[0.324218, 0.325834], 0.1616 pp**, with `t_now` sitting 48.4% of the way across. `breakeven()` tests `(f_mid > 0.0) == (f_lo > 0.0)`, an exact zero reads as *not positive*, and the interval closes on the plateau's LEFT edge every time: **0.0782 pp below `t_now`, deterministically.** D-22 already knows this shape and scopes it one size too small — it says objective 5 *will not bisect* and attaches that to `n_paths = 1`. At 2,000 paths the staircase does not vanish, it grows 2,000 steps. No bound on `breakeven` is honest at any width, because it would be sized against a sampling artifact that shrinks with `n_paths`. **The split is D-49's own reasoning one level down: invariants have operands.** The widening of D-49 costs a pure-data function and ~5 s on `--check`; it buys the first code in this repo that actually verifies `paths_digest` |
+| D-52 | **`constants_fingerprint` is a blake2b-128 digest over a DECLARED, sorted list of `name=repr(value)` lines — seven `engine` module constants plus two derived probes — and the declared list IS the decision.** Constants: `BRACKET`, `POLICY_YEAR`, `RETIREMENT_AGE`, `ROTH_TERMINAL_MARGIN`, `SHOCK_AMOUNT`, `SHOCK_PLACEMENT`, `TERMINAL_AGE`. Probes: `archetype.t_now` and `forced_sale_gross()` at age 55. **`SEED`, `N_PATHS` and `BLOCK_LENGTH` are EXCLUDED — `paths_digest` covers them** and the two fields are meant to be disjoint; `SAVINGS_RATE` is excluded because the header's `profile` block serializes it. **`spike_grid.py` does not import `tax`.** Value at the current constants: `c00a62111fef4a93d5eaee2377420afb` | **The two probes are how `tax.py` gets covered without being read.** Every tax number that reaches a cell — the seven bracket edges, the standard deduction, the deferral cap, the state rate, the early-withdrawal penalty — is invisible to `paths_digest` and would move all 48 cells silently, which is the hole this field exists to close. Enumerating them by name means importing `tax` into a deliverable and maintaining a list that grows. Two derived floats cover the surface instead: **`t_now` moves if the brackets, the deduction, the state rate or the deferral cap move; the age-55 forced sale moves if the penalty or D-47's gross-up base moves**, and it is already a published figure ($73,959.60, the 3B self-test line). `engine.contributions()` supplies the sale's base, so no `tax` import is needed. `repr()` on a float is shortest-round-trip and stable across platforms in Python 3; blake2b is `paths_digest()`'s primitive rather than a second idiom. **THE MECHANISM IS INCOMPLETE AT 4A.** The header block's own table says *a test pins it* — and 4A cannot write that test, because `tests/test_engine.py` is its seam. Shipped unpinned the field is a string nobody compares, which reads as coverage and is not. Tagged `[SPRINT-4B-CLEANUP]` at the function and added to 4B's done-when list |
 
 ### D-15 — the dollar side of the return-model mismatch  ✅ PROXY RESTORED, Sprint 2A
 
@@ -321,8 +323,27 @@ smaller — the exact incremental gross-up costs Traditional more than a flat `t
 does, so the one asymmetric mechanism in the cube is stronger than the row claimed.
 
 **So the gate is: the entire Mid and High slabs equal `t_now` at every shock
-count — 32 of 48 cells — plus Low's 0-shock row, for 36 of 48 asserted exactly.
-Only 12 cells vary.** Assert it as an identity, not a tolerance.
+count — 32 of 48 cells — plus Low's 0-shock row, for 36 of 48. Only 12 cells
+vary.** **CORRECTED AT SPRINT 4A: *asserted exactly* holds for the CLAIM and not
+for the SOLVER OUTPUT, and D-51 splits it.** Objectives 1, 3 and 4 land 1–9 ulps
+off `t_now` because `breakeven()` stops at float exhaustion; objective 5 lands
+0.0782 pp off because its difference is a staircase whose zero set has width.
+The identity is asserted where it is exact — on the difference at `t_now` — and
+the ulp bound covers the solver's representation.
+
+**MEASURED AT SPRINT 4A, over the 48-cell cube, and this is the L3 collapse:**
+
+| Rung | 0 shocks | 1 | 2 | 3 |
+|---|---|---|---|---|
+| Low, objective 4 | 32.5000% | 30.8987% | 28.0158% | 24.4070% |
+| Mid, objective 4 | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
+| High, objective 4 | 32.5000% | 32.5000% | 32.5000% | 32.5000% |
+
+**8.13 points of movement at Low against zero at Mid and High**, taken at the
+widest objective (objective 3 and 4 agree to a tenth of a point at 3 shocks).
+Source: `scripts/measure_4a.py`, finding 1. The dot panels render this as three
+rows that fan out at one rung and stack at the other two — L3, shown rather than
+asserted.
 
 **This is not a defect to repair.** Giving Mid an asymmetric mechanism so the
 dot panels show a gradient is exactly what this project is against. The honest
@@ -736,8 +757,36 @@ Per cell:
 | `dollars` | `{"2": {...}, "10": {...}} \| null` | Keyed by δ. Each value is `{"roth": float, "trad": float}`. **`breakeven()` always returns this null; `spike_grid` fills it** (D-17). **So null has two causes and they are told apart by `status`, not by this field:** `status != "crosses"` is a non-crossing cell and stays null; `status == "crosses"` with a null here is a cell `spike_grid` has not reached yet. Deferred out of Sprint 2C deliberately — Sprint 4 already owns every invariant over these numbers, and splitting the fill from its own gates was the worse half |
 | `ruin` | `{"roth": float, "trad": float}` | Fraction of paths where the **account balance** went negative during decumulation. Recorded, never clamped (D-38). **Pinned at Sprint 2B:** the operand is the balance, not its after-tax value. The two agree in sign for Traditional and for Roth under current rules, since `(1 − t_later) > 0`; they can disagree for **Roth under the policy**, where `rem` is a tax attribute rather than money you can spend. "Before 100" is inclusive of the terminal, and costs nothing to read that way — below zero the recurrence is strictly more negative each year, so *ever negative* and *negative at 100* are the same set. Ruin is absorbing without being enforced. **Pinned at Sprint 2C: the RATE.** The operand was settled and the `t_later` was not, and it is not a detail — Traditional's fraction goes 0.0 → 1.0 between 32.50% and 33.45%, one point either side of `t*`. Read at the top of the bracket every cell reports total ruin and D-39's *ruin is 0.0 on the 0-shock slab* becomes unpassable. **A crossing cell reports at its own `t*`; a non-crossing cell has no `t*` and reports at `t_now`** — the one rate defined for every profile without a solve, and the rate `t*` equals on every crossing cell under current rules. That second half is the only line in Sprint 2C with no document behind it. **Pinned at Sprint 4A (D-50): `cube.json` copies this field as-is and publishes ONE reading, per-cell, captioned.** Only `ruin.trad` varies with the rate and only on the 12 Low cells with shocks ≥ 1; the comparable `t_now` reading is `scripts/measure_4a.py`'s, not a second column. **The 0.0 → 1.0 range above was measured on `make_paths("constant", 1, ...)`, where a fraction over one path can only be 0.0 or 1.0** — over 2,000 bootstrap paths it is a steep curve rather than a step, and 3A put its level on the 0-shock slab at 48.7 / 48.2 / 49.4%. The steepness is the point either way; the step is not |
 
-Header block: `seed`, `n_paths`, `return_rate`, `profile`, `deltas`,
-`generated_at`, `engine_version`.
+Header block, **rewritten at Sprint 4A to match the artifact that ships**.
+`return_rate` and `generated_at` are REMOVED — the first was a measurement of
+one draw sitting in a header whose job is to be reproduced from, the second made
+byte-identity unpassable by construction. `paths_digest` is ADDED, which §5
+never had a slot for even though `paths_digest()`'s own docstring says Sprint 4A
+writes it here. **Thirteen fields:**
+
+    { "seed": 20260815,
+      "n_paths": 2000,
+      "return_model": "block",
+      "block_length": 5,
+      "paths_digest": "48f9c1b929ce667e82e8c9d49d753c59",
+      "deterministic_reference": 0.07,
+      "deltas": [2, 10],
+      "engine_version": "m3",
+      "constants_fingerprint": "c00a62111fef4a93d5eaee2377420afb",
+      "profile": { ... the archetype, MINUS stops ... },
+      "rungs": { "low": "1110000000", "mid": "1111110000", "high": "1111111111" },
+      "policy": null,
+      "captions": { "ruin": ..., "breakeven_objective_5": ...,
+                    "dollars_objective_4": ..., "dollars_objective_5": ... } }
+
+**`captions` is the thirteenth and it is not in the block the plan decided.**
+Four sentences in the corpus are required to travel with the artifact and none
+of them had a field: D-50 says the header states the rate `ruin` is read at,
+D-51 says it states why objective 5's break-even sits left of `t_now`, and two
+more name units a reader would otherwise guess at — objective 4's p10 is signed
+and deeply negative under D-38, and objective 5's `dollars` are FRACTIONS rather
+than money because its reduction is `P(not running out)`. Added rather than left
+as undocumented extra keys.
 
 **The dollar fields are what the headline sentence is made of:**
 
