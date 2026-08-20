@@ -128,9 +128,29 @@ WHAT THIS CANNOT SEE -- check these by hand every time
      in this output asserted flat rather than labelled a draft, so a wrong line
      there reads as an instruction rather than as a guess. Check it by hand
      against the sprint's own seam paragraph before pasting.
-        Sprint 4A  forbidden: tests/test_engine.py -- 2,438 lines, and the
+        Sprint 4A  forbidden: tests/test_engine.py -- 2,601 lines, and the
                    largest thing this script would otherwise hand you
         Sprint 4B  forbidden: engine.py, spike_grid.py
+        Sprint 6   forbidden: tests/test_engine.py (writes no tests),
+                   spike_grid.py except one leftover cleanup tag
      Not recoverable by grep, for the same reason item 1 is not: the plan
      states the seam in prose, a section away from the file names.
+     THIS ITEM HAS NOW FIRED FOUR TIMES AND ALWAYS ON THE SAME FILE.
+     tests/test_engine.py is the largest thing this script can hand you and
+     it has been forbidden in three of the last four sprints. Consider
+     inverting the default: name it only when a sprint SAYS it writes tests.
+
+  7. A SPRINT THAT DELETES A FILE. Sprint 6 replaces app.py wholesale, so
+     app.py is required reading -- and this script put it under DO NOT READ,
+     because nothing in the plan CITES a file the sprint is removing. The
+     probe also carries six container facts (sys.path, --no-install-project,
+     the PORT bind) that the replacing sprint would otherwise rediscover.
+     Rule: if a sprint goal says it REPLACES or DELETES a file, read that
+     file.
+
+  8. A SPRINT WHOSE SPEC IS A PICTURE. Sprint 6 is the UI sprint and this
+     script put docs/DESIGN.md under DO NOT READ. Part 3 is five captioned
+     mockups and is the only place the interface exists visually; section 7
+     is the contract but it is not the drawing. Nothing greps as a citation
+     because the reference is an image link.
 EOF
