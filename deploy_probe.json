@@ -1,8 +1,0 @@
-{
-  "_why": "P3a scaffolding. [SPRINT-6-CLEANUP] -- delete once cube.json exists and app.py reads that instead. Shaped as a miniature of the DECISIONS section 5 header block on purpose, so the probe rehearses the read Sprint 9 depends on rather than parsing a toy.",
-  "seed": 20260815,
-  "n_paths": 2000,
-  "engine_version": "p3a-probe",
-  "generated_at": "2026-08-15",
-  "probe_ok": true
-}
