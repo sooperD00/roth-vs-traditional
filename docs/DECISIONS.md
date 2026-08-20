@@ -73,6 +73,14 @@ explains them rather than defining them. **One exception worth naming:** the
 block-vs-IID measurement lives there in full, and D-05 carries the summary. If
 those two ever disagree, the measurement is the fact and D-05 is the stale copy.
 
+`EVIDENCE.md` holds **measurements a decision cites** — the run behind a number,
+kept separately from the number. This file still wins on what was DECIDED, and
+`EVIDENCE.md` wins on what was MEASURED: if D-51 and the plateau walk ever
+disagree, the walk is the fact and the decision row is the stale copy. Same
+exemption `ENGINE.md` already carries for the block-vs-IID table, and the same
+rule `scripts/measure_*.py` exists to enforce — a published figure keeps its
+source. **Nothing in it is a contract and nothing plans a sprint.**
+
 `DESIGN.md` is the **design rationale and the mockup gallery.** The five `*.PNG`
 files now live there with captions saying what each one decides and what moved
 afterwards. It is still a working surface and this file still wins — §7 remains
