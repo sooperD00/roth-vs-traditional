@@ -243,7 +243,8 @@ split.** It was never a drawdown. Calling it one is most of why D-08's placement
 rule — *shocks land at the `n` worst years* — reads two ways, and those two
 readings pick different years on the same path. Sprint 3A deliberately did not
 choose. **Sprint 3B chose `underwater-depth` (D-45), and the two readings were
-not close** — at three shocks they agree on the year set for 8.1% of paths.
+not close** — at three shocks they agree on the year set for 8.1% of paths,
+measured by `scripts/measure_3b.py` §4.
 
 **One computed on the return index, never on a balance.** `path-drawdown` is a
 property of the return *model*. An account balance carries contributions, which

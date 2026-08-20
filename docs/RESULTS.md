@@ -51,7 +51,7 @@ The distinction between 🔒 and ✅ is the one I most want a reader to hold.
 | [4](#4--when-the-rule-moves) | When the rule moves | complete |
 | [5](#5--the-return-model-and-a-reason-that-failed) | The return model, and a reason that failed | complete |
 | [6](#6--running-out-of-money) | Running out of money | complete |
-| [7](#7--life-events) | Life events | **3 of 6 unsourced** |
+| [7](#7--life-events) | Life events | complete |
 | [8](#8--fragility-against-the-account-choice) | Fragility against the account choice | complete |
 | [9](#9--what-the-model-gets-wrong-on-purpose) | What the model gets wrong on purpose | **unsourced** |
 | [10](#10--reproducibility) | Reproducibility | mostly complete |
@@ -466,9 +466,11 @@ of rates, and bisection returns whichever endpoint it started nearest.*
 Three rungs, three code branches. Low sells at the bottom, Mid fails to buy at the
 bottom, High does neither.
 
-**Three of the six results in this section are reproducible today and three are
-not.** The unsourced three are all Sprint 3B measurements over the path array,
-and they would be three sections of one script.
+**All six results in this section are reproducible.** Three of them were not
+until the results pass: D-45, D-46 and D-47 each carried measured numbers in
+prose with no runnable source, which is 3A's defect one sprint later. They are now
+`scripts/measure_3b.py` §4, §5 and §6 — one script, as predicted, and **two of the
+three published figures did not survive the re-run.**
 
 ## 7.1 Placement matters, and it is the cheapest demonstration in the project ✅
 
@@ -545,102 +547,148 @@ rather than guessing.** A negative result recorded as a negative result.
 *Source — `scripts/measure_3b.py` §3. Also printed on `engine.py`'s `3B OK` line,
 so the disagreement is visible on every run rather than filed away.*
 
-## 7.4 ⚠️ Which drawdown reading — UNSOURCED
+## 7.4 Which drawdown reading, and what the choice was worth ✅
 
-**The claim.** D-08 says shocks land at each path's `n` deepest drawdown years.
-That reads two ways, and the two readings are not close. `underwater-depth` — how
-far below its running peak the index sits at the end of a year — was chosen over
+D-08 says shocks land at each path's `n` deepest drawdown years. **That reads two
+ways, and the two readings are not close.** `underwater-depth` — how far below its
+running peak the index sits at the end of a year — was chosen over
 `worst-year-return`, the annual return itself.
 
-**The numbers behind it**, currently stated in three documents and one docstring:
+**The year sets are nearly disjoint at three shocks.**
 
-- At three shocks the two readings agree on the year set for **8.1%** of paths
-  (56.9% at one shock, 24.4% at two)
-- `worst-year-return` places **3.2%** of its shocks in year 0, where cumulative
-  Roth basis is one contribution against a $40,000 sale
-- It puts shocks where basis is short on **19.20%** of paths against **5.05%**
-- Two channels partly offset: `underwater-depth` shocks **later** years (mean age
-  **51.0** against **49.2**, so less compounding left to forgo) but **harder**
-  ones (mean next-year return **+18.66%** against **+12.63%**)
+| Shocks | Identical year set | Year-0 share, `worst-year-return` |
+|---|---|---|
+| 1 | 56.9% | 4.3% |
+| 2 | 24.4% | 3.3% |
+| **3** | **8.1%** | **3.2%** |
 
-**The objection.** This decided a model branch, and nothing in the repo
-reproduces any of it. `engine.py:130` and `:756` state the 8.1% in prose;
-`scripts/measure_3b.py` has three sections and none of them is this comparison.
-**It is currently an assertion wearing a number, cited by `DECISIONS.md`,
-`ENGINE.md` and `DESIGN.md`.**
+**Year 0 is structurally unshockable under the chosen reading** — the index at
+year 0 is its own running peak, so the curve is exactly 0.0 there on every path
+and nothing sorts below it. Measured: 0.0%. The rejected reading put 3.2% of its
+shocks there, in the year cumulative Roth basis is one contribution against a
+$40,000 sale.
 
-**The finding underneath, if it holds:** the year sets differ a lot and the
-aggregate barely does. That is worth keeping precisely because it is unflattering
-to the choice.
+**Where the shocks land, at three shocks:**
 
-- [ ] Add `scripts/measure_3b.py` §4 — both readings over the published block
-      array, reporting year-set agreement at 1, 2 and 3 shocks
-- [ ] Report the year-0 share and the basis-short share under each reading
-- [ ] Report the mean shock age and the mean next-year return under each
-- [ ] Capture the run and cite it here; drop the prose claims in `engine.py`'s
-      docstring to a pointer
-- [ ] Reconcile against D-45 — if a number moved, D-45 is the stale copy
+| Reading | Paths basis-short | Mean shock age | Mean next-year return |
+|---|---|---|---|
+| `underwater-depth` | **5.05%** | 51.0 | **+18.66%** |
+| `worst-year-return` | 19.20% | 49.2 | +12.63% |
 
-## 7.5 ⚠️ The tie-break statistics — UNSOURCED
+**Two channels carry the difference and they partly offset.** The chosen reading
+shocks **later** years — less compounding left to forgo — but **harder** ones,
+because the recovery channel §5.1 identified is steeper after a deep drawdown than
+after a single bad year.
 
-**The claim.** `argsort(kind="stable")` resolves ties to the earlier year, named
-rather than inherited, because **numpy's default is introsort and is not stable**
-— two documents had asserted that it was.
+**So the year sets differ a lot and the aggregate barely does.** Mean forgone
+multiple, what one shocked dollar would have grown to by 65: **5.0550×** against
+**5.0326×**, 0.44% apart.
 
-**The numbers behind it**, currently stated in D-46 alone:
+That is unflattering to the choice and it is the reason the pick rests on the
+three structural arguments — the word used honestly, year 0 unshockable, a quarter
+as many shocks where basis is short — rather than on a dollar difference.
 
-- **80.8%** of paths carry a duplicate annual return inside the 30-year window,
-  and **99.75%** carry a duplicate underwater depth
-- An exact tie at the n = 3 boundary occurs on **3.15%** of paths under
-  `underwater-depth` and **12.85%** under `worst-year-return`
-- Default-versus-stable picks a **different shock year** on **2.25%** and
-  **11.00%** of paths respectively
+**One thing this measurement caught in its own code.** The forgone multiple has to
+compound from year `y+1`, not `y`: under D-20 the balance takes year `y`'s return
+first and the sale comes out after it. Including year `y` penalises whichever
+reading selects the worse annual return — `worst-year-return`, by construction —
+and reported a false 14.7% gap instead of 0.44%. `_growth_after()`'s docstring
+carries it so nobody re-derives it wrong.
 
-**The objection.** The flag is in the code and a test asserts the resulting
-property. **The reason it matters is not reproducible.** These six numbers are the
-entire case that this is reproducibility rather than tidiness — without them the
-decision reads as fussiness, and a later sprint could reasonably drop the flag.
+*Source — `scripts/measure_3b.py` §4, 2,000 paths at seed 20260815, captured in
+`scripts/out_measure_3b_20260820-2115.txt`. Recorded in D-45. **All six published
+figures reproduce.***
 
-There is a second reason to keep them: an unfrozen library default is exactly the
-exposure D-43 chose MT19937 to close, one sprint earlier against a different
-default. **This corpus has been bitten by that shape twice.**
+## 7.5 The tie-break, and the number that was measuring the wrong thing ✅
 
-- [ ] Add `scripts/measure_3b.py` §5 — duplicate rates in the window, tie rate at
-      the n = 3 boundary under each reading, and the share of paths where
-      default-versus-stable changes the shock year
-- [ ] Capture and cite; reconcile against D-46
-- [ ] Sweep the corpus for other unversioned third-party-default claims
-      *(already open in `remaining-sprints.md` Housekeeping)*
+`argsort(kind="stable")` resolves ties to the earlier year, named rather than
+inherited, because **numpy's default is introsort and is not stable** — two
+documents had asserted that it was.
 
-## 7.6 ⚠️ The gross-up base — UNSOURCED
+**Ties are ordinary here, which is the precondition.** A path is dealt from a
+98-value deck with replacement, so duplicates inside a 30-year window are the
+common case:
 
-**The claim.** Low's forced sale grosses up against `income(age) − contribution`,
-not gross income. That year's deferral already came off the top, so a withdrawal
-stacks on what is left.
+| | |
+|---|---|
+| Paths carrying a duplicate annual return | **80.80%** |
+| Paths carrying a duplicate underwater depth | **99.75%** |
 
-**The numbers behind it**, currently stated in D-47 alone:
+**A duplicate only matters when it straddles the n-th position of the sort:**
 
-- Worth **2.4% to 5.5%** of the sale across the archetype's ages
-- At the age-55 peak it is the difference between the sale crossing the 32% edge
-  (taxable **$262,180**) and not (**$233,360**)
-- Over 2,000 paths at three shocks the unfixed reading overstates the value at 65
-  of the forced sales by **$22,936 mean, 1.09% of `trad₆₅`** — roughly **1.4
-  points of `t*`** read proportionally
+| Reading | Exact tie at n=3 | ORDER differs | **SET differs** |
+|---|---|---|---|
+| `underwater-depth` | 3.15% | 2.25% | **1.55%** |
+| `worst-year-return` | 12.85% | 11.00% | **7.80%** |
 
-**The objection.** `$22,936` appears nowhere in the codebase. And the direction is
-the reason this is a decision rather than a footnote: **the unfixed reading
-overstates Low's penalty, which is the direction that flatters this project's own
-lesson about fragility.** That is exactly the failure mode §5.1 exists to name,
-currently resting on an unreproducible number.
+**The two right-hand columns are different questions and only one of them can
+move a number.** ORDER counts a permutation of the same three years. SET counts a
+genuinely different year being shocked. `shock_years()` returns
+`tuple(sorted(picks))`, so **a reordering is discarded one line later and the
+engine never sees it.**
 
-- [ ] Add `scripts/measure_3b.py` §6 — both bases across the archetype's ages,
-      the age-55 bracket-edge case, and the mean overstatement at 65 over 2,000
-      paths at three shocks
-- [ ] Capture and cite; reconcile against D-47
-- [ ] Decide whether the ~1.4 points of `t*` is worth publishing as a headline
-      sensitivity or stays here
+**D-46 published the ORDER pair.** It reproduces exactly — 2.25% and 11.00%, both
+numbers — but it is an upper bound on the exposure rather than the exposure. The
+real figure is about a third smaller.
 
----
+**The correction runs against the decision, which is why it is worth making.**
+D-46's argument survives untouched: 1.55% of 2,000 paths is 31 paths, and D-07's
+reproducibility is binary rather than proportional — a cube is byte-identical or
+it is not. Only the number changes.
+
+**It is not a version effect, and that was the first hypothesis.** numpy 2.4.2 and
+2.4.4 return identical figures in every column. The section prints the numpy
+version anyway, so a future disagreement is readable rather than mysterious — the
+comparison arm is the unfrozen one, and that mobility is the whole exposure D-43
+chose MT19937 to close one sprint earlier against a different library default.
+
+*Source — `scripts/measure_3b.py` §5, same capture. Recorded in D-46, which now
+carries both columns.*
+
+## 7.6 The gross-up base ✅
+
+Low's forced sale grosses up against `income(age) − contribution`, not gross
+income. That year's deferral already came off the top, so a withdrawal stacks on
+what is left.
+
+**Across the archetype's thirty accumulation years the unfixed base overstates the
+sale by 0.1% to 5.8%** — near zero at age 48, where the sale sits inside one band
+under both bases so the deferral moves nothing, and 5.8% at the age-55 income
+peak.
+
+**At that peak it decides a bracket:**
+
+| Base | Gross sale | Taxable | 32% edge at $256,225 |
+|---|---|---|---|
+| D-47, net of deferral | $73,959.60 | $233,360 | below |
+| D-16 as written, gross | $78,280.11 | $262,180 | **crosses** |
+
+**Over the path set — three shocks, 2,000 paths, compounded forward at each path's
+own returns — the unfixed base is worth $22,936 mean at 65.** As a share, it
+depends entirely on the denominator:
+
+| Denominator | Share |
+|---|---|
+| mean `trad₆₅`, Low, three shocks | **1.46%** |
+| mean `trad₆₅`, bootstrap, no shocks | 0.88% |
+| `trad₆₅` deterministic 7%, $2,108,867 | 1.09% |
+
+**D-47 published 1.09%, which divides a stochastic Low-with-three-shocks numerator
+by the deterministic headline balance.** The numerator reproduces to the dollar;
+the denominator is a different population. **1.46% is the share of what a shocked
+saver actually holds**, and it is the one D-47's own sentence is about.
+
+**The direction is why this is a decision rather than a footnote.** The unfixed
+reading *overstates* Low's penalty — the direction that flatters this project's
+own lesson about fragility, and precisely the failure mode §5.1 exists to name.
+Read proportionally against D-16's own published lever, three flat gross-up
+readings spanning 3.5 points of `t*`, a share this size is worth roughly a point.
+**No published figure moves**: D-16 publishes `t*` for the three flat readings
+only, and the exact method is a fourth value with no number attached.
+
+*Source — `scripts/measure_3b.py` §6, same capture. Recorded in D-47, whose range
+and denominator were both corrected here.*
+
 
 # 8 — Fragility against the account choice
 
@@ -1016,18 +1064,21 @@ Every unfinished thing in this file, in one list.
 
 | | Result | Where | Cost |
 |---|---|---|---|
-| [ ] | The drawdown reading that chose `underwater-depth` | §7.4 | `measure_3b.py` §4 |
-| [ ] | The tie-break statistics | §7.5 | `measure_3b.py` §5 |
-| [ ] | The gross-up base | §7.6 | `measure_3b.py` §6 |
+| [x] | The drawdown reading that chose `underwater-depth` | §7.4 | ✅ `measure_3b.py` §4 — all six figures reproduce |
+| [x] | The tie-break statistics | §7.5 | ✅ `measure_3b.py` §5 — D-46's pair was the ORDER column; corrected |
+| [x] | The gross-up base | §7.6 | ✅ `measure_3b.py` §6 — range and denominator both corrected |
 | [ ] | The two known biases, 13.5% and 30.5% | §9 | wire two flags in `tax.py`, assert in `tests/test_tax.py` |
 | [ ] | The preset's frozen allowance and modelled draw | §3 | one self-test line, or two asserted literals |
 
-**The first three are one script sitting between them.** They are all Sprint 3B
-measurements over the path array, and none needs new modelling — only the run that
-was taken by hand and never written down.
+**The first three are closed.** They were one script sitting between them, as
+predicted — all Sprint 3B measurements over the path array, none needing new
+modelling. **Two of the three published figures did not survive**, and in both
+cases the rule that produced the original was identified rather than guessed:
+D-46 had measured a permutation the engine discards, and D-47 had divided a
+stochastic numerator by a deterministic denominator. Both corrections run
+*against* their own decision, which is the direction worth trusting.
 
-**The fourth is the panel-facing one** and it is the one to do first if only one
-gets done.
+**What remains is the panel-facing pair in §9**, and it is the one to do next.
 
 ## Structural
 

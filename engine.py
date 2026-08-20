@@ -139,7 +139,7 @@ it, collected here so "what did 3B decide" is one place.
      chose MT19937 to close. See shock_years().
   3. LOW'S GROSS-UP BASE IS `income(age) - contribution` (D-47), not gross
      income. The deferral already came off the top, so the withdrawal stacks on
-     what is left. Worth 2.4% to 5.5% of the sale, and it decides whether the
+     what is left. Worth 0.1% to 5.8% of the sale, and it decides whether the
      age-55 sale crosses the 32% edge. See forced_sale_gross().
   4. THE UNCORRELATED TOGGLE IS A MODULE CONSTANT (D-48), SHOCK_PLACEMENT, and
      it is CARRIED IN _accumulations' CACHE KEY. The signature could not take it
@@ -797,8 +797,10 @@ def shock_years(accumulation_path, n_shocks: int) -> tuple:
     introsort, corrected at D-46. This is not academic. Ties are ordinary here
     because a path is dealt from a 98-value deck: 12.85% of paths carry an exact
     tie at the n=3 boundary under worst-year-return and 3.15% under this reading,
-    and default-vs-stable picks a different shock year on 11.0% and 2.25% of
-    paths respectively. Introsort is deterministic on one build and is not frozen
+    and default-vs-stable moves the SHOCKED YEAR on 7.80% and 1.55% of paths
+    respectively. The 11.0% / 2.25% first published here was the raw argsort
+    ORDER -- a permutation of the same three years, which the sort on the return
+    below discards. Corrected against scripts/measure_3b.py section 5. Introsort is deterministic on one build and is not frozen
     across numpy versions, which is exactly the property D-43 chose MT19937 to
     get.
 
@@ -846,7 +848,7 @@ def forced_sale_gross(gross_income: float, contribution: float, state: bool,
     THE BASE IS `gross_income - contribution` (D-47), not gross income. That
     year's deferral already came off the top -- which is the same fact t_now is
     computed from -- so a withdrawal stacks on what is left. Taking the base
-    gross overstates W by 2.4% to 5.5% across the archetype's ages, and at age 55
+    gross overstates W by 0.1% to 5.8% across the archetype's ages, and at age 55
     it is the difference between the sale crossing the 32% edge and not. The
     error runs in the direction that OVERSTATES Low's penalty, which is the
     direction that would flatter this project's own lesson. Both arguments are in

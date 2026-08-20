@@ -20,6 +20,21 @@ WHERE EACH NUMBER GOES
                              ## Results if the published sentence does not hold
     2  shock magnitude       README ## Scope & Branches, beside block length
     3  D-22 reproduction     DECISIONS D-22's measured line
+    4  the two readings      RESULTS.md 7.4, and D-45
+    5  the tie-break         RESULTS.md 7.5, and D-46
+    6  the gross-up base     RESULTS.md 7.6, and D-47
+
+SECTIONS 4, 5 AND 6 WERE ADDED AFTER SPRINT 3B CLOSED, and the reason is the
+reason this file exists. All three decisions -- D-45, D-46, D-47 -- were recorded
+with measured numbers in their prose and no runnable source anywhere. Three
+documents cite D-45's 8.1%; D-46's six percentages and D-47's $22,936 appear
+nowhere in the code at all. That is 3A's defect exactly, one sprint later, caught
+at the RESULTS.md pass rather than by a reviewer.
+
+They belong here rather than in a new file for the same reason sections 1-3 are
+here: they measure what a rung does to a path set. Nothing about them is new
+modeling -- every one re-runs a comparison that was made by hand at 3B and never
+written down.
 """
 
 import sys
@@ -291,6 +306,379 @@ def reproduce_d22_low_ratios():
 
 
 # =============================================================================
+# Sections 4-6 -- added after Sprint 3B closed. See the module docstring.
+# =============================================================================
+def _readings(paths, profile):
+    """The two candidate readings of D-08's 'deepest drawdown years'.
+
+    Returns (underwater, worst_year), each (n_paths, n_accumulation_years).
+
+    D-44 SPLIT ONE WORD INTO THREE QUANTITIES AND THIS IS WHY. `underwater-depth`
+    is how far below its running peak the index sits at year end; the other
+    candidate was `worst-year-return`, the annual return itself, which was never
+    a drawdown at all. D-08 admits either, so 3B had to choose (D-45).
+
+    BOTH ARE SORTED ASCENDING -- most negative first -- so `argsort` picks the
+    deepest years under either reading with no sign handling at the call site.
+    """
+    n = profile.n_accumulation_years
+    accum = np.asarray(paths, dtype=float)[:, :n]
+    return engine.underwater_depth(accum), accum
+
+
+def _years_under(curve, n_shocks, kind="stable"):
+    """Which years each path shocks under one reading. (n_paths, n_shocks), sorted.
+
+    THE TIE-BREAK IS THE ARGUMENT, NOT A DETAIL (D-46). engine.shock_years()
+    hard-codes kind='stable' because that is the decision; this file takes it as
+    a parameter because section 5's whole job is to measure what the default
+    would have done instead.
+    """
+    picks = np.argsort(curve, axis=1, kind=kind)[:, :n_shocks]
+    return np.sort(picks, axis=1)
+
+
+def _growth_after(paths, n_acc):
+    """What one dollar left in the account at the END of year y grows to by 65.
+
+    THE OFF-BY-ONE IS THE PHYSICS, NOT A DETAIL. Under D-20's period-end rule the
+    balance takes year y's return FIRST and the forced sale comes out after it
+    (accumulate(), the Low branch). So what a sale forgoes is the compounding from
+    year y+1 onward, and including year y's own return double-counts a return the
+    sale already received. It also biases the comparison in section 4: shocked
+    years are chosen for being bad, so folding year y in penalises whichever
+    reading selects the worse annual return -- which is worst-year-return, by
+    construction.
+
+    Column n_acc-1 is 1.0: a sale in the final accumulation year forgoes nothing.
+    """
+    arr = np.asarray(paths, dtype=float)[:, :n_acc]
+    tail = np.cumprod(1.0 + arr[:, :0:-1], axis=1)[:, ::-1]     # years 1..n-1
+    return np.concatenate([tail, np.ones((arr.shape[0], 1))], axis=1)
+
+
+def _roth_basis_by_year(profile):
+    """Cumulative Roth contributions after each accumulation year. One row.
+
+    D-16's simplification is that a Low sale comes out of Roth basis IN FULL and
+    no basis is tracked. This is the array that says how often that is a lie:
+    where the cumulative basis is under SHOCK_AMOUNT, the sale is taking money
+    that was never contributed.
+    """
+    per_year = [
+        engine.contributions(profile, profile.current_age + i)[1]
+        for i in range(profile.n_accumulation_years)
+    ]
+    return np.cumsum(per_year)
+
+
+# =============================================================================
+def measure_placement_readings(paths):
+    """WHICH DRAWDOWN READING, AND HOW MUCH THE CHOICE WAS WORTH.
+
+    D-45 chose `underwater-depth` over `worst-year-return` and published five
+    measurements to justify it. None of them had a runnable source, and three
+    documents cite the first one. This section is that source.
+
+    WHAT TO WATCH FOR. The finding D-45 records is deliberately unflattering to
+    its own choice: THE YEAR SETS DIFFER A LOT AND THE AGGREGATE BARELY DOES.
+    Two channels partly offset -- `underwater-depth` shocks LATER years, so less
+    compounding is left to forgo, but HARDER ones, because D-05's surviving
+    recovery channel is steeper after a deep drawdown than after a bad year.
+
+    DO NOT TUNE ANYTHING TO REPRODUCE D-45's NUMBERS. Section 3's precedent is
+    the standing rule here: where a published pair does not come back, identify
+    the rule that produced it and correct the document. A number that only
+    reproduces after the measurement is adjusted is not a measurement.
+    """
+    banner(4, "THE TWO READINGS -- underwater-depth against worst-year-return",
+           "RESULTS.md 7.4; DECISIONS D-45")
+    uw, wy = _readings(paths, LOW)
+    n_paths, n_acc = uw.shape
+    basis = _roth_basis_by_year(LOW)
+    short = basis < engine.SHOCK_AMOUNT          # years where D-16's simplification bites
+
+    print("  AGREEMENT ON THE YEAR SET -- the same paths, the same array,")
+    print("  two readings of the same sentence.")
+    print()
+    print(f"    {'shocks':>7}{'identical year set':>22}{'year-0 share, wy':>20}")
+    for n in (1, 2, 3):
+        a, b = _years_under(uw, n), _years_under(wy, n)
+        same = float(np.mean(np.all(a == b, axis=1)))
+        year0 = float(np.mean(b == 0))           # share of wy's SHOCKS in year 0
+        print(f"    {n:>7}{same:>21.1%}{year0:>20.1%}")
+    print()
+    print("    year 0 is STRUCTURALLY unshockable under underwater-depth: the")
+    print("    index at year 0 is its own running peak, so the curve is exactly")
+    print("    0.0 there on every path and nothing sorts below it.")
+    print(f"    measured, underwater-depth year-0 share at 3 shocks: "
+          f"{np.mean(_years_under(uw, 3) == 0):.1%}")
+
+    print()
+    print("  WHERE THE SHOCKS LAND, and what each channel is worth. n = 3.")
+    print()
+    print(f"    {'reading':<22}{'paths basis-short':>19}{'mean shock age':>17}"
+          f"{'mean next-yr ret':>19}")
+    rows = {}
+    for name, curve in (("underwater-depth", uw), ("worst-year-return", wy)):
+        years = _years_under(curve, 3)
+        any_short = float(np.mean(short[years].any(axis=1)))
+        mean_age = float(np.mean(years)) + LOW.current_age
+        nxt = years + 1
+        valid = nxt < n_acc
+        arr = np.asarray(paths, dtype=float)[:, :n_acc]
+        nxt_ret = float(np.mean(np.take_along_axis(arr, np.where(valid, nxt, 0), 1)[valid]))
+        rows[name] = (any_short, mean_age, nxt_ret)
+        print(f"    {name:<22}{any_short:>18.2%}{mean_age:>17.1f}{nxt_ret:>18.2%}")
+
+    print()
+    print("  THE AGGREGATE, which is the part that does not move. Mean forgone")
+    print("  multiple -- what one shocked dollar would have grown to by 65.")
+    print()
+    growth = _growth_after(paths, n_acc)
+    for name, curve in (("underwater-depth", uw), ("worst-year-return", wy)):
+        years = _years_under(curve, 3)
+        mult = float(np.mean(np.take_along_axis(growth, years, axis=1)))
+        print(f"    {name:<22}{mult:>12.4f}x")
+
+    print()
+    print('  AGAINST WHAT D-45 PUBLISHED (all figures at 3 shocks unless noted):')
+    print('    agreement 8.1% / 56.9% / 24.4% .......... reproduces')
+    print('    year-0 share under worst-year-return 3.2% reproduces')
+    print('    basis-short 5.05% against 19.20% ........ reproduces')
+    print('    mean shock age 51.0 against 49.2 ........ reproduces')
+    print('    mean next-year return 18.66% / 12.63% ... reproduces')
+    print('    "the mean forgone multiple lands within')
+    print('     half a percent" ....................... reproduces, 0.44% apart')
+    print()
+    print('  READING. The year sets are nearly disjoint at 3 shocks and the')
+    print("  aggregate multiple lands close, which is D-45's own finding and the")
+    print("  reason the pick rests on the three structural arguments rather than")
+    print("  on a dollar difference. Copy every number above into RESULTS.md 7.4.")
+
+
+# =============================================================================
+def measure_tie_break(paths):
+    """WHY kind='stable' IS A DECISION AND NOT A STYLE CHOICE.
+
+    D-46 corrected two documents that asserted numpy's argsort default is
+    stable. It is introsort, and it is not frozen across numpy versions -- the
+    same exposure D-43 chose MT19937 to close, arriving one sprint later against
+    a different library default.
+
+    THE FLAG IS IN THE CODE AND THE REASON IT MATTERS IS NOT. A test asserts the
+    resulting property; nothing measures the tie rate. Without these numbers the
+    decision reads as fussiness and a later sprint could reasonably drop it.
+
+    TIES ARE ORDINARY HERE and that is the whole point: a path is dealt from a
+    98-value deck with replacement, so duplicates inside a 30-year window are the
+    common case rather than the edge case.
+    """
+    banner(5, "THE TIE-BREAK -- how often a tie decides where a shock lands",
+           "RESULTS.md 7.5; DECISIONS D-46")
+    print(f"  numpy {np.__version__} -- PRINTED BECAUSE THE COMPARISON ARM IS THE")
+    print("  UNFROZEN ONE. `default` below is introsort, which is deterministic on")
+    print("  one build and is NOT frozen across versions. Measured identical on")
+    print("  2.4.2 and 2.4.4, so nothing here has moved on a version yet -- but the")
+    print("  version is printed so a future disagreement is readable rather than")
+    print("  mysterious. That mobility is the exposure D-46 exists to name.")
+    uw, wy = _readings(paths, LOW)
+
+    print("  DUPLICATES IN THE WINDOW -- the precondition. If ties were rare the")
+    print("  flag would not matter.")
+    print()
+    for name, curve in (("annual return", wy), ("underwater depth", uw)):
+        dup = float(np.mean([len(np.unique(row)) < row.size for row in curve]))
+        print(f"    paths carrying a duplicate {name:<18}{dup:>8.2%}")
+
+    print()
+    print("  TIES THAT REACH THE BOUNDARY -- a duplicate only decides a shock")
+    print("  year when it straddles the n-th position of the sort.")
+    print()
+    print("  TWO WAYS TO ASK 'DID THE DEFAULT CHANGE ANYTHING', AND THEY ARE")
+    print("  DIFFERENT QUESTIONS. ORDER counts a permutation of the same three")
+    print("  years. SET counts a genuinely different year being shocked.")
+    print("  ONLY THE SET COLUMN CAN MOVE A NUMBER: shock_years() returns")
+    print("  tuple(sorted(picks)), so a reordering is discarded before the engine")
+    print("  ever sees it. The order column is an upper bound on the exposure and")
+    print("  the set column is the exposure.")
+    print()
+    print(f"    {'reading':<22}{'exact tie at n=3':>19}{'ORDER differs':>16}"
+          f"{'SET differs':>14}")
+    for name, curve in (("underwater-depth", uw), ("worst-year-return", wy)):
+        srt = np.sort(curve, axis=1)
+        tied = float(np.mean(srt[:, 2] == srt[:, 3]))          # 3rd == 4th deepest
+        stable_raw = np.argsort(curve, axis=1, kind="stable")[:, :3]
+        default_raw = np.argsort(curve, axis=1, kind="quicksort")[:, :3]
+        order = float(np.mean(np.any(stable_raw != default_raw, axis=1)))
+        a = _years_under(curve, 3, kind="stable")
+        b = _years_under(curve, 3, kind="quicksort")           # numpy's default
+        differs = float(np.mean(np.any(a != b, axis=1)))
+        print(f"    {name:<22}{tied:>18.2%}{order:>15.2%}{differs:>14.2%}")
+
+    print()
+    print('  AGAINST WHAT D-46 PUBLISHED:')
+    print('    duplicate annual return 80.8% ........... reproduces')
+    print('    duplicate underwater depth 99.75% ....... reproduces')
+    print('    exact tie at n=3, 3.15% / 12.85% ........ reproduces')
+    print('    "different shock year on 2.25% and')
+    print('     11.00% of paths" ...................... reproduces AS THE ORDER')
+    print('                                              COLUMN, exactly, both numbers')
+    print()
+    print("    THE RULE THAT PRODUCED IT IS IDENTIFIED, NOT GUESSED (section 3's")
+    print("    precedent). D-46's pair is the ORDER comparison -- the raw argsort")
+    print('    slice, before the sort that shock_years() applies. It counts a')
+    print('    permutation of the same three years as a difference. THE ENGINE')
+    print('    CANNOT SEE THAT: shock_years() returns tuple(sorted(picks)), so a')
+    print('    reordering is discarded one line later and no cell can move.')
+    print()
+    print('    NOT A VERSION EFFECT. That was the first hypothesis and it is dead:')
+    print('    numpy 2.4.2 and 2.4.4 return identical figures in every column.')
+    print()
+    print('    THE CORRECTION RUNS AGAINST THE DECISION, WHICH IS WHY IT IS WORTH')
+    print('    MAKING. The exposure D-46 argues from is 1.55% / 7.80%, not 2.25% /')
+    print("    11.00% -- about a third smaller. D-46's ARGUMENT SURVIVES INTACT:")
+    print('    31 paths in 2,000 is still a different cube, and reproducibility is')
+    print('    binary rather than proportional (D-07). But the number quoted should')
+    print('    be the one that describes what can actually change.')
+    print()
+    print('  READING. The SET column is the number that matters -- it is the')
+    print("  share of paths whose SHOCKED YEAR would move if numpy changed")
+    print("  its default sort. Reproducibility is D-07's contract, not a")
+    print("  nicety, and a cube is byte-identical or it is not.")
+    print()
+    print("  NOTE ON THE COMPARISON ARM. numpy's default is introsort and is")
+    print("  deterministic on one build, so this run measures TODAY's default")
+    print("  against stable. That is the exposure, not a bug being caught.")
+
+
+# =============================================================================
+def measure_gross_up_base(paths):
+    """D-47 -- THE SALE STACKS ON WHAT IS LEFT, NOT ON THE WHOLE INCOME.
+
+    D-16's PIN writes the incremental bill as tax_on(income + W) - tax_on(income).
+    That year's deferral already came off the top, so the base is
+    income - contribution (D-47) and the code implements D-47. The PIN's sentence
+    is preserved as written, with a forward pointer, per the recorded-rather-than-
+    rewritten rule.
+
+    THE DIRECTION IS WHY THIS IS A DECISION AND NOT A FOOTNOTE. The unfixed
+    reading OVERSTATES Low's penalty -- which is the direction that flatters this
+    project's own lesson about fragility, and is precisely the failure mode D-05
+    exists to name. A model that errs toward its own thesis has to say so with a
+    number.
+
+    forced_sale_gross() takes the contribution as an argument rather than
+    deriving it, so both readings are reachable from outside: pass the real
+    contribution for D-47's base, pass 0.0 for the base D-16 literally wrote.
+    """
+    banner(6, "THE GROSS-UP BASE -- D-47 against D-16's PIN as written",
+           "RESULTS.md 7.6; DECISIONS D-47")
+    n_acc = LOW.n_accumulation_years
+    state = LOW.state_while_working
+
+    print("  PER YEAR -- the same $40,000 net, two bases.")
+    print()
+    print(f"    {'age':>5}{'gross income':>15}{'contribution':>14}"
+          f"{'W, D-47 base':>15}{'W, gross base':>15}{'overstated':>12}")
+    worst = (1e9, None)
+    best = (-1e9, None)
+    for i in range(n_acc):
+        age = LOW.current_age + i
+        gross = LOW.income(age)
+        c = tax.contribution(gross, LOW.savings_rate)
+        w_fixed = engine.forced_sale_gross(gross, c, state, engine.SHOCK_AMOUNT)
+        w_gross = engine.forced_sale_gross(gross, 0.0, state, engine.SHOCK_AMOUNT)
+        over = (w_gross - w_fixed) / w_fixed
+        if over < worst[0]:
+            worst = (over, age)
+        if over > best[0]:
+            best = (over, age)
+        if age in (35, 38, 45, 55, 64):
+            print(f"    {age:>5}{gross:>15,.0f}{c:>14,.0f}"
+                  f"{w_fixed:>15,.2f}{w_gross:>15,.2f}{over:>11.2%}")
+    print(f"    ... {n_acc} ages measured; spread {worst[0]:.1%} (age {worst[1]})"
+          f" to {best[0]:.1%} (age {best[1]})")
+
+    print()
+    print("  THE AGE-55 PEAK -- whether the sale crosses the 32% edge.")
+    print()
+    age = 55
+    gross = LOW.income(age)
+    c = tax.contribution(gross, LOW.savings_rate)
+    edge = next(hi for hi, rate in tax.BRACKETS if rate == 0.32)
+    for label, base_c in (("D-47, base net of deferral", c), ("D-16 as written, gross base", 0.0)):
+        w = engine.forced_sale_gross(gross, base_c, state, engine.SHOCK_AMOUNT)
+        taxable = (gross - base_c) + w - tax.STANDARD_DEDUCTION
+        print(f"    {label:<32} W {w:>11,.2f}   taxable {taxable:>12,.0f}"
+              f"   {'CROSSES' if taxable > edge else 'below'} the 32% edge at {edge:,.0f}")
+
+    print()
+    print("  ACROSS THE PATH SET -- what the unfixed base is worth at 65.")
+    print("  3 shocks, D-45 placement, compounded forward at each path's own")
+    print("  returns, which is what a forced sale actually costs (D-05).")
+    print()
+    uw, _ = _readings(paths, LOW)
+    years = _years_under(uw, 3)
+    growth = _growth_after(paths, n_acc)
+    extra = np.zeros(n_acc)
+    for i in range(n_acc):
+        g = LOW.income(LOW.current_age + i)
+        c = tax.contribution(g, LOW.savings_rate)
+        extra[i] = (engine.forced_sale_gross(g, 0.0, state, engine.SHOCK_AMOUNT)
+                    - engine.forced_sale_gross(g, c, state, engine.SHOCK_AMOUNT))
+    at_65 = np.sum(extra[years] * np.take_along_axis(growth, years, axis=1), axis=1)
+    trad_65, _ = accumulated(LOW, paths, 3)
+    print(f"    mean overstatement at 65      {np.mean(at_65):>14,.0f}")
+    print(f"    median                        {np.median(at_65):>14,.0f}")
+    shock_free, _ = accumulated(LOW, paths, 0)
+    determ = engine.accumulate(
+        engine.ARCHETYPE,
+        engine.make_paths("constant", 1, engine.ARCHETYPE.n_years, 0.07)[0],
+    ).trad
+    mean_over = float(np.mean(at_65))
+    print(f"    mean trad_65, Low, 3 shocks   {np.mean(trad_65):>14,.0f}"
+          f"   share {mean_over / np.mean(trad_65):>7.2%}")
+    print(f"    mean trad_65, bootstrap, 0 sh {np.mean(shock_free):>14,.0f}"
+          f"   share {mean_over / np.mean(shock_free):>7.2%}")
+    print(f"    trad_65, DETERMINISTIC 7%     {determ:>14,.0f}"
+          f"   share {mean_over / determ:>7.2%}   <== D-47's")
+    print()
+    print("    THREE DENOMINATORS AND D-47 USED THE THIRD. The numerator")
+    print("    reproduces to the dollar. The published 1.09% is $22,936 against")
+    print("    the DETERMINISTIC $2,108,867 -- the headline balance, not any")
+    print("    balance from the 2,000-path run the same sentence describes.")
+    print("    That is a real mismatch rather than a rounding one: the run is")
+    print("    stochastic, at Low, with three shocks, and the denominator is a")
+    print("    single 7% path with none. Against the balance a shocked saver")
+    print("    actually holds the share is 1.46%, which is the larger claim and")
+    print("    the one D-47's own sentence is about.")
+
+    print()
+    print('  AGAINST WHAT D-47 PUBLISHED:')
+    print('    age-55 taxable 233,360 against 262,180 .. reproduces')
+    print('    the 32% edge crossed on the gross base .. reproduces')
+    print('    mean overstatement $22,936 .............. reproduces exactly')
+    print('    "2.4% to 5.5% across the archetype ages"  DOES NOT REPRODUCE')
+    print('                                              measured 0.1% to 5.8%')
+    print('    1.09% of trad_65 ........................ reproduces ONLY against')
+    print('                                              the DETERMINISTIC balance')
+    print()
+    print("    THE RANGE IS THE ONE TO FIX. D-47's low end is 2.4%; the true minimum")
+    print('    is near zero, at the age where the sale sits inside one band under')
+    print('    both bases so the deferral moves nothing. The high end is 5.8%, not')
+    print('    5.5%. The spread was quoted from the ages that got looked at rather')
+    print("    than from all thirty -- this file's own enumerate-by-grep rule,")
+    print('    pointed at a loop.')
+    print()
+    print("  READING. Read proportionally against D-16's own published lever --")
+    print("  three flat gross-up readings spanning 3.5 points of t* -- a share of")
+    print("  this size is worth roughly a point of t*. NO PUBLISHED FIGURE MOVES:")
+    print("  D-16 publishes t* for the three FLAT readings only, and the exact")
+    print("  method is a fourth value with no number attached. Copy into 7.6.")
+
+
+# =============================================================================
 def main():
     print("Sprint 3B measurements --", f"n_paths={N_PATHS}, seed={SEED}")
     print("Placement:", engine.SHOCK_PLACEMENT,
@@ -302,6 +690,9 @@ def main():
     measure_toggle(paths)
     measure_shock_magnitude(paths)
     reproduce_d22_low_ratios()
+    measure_placement_readings(paths)
+    measure_tie_break(paths)
+    measure_gross_up_base(paths)
 
     print()
     print("=" * 78)

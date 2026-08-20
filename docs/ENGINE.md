@@ -328,13 +328,18 @@ more.** Neither is `path-drawdown`, which is one number per path and is what the
 table above measures.
 
 The two readings were not close: **at three shocks they agree on the year set for
-8.1% of paths.** `underwater-depth` was chosen because it carries the word
+8.1% of paths** — measured by `scripts/measure_3b.py` §4. `underwater-depth`
+was chosen because it carries the word
 honestly, because year 0 becomes structurally unshockable under it — the index at
 year 0 is its own running peak — and because it puts a quarter as many shocks in
 the early years where cumulative Roth basis is short of the $40,000 sale. The
 `argsort` tie-break is `kind="stable"`, which resolves to the earlier year and is
 named rather than inherited (D-46): **numpy's default is introsort and is not
-stable**, and on this deck a tie decides the shock year on up to 11% of paths.
+stable**, and on this deck a tie moves the *shocked year* on **7.8%** of paths
+under `worst-year-return` and 1.55% under `underwater-depth`. (An earlier 11%
+was the raw `argsort` ORDER, before the sort `shock_years()` applies — that
+counts a reordering of the same three years, which the engine discards. D-46
+carries both.)
 
 An uncorrelated toggle scatters them randomly instead, seeded from each path's own
 content so the answer does not depend on call order.
