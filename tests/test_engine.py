@@ -1,16 +1,23 @@
 """The eight engine tests of DECISIONS section 6, collected across Sprints 2A-4.
 
-No sprint CREATES this file -- Sprint 2A opened it. SPRINT 4 CLOSES BY checking
-that eight tests are green and writing the docstring-to-README mapping that is
-the panel-facing artifact. (That was Sprint 5 until the P3a docs review folded
-it into Sprint 4's tail; the sprint numbers past 4 did not move.) So the tests
-arrive here as the sprints that need them are built:
+No sprint CREATES this file -- Sprint 2A opened it. SPRINT 4B CLOSES BY checking
+that eight tests are green and mapping each to the claim it defends. **THE
+MAPPING IS IN ENGINE.md's "# Tests", NOT IN THE README** -- this line read
+"docstring-to-README mapping" until Sprint 4B, and it is the third site in the
+corpus to assert a README table nobody wrote (D-54). The other two are
+remaining-sprints' 4B done-when and its objective-5 units item; Housekeeping
+counted two. (Sprint 4B was Sprint 5 until the P3a docs review folded it into
+Sprint 4's tail, then the 2C review split Sprint 4; the sprint numbers past 4
+did not move.) So the tests arrive here as the sprints that need them are built:
 
     Sprint 2A  (this pass)  the accumulation gates. NOT numbered T-anything --
                             they defend Sprint 2A's done-when, not section 6
     Sprint 2B               T1, T2
     Sprint 2C               T3, T4, T5
     Sprint 3                T6, T7, T8
+    Sprint 4B               NOT numbered either -- 4A's two handover wires,
+                            which 4A's seam forbade it writing, and the
+                            suite's own size assertion (D-53, D-57)
 
 THE LITERALS HERE ARE DELIBERATE, same rule tests/test_tax.py states: a
 hand-verification that imports the constant it is verifying tests nothing. Every
@@ -42,6 +49,7 @@ the numbers by dollars -- something like 1e9 ulps of these scales.
 """
 
 import ast
+import json
 import math
 import pathlib
 
@@ -50,6 +58,7 @@ import pytest
 
 import engine
 import return_series
+import spike_grid
 import tax
 
 # --- Published, restated by hand ---------------------------------------------
@@ -92,6 +101,31 @@ BRACKET = (0.01, 0.95)          # 2C's pin. D-26 measures the untaxed reading
 UNDERFLOW_LO = 1e-17            # where the D-42 difference reaches EXACTLY 0.0
 T2C_ULP_K = 128                 # measured worst 36 over eight (profile, rate)
                                 # pairs -- see test_T2_t_star_is_unchanged...
+
+# --- Sprint 4B, restated by hand from ENGINE.md's "# Tests" -------------------
+# FUNCTION counts, not collected counts. ENGINE.md publishes both and says why:
+# 168 functions expand to 250 collected items under parametrize. The assertion
+# below is on the functions, because that is the number an AST walk can see
+# without running pytest inside pytest.
+SUITE_FUNCTIONS = {
+    "test_tax.py": 29,
+    "test_engine.py": 133,
+    "test_deploy_config.py": 6,
+}
+SUITE_FUNCTION_TOTAL = 168
+
+REPO_ROOT = pathlib.Path(engine.__file__).resolve().parent
+TESTS_DIR = pathlib.Path(__file__).resolve().parent
+
+
+def committed_cube():
+    """The cube.json that ships, read from disk rather than regenerated.
+
+    Sprint 4B's two wires both assert against the COMMITTED artifact, which is
+    the whole point of them -- a cube rebuilt in-process would agree with the
+    engine by construction and guard nothing.
+    """
+    return json.loads(REPO_ROOT.joinpath("cube.json").read_text(encoding="utf-8"))
 
 
 def accum(profile, rate=0.07):
@@ -702,7 +736,7 @@ def test_marker_withdrawal_is_deleted_from_the_engine():
 @pytest.mark.parametrize("rate", RATES)
 @pytest.mark.parametrize("profile_name", ["ARCHETYPE", "EARLY_CAREER"])
 def test_T1_equal_rates_at_both_ends_produce_equal_outcomes(profile_name, rate):
-    """T1 (section 6). The identity is real.
+    """T1, PRIMARY. Defends DECISIONS section 6, T1: "The identity is real."
 
     At t_later == t_now the two after-tax terminal values tie, under D-01's
     same-pre-tax-dollars convention and for ANY return rate. The difference is
@@ -727,7 +761,8 @@ def test_T1_equal_rates_at_both_ends_produce_equal_outcomes(profile_name, rate):
 
 
 def test_T1_has_teeth_away_from_t_now():
-    """Companion to T1. If the tie held everywhere it would assert nothing.
+    """T1, TEETH. Companion to T1. If the tie held everywhere it would assert
+    nothing.
 
     One point either side of t_now, and the sign flips -- which is also the
     statement that t* is a crossing rather than a flat region (D-06's guard).
@@ -746,10 +781,12 @@ def test_T1_has_teeth_away_from_t_now():
 # --- T2 -----------------------------------------------------------------------
 @pytest.mark.parametrize("rate", RATES)
 def test_T2_the_common_draw_cancels_out_of_the_difference(rate):
-    """T2's draw-cancellation half (section 6). L1.
+    """T2, HALF ONE OF TWO. Defends DECISIONS section 6, T2: "Both accounts fund
+    the same net spending, so the draw subtracts the same real amount from both
+    after-tax paths and vanishes."
 
-    Both accounts fund the same net spending, so the draw subtracts the same real
-    amount from both after-tax paths and vanishes from their DIFFERENCE. Twelve
+    That is L1, and section 6's "vanishes" is FROM THEIR DIFFERENCE -- not from
+    either path, which is what the rejected wording below got wrong. Twelve
     (rate, draw) pairs; the t*-across-r half needs bisection and is 2C's.
 
     DO NOT ASSERT THE EARLIER WORDING. "The after-tax Traditional path equals the
@@ -778,7 +815,7 @@ def test_T2_the_common_draw_cancels_out_of_the_difference(rate):
 
 @pytest.mark.parametrize("rate", RATES)
 def test_T2_matches_the_closed_form_difference(rate):
-    """The algebra behind T2, asserted rather than trusted.
+    """T2, MECHANISM. The algebra behind T2, asserted rather than trusted.
 
     roth_65 * [(1 - t_later)/(1 - t_now) - 1] * (1+r)**35. If this drifts, the
     draw stopped cancelling and the reason T2 passes is no longer the reason
@@ -1259,7 +1296,12 @@ def test_the_early_career_preset_reproduces_and_the_verdict_flips():
 @pytest.mark.parametrize("rate", RATES)
 @pytest.mark.parametrize("profile_name", ["ARCHETYPE", "EARLY_CAREER"])
 def test_T2_t_star_is_unchanged_across_the_return_rate(profile_name, rate):
-    """T2's remaining half (section 6). L1, as a solve rather than a sweep.
+    """T2, HALF TWO OF TWO. Defends DECISIONS section 6, T2: "Both accounts fund
+    the same net spending, so the draw subtracts the same real amount from both
+    after-tax paths and vanishes."
+
+    SAME SENTENCE AS HALF ONE, ON PURPOSE -- L1 as a solve rather than a sweep,
+    and the two halves are why this row has no companion marked primary.
 
     The draw-cancellation half closed in 2B and it is WHY this holds: both
     accounts fund the same net spending, so the draw subtracts the same real
@@ -1278,7 +1320,18 @@ def test_T2_t_star_is_unchanged_across_the_return_rate(profile_name, rate):
 
 # --- T3 -----------------------------------------------------------------------
 def test_T3_the_capped_roth_shelters_more_and_the_cell_returns_always_roth():
-    """T3 (section 6), at D-42's $185,000 profile with D2 ON.
+    """T3, PRIMARY. Defends DECISIONS section 6, T3: "At the $185,000 test
+    profile (D-42) with D2 ON, Roth shelters strictly more real dollars and the
+    cell returns `always_roth`." Defending D2, the G4 trap, and D-25's scoping
+    of D-01.
+
+    QUOTED FROM THE TEST COLUMN, NOT THE CLAIM COLUMN, per D-56: section 6's
+    claim cell here is a citation list rather than a sentence, so the sentence
+    that must be true is the row's other half. Same for T4 and T6 through T8.
+
+    NO SEPARATE TEETH TEST, AND THAT IS NOT A GAP. T3 is not an identity, it is
+    a strict inequality -- the difference is asserted at both bracket endpoints
+    below, which is teeth in the same place as the claim.
 
     D2 IS THE SECOND ASYMMETRIC MECHANISM IN THE MODEL, alongside Low's penalty,
     and T3 is its only coverage -- which is why it matters more than its position
@@ -1372,7 +1425,9 @@ def test_a_bracket_low_end_near_zero_would_report_a_crossing_that_is_not_there()
 
 # --- T4 -----------------------------------------------------------------------
 def test_T4_a_no_crossing_cell_returns_a_sentinel_rather_than_raising():
-    """T4 (section 6). The demo survives the interesting cases (R3).
+    """T4, PRIMARY. Defends DECISIONS section 6, T4: "A no-crossing cell returns
+    its sentinel and does not raise." Defending R3 -- the demo survives the
+    interesting cases.
 
     Objectives 4 and 5 genuinely do not cross inside a plausible range for some
     cells, and T3's profile is one under every objective -- so this is exercised
@@ -1386,7 +1441,12 @@ def test_T4_a_no_crossing_cell_returns_a_sentinel_rather_than_raising():
 
 
 def test_T4s_result_is_fully_populated_and_dollars_is_none_on_purpose():
-    """The 2C done-when that has no owner: the FIELDS, not the shape.
+    """T4, FIELDS -- NOT teeth. Section 6's T4 row calls the Result "fully
+    populated, with dollars=None by contract rather than by omission," and that
+    is a 2C done-when with no owner rather than a second assertion that T4's
+    sentinel breaks somewhere.
+
+    The 2C done-when that has no owner: the FIELDS, not the shape.
 
     THESE TWO DONE-WHENS ARE NOT IN TENSION and reading them as such is how the
     ruin field ends up empty. "Fully populated, all four fields" is about the
@@ -1438,8 +1498,11 @@ def test_ruin_is_measured_at_the_rate_the_result_reports():
 
 # --- T5 -----------------------------------------------------------------------
 def test_T5_the_todays_law_marker_is_strictly_below_t_star_in_the_base_case():
-    """T5 (section 6). You defer at the margin and withdraw across the whole
-    structure from zero, starting at zero.
+    """T5, PRIMARY. Defends DECISIONS section 6, T5: "The headline sentence --
+    you defer at marginal and withdraw across the whole structure from zero."
+
+    IN THE BASE CASE, and section 6 has always carried that scope. Unscoped the
+    claim is false BY DESIGN; the teeth test below is where that lives.
 
     An EFFECTIVE rate against a MARGINAL one, and the gap between them is the
     lesson rather than an inconsistency of units. Non-circular by construction:
@@ -1457,7 +1520,7 @@ def test_T5_the_todays_law_marker_is_strictly_below_t_star_in_the_base_case():
 
 
 def test_T5_has_teeth_because_the_preset_inverts_it():
-    """T5's SCOPE, and two documents dropped it.
+    """T5, TEETH. T5's SCOPE, and two documents dropped it.
 
     Section 6 reads "in the base case." remaining-sprints' 2C done-when and
     ENGINE.md's T5 row do not, and unscoped the claim is FALSE BY DESIGN: at
@@ -2104,7 +2167,13 @@ def test_the_forced_sale_is_a_closed_form_not_a_search():
 
 # --- T6 -----------------------------------------------------------------------
 def test_T6_a_low_rung_shock_realizes_a_sale_and_breaks_the_multiple():
-    """T6 (section 6). D-16's low branch, D5, D-39.
+    """T6, PRIMARY. Defends DECISIONS section 6, T6: "Low rung: a shock realizes
+    a $40,000 sale; Traditional takes the penalty while Roth basis comes out
+    free." Defending D-16's low branch, D5 and D-39.
+
+    ITS OWN TEETH, IN THE SAME ASSERTIONS. The identity holds at 0 shocks and
+    breaks above it, which is why this row carries a mechanism and a guard
+    rather than a separate teeth test.
 
     THE MECHANISM, NOT THE MAGNITUDE. Both accounts fund the same $40,000 of
     cash and pay different amounts for it: Traditional grosses up through the
@@ -2124,7 +2193,7 @@ def test_T6_a_low_rung_shock_realizes_a_sale_and_breaks_the_multiple():
 
 
 def test_T6_traditional_pays_the_penalty_and_roth_basis_comes_out_free():
-    """T6's second half, at the code rather than at the ratio.
+    """T6, MECHANISM. T6's second half, at the code rather than at the ratio.
 
     The Roth loses exactly the shock amount compounded forward; Traditional
     loses the grossed-up sale compounded over the same years. The ratio between
@@ -2149,7 +2218,10 @@ def test_T6_traditional_pays_the_penalty_and_roth_basis_comes_out_free():
 
 
 def test_T6_no_balance_is_clamped_when_a_shock_exceeds_it():
-    """D-38 reaches the accumulation phase too, and this is where it could have
+    """T6, GUARD. Section 6's T6 row names it: "A companion asserts no balance
+    is clamped when a shock exceeds it (D-38 reaching the accumulation phase)."
+
+    D-38 reaches the accumulation phase too, and this is where it could have
     been forgotten.
 
     A shock in an early year can take more than the account holds. The balance
@@ -2172,7 +2244,9 @@ def test_T6_no_balance_is_clamped_when_a_shock_exceeds_it():
 def test_T7_a_mid_rung_shock_skips_the_contribution_and_preserves_the_multiple(
     shocks, rate
 ):
-    """T7 (section 6). D-16's mid branch -- the shares not bought.
+    """T7, PRIMARY. Defends DECISIONS section 6, T7: "Mid rung: a shock skips
+    the contribution year and the balance is never sold." Defending D-16's mid
+    branch -- the shares not bought.
 
     ONE EQUALITY, and D-22 is why it is only one: pausing removes c from
     Traditional and c*(1 - t_now) from Roth, so the paused stream scales
@@ -2194,7 +2268,7 @@ def test_T7_a_mid_rung_shock_skips_the_contribution_and_preserves_the_multiple(
 
 
 def test_T7_mid_sells_nothing_and_the_cost_is_exactly_the_shares_not_bought():
-    """T7's mechanism, stated so a reviewer does not have to infer it.
+    """T7, MECHANISM. Stated so a reviewer does not have to infer it.
 
     The whole loss is the contributions that never happened, compounded from the
     year they would have landed. If Mid ever sold anything, this equality breaks
@@ -2218,7 +2292,8 @@ def test_T7_mid_sells_nothing_and_the_cost_is_exactly_the_shares_not_bought():
 @pytest.mark.parametrize("shocks", [1, 2, 3])
 @pytest.mark.parametrize("rate", RATES)
 def test_T8_a_high_rung_shock_leaves_the_portfolio_untouched(shocks, rate):
-    """T8 (section 6). D-16's high branch, the control case.
+    """T8, PRIMARY. Defends DECISIONS section 6, T8: "High rung: a shock leaves
+    the portfolio untouched." Defending D-16's high branch, the control case.
 
     ONE EQUALITY, and the strongest form of it: High is not merely proportional
     to the base case, it IS the base case. Absorbed by cash means the portfolio
@@ -2236,7 +2311,7 @@ def test_T8_a_high_rung_shock_leaves_the_portfolio_untouched(shocks, rate):
 
 
 def test_T8_has_teeth_because_the_other_two_rungs_move():
-    """The companion every identity test in this file has.
+    """T8, TEETH. The companion every identity test in this file has.
 
     If High's equality held at Low and Mid too, it would be asserting that the
     shock parameter does nothing -- which is precisely the silent fallback
@@ -2436,3 +2511,91 @@ def test_d22s_published_low_ratios_do_not_reproduce_and_this_records_why():
         return roth / trad
 
     assert flat_t_now_at(9) == pytest.approx(D22_LOW_1, abs=1e-6)
+
+
+# --- Sprint 4B: 4A's two handover wires, and the suite's own size -------------
+# 4A wrote validate_cube() and constants_fingerprint() and its seam forbade it
+# opening this file, so the guards for both landed here. These are the only two
+# tests in this sprint that can fail.
+def test_the_committed_cube_passes_spike_grids_invariants():
+    """D-49's named follow-on. Defends DECISIONS Architecture, D-49: "Sprint 4A's
+    invariants live in `spike_grid.validate_cube(cube)`, and its `--check` flag
+    re-runs them against a committed `cube.json`."
+
+    THE ASSERTION IS THE CALL. validate_cube() raises rather than returning a
+    verdict, so there is nothing to assert against it -- the same shape
+    _selftest() has in engine.py and return_series.py, moved inside the runner.
+
+    paths=None ON PURPOSE, AND IT IS WHAT THIS TEST BUYS. D-51 widened D-49 so
+    that a None here rebuilds the path array from the header and checks it
+    against `paths_digest` before using it. Supplying an array instead would
+    make the test cheaper and would stop it re-deriving the one thing in the
+    header nothing else verifies. The cost is measured and recorded at D-53:
+    this single call is longer than the other 249 tests put together.
+
+    Ten invariants, split by operand per D-51 -- 27 cells within 128 ulps of
+    t_now, 9 objective-5 cells asserting the after-tax difference is exactly
+    0.0, and the cube-as-data properties against section 5.
+    """
+    spike_grid.validate_cube(committed_cube())
+
+
+def test_the_committed_constants_fingerprint_still_recomputes():
+    """D-52's pin. Defends DECISIONS Architecture, D-52: "`constants_fingerprint`
+    is a blake2b-128 digest over a DECLARED, sorted list of `name=repr(value)`
+    lines -- seven `engine` module constants plus two derived probes -- and the
+    declared list IS the decision."
+
+    COMPUTED AGAINST THE HEADER, NEVER AGAINST THE LITERAL IN DECISIONS, and
+    this is the one place in this file where the hand-restated-literals rule is
+    deliberately inverted. Everywhere else a published figure is retyped because
+    a hand-verification that imports the constant it is verifying tests nothing.
+    Here retyping `c00a62111fef4a93d5eaee2377420afb` would pin the CONSTANTS,
+    and the field does not exist to freeze them -- a legitimate constant change
+    shipped with an engine_version bump and a regenerated cube has to pass. What
+    must not drift is the cube against the engine that wrote it.
+
+    So the failure this catches is precisely: someone moved a model constant and
+    did not regenerate cube.json. Every tax number that reaches a cell is
+    invisible to paths_digest, which is the hole D-52's two derived probes exist
+    to close -- archetype.t_now moves if the brackets, the deduction, the state
+    rate or the deferral cap move, and the age-55 forced sale moves if the
+    penalty or D-47's gross-up base moves.
+    """
+    assert spike_grid.constants_fingerprint() == committed_cube()["header"][
+        "constants_fingerprint"
+    ]
+
+
+def test_the_suite_asserts_its_own_size():
+    """ORPHAN 1, and it closes a Housekeeping item rather than a done-when.
+
+    ENGINE.md's test count is maintained BY HAND in three places -- the suite
+    total, the per-file counts, and the per-sprint breakdown -- and the README
+    carries a fourth copy that section 0 makes panel-facing. It has been right at
+    every gate by care rather than by construction, which is the shape this
+    project keeps logging against itself.
+
+    IT COUNTS FUNCTIONS, NOT COLLECTED ITEMS, AND THAT IS A DECISION (D-57).
+    The 250 ENGINE.md publishes is pytest's collected count, which includes
+    every parametrize expansion; 168 is the number of `def test_` functions. An
+    AST walk can see the second without running pytest inside pytest, and it
+    survives a filtered run -- `pytest -k` would make a collected-count
+    assertion fail on the sprint's own gate command, and a guard that has to
+    skip itself is the thing this item exists to prevent.
+
+    Module-level only, which is complete here: no test in this suite lives
+    inside a class, and the day one does this test says so by going red rather
+    than by quietly counting low.
+    """
+    counted = {}
+    for name in SUITE_FUNCTIONS:
+        tree = ast.parse(TESTS_DIR.joinpath(name).read_text(encoding="utf-8"))
+        counted[name] = sum(
+            1
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+        )
+
+    assert counted == SUITE_FUNCTIONS, "ENGINE.md's per-file counts have drifted"
+    assert sum(counted.values()) == SUITE_FUNCTION_TOTAL
