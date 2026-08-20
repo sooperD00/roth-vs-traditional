@@ -66,13 +66,13 @@ comm -23 "$TMP/decisions" "$TMP/anchored"               > "$TMP/orphans"
 # -------------------------------------------------- 5. the complement: DO NOT READ
 { echo "$PLAN"; echo "$DEC"; echo docs/ENGINE.md; echo engine.py; echo tax.py
   echo tests/test_engine.py; } | sort                  > "$TMP/onlist"
-ls docs/*.md docs/review/*.md docs/sprints/*.txt *.py tests/*.py 2>/dev/null \
+ls docs/*.md docs/review/*.md docs/sprints/*.txt *.py tests/*.py scripts/*.py 2>/dev/null \
   | sort | comm -23 - "$TMP/onlist"                    > "$TMP/skip"
 
 # ----------------------------------------------------------------- 6. print it
 echo "# DRAFT reading list -- Sprint $FROM.  VERIFY BEFORE USE."
 echo
-echo "READ IN FULL"
+echo "READ IN FULL -- a DEFAULT, and the sprint's seam overrides it. See note 6."
 echo "  engine.py, tax.py, tests/test_engine.py, docs/ENGINE.md"
 echo "  functions this sprint names: $(sprint | grep -oE '\b[a-z_]+\(\)' | sort -u | tr '\n' ' ')"
 echo
@@ -113,13 +113,24 @@ WHAT THIS CANNOT SEE -- check these by hand every time
      subsection is the longest in the file and 2C does not need it, because
      the half of T2 that depended on it closed in 2B.
 
-  5. Its own two bugs, now fixed, as a warning about the class. D-[0-9]+ ate
+  4. Its own two bugs, now fixed, as a warning about the class. D-[0-9]+ ate
      "D-04" out of D-04a; and pulling decisions from every row of section 6
      rather than only this sprint's tests dragged in D-16, which belongs to
      Sprint 3's rungs. Both looked like plausible output.
 
-  4. UNDECIDED parameters. The reason to read a sprint's decisions by hand is
+  5. UNDECIDED parameters. The reason to read a sprint's decisions by hand is
      to find what is not in them. 2C's bisection bracket and convergence
      tolerance are specified nowhere in this corpus, and no grep can return
      the absence of a thing.
+
+  6. SEAMS -- which files this sprint must NOT open. The READ IN FULL block
+     above is hardcoded and knows nothing about them, and it is the only block
+     in this output asserted flat rather than labelled a draft, so a wrong line
+     there reads as an instruction rather than as a guess. Check it by hand
+     against the sprint's own seam paragraph before pasting.
+        Sprint 4A  forbidden: tests/test_engine.py -- ~1,555 lines, and the
+                   largest thing this script would otherwise hand you
+        Sprint 4B  forbidden: engine.py, spike_grid.py
+     Not recoverable by grep, for the same reason item 1 is not: the plan
+     states the seam in prose, a section away from the file names.
 EOF
