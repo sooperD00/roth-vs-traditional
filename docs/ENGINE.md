@@ -421,44 +421,82 @@ The claim that would have to be measured first: the segment approach is only hon
 
 # Tests
 
-Three suites, 247 tests. `tests/test_tax.py` — 35 tests, each defending a number
+**TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **250 items**;
+the suite holds **168 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
+T8 alone expand twelve ways each. Both numbers are published because the suite
+now asserts one of them: `test_the_suite_asserts_its_own_size` walks the three
+test files with `ast` and checks the FUNCTION counts, which is the half an AST
+can see without running pytest inside pytest, and the half that survives a
+filtered run (D-57).
+
+    functions   29 · 133 · 6      = 168
+    collected   35 · 207 · 8      = 250
+
+Three suites, 250 collected. `tests/test_tax.py` — 35, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
-imported. `tests/test_engine.py` — opened at Sprint 2A, 204 tests: 54 over the
+imported. `tests/test_engine.py` — opened at Sprint 2A, 207: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
 the draw, decumulation, the D-26 policy branch, the objective reduction and ruin,
 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint
 2C over the search, the bracket, the sentinel and the `Result` fields, **19
 added at Sprint 3A** over the bootstrap, the D-43 parameters, the digest,
 `path-drawdown`, the overflow gate D-39 called *a gate whose failing input
-cannot yet be constructed*, and the three measurement records, and **59 added at
+cannot yet be constructed*, and the three measurement records, **59 added at
 Sprint 3B** over the three rung branches, the placement reading and its tie-break,
 Low's inversion and its guard, D-22's slab, D-39's draw scope, Sprint 4A's ruin
 monotonicity, the cache key D-48 widened, and one recorded measurement — D-22's
-published Low ratios, which do not reproduce and whose cause is identified.
+published Low ratios, which do not reproduce and whose cause is identified — and
+**3 added at Sprint 4B**: 4A's two handover wires and the self-count above.
 **A second test was DELETED at 3B**, `test_a_nonzero_shock_count_raises_...`,
 for the reason 3A set the precedent for. **One test was
 DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
 `NotImplementedError` that no longer exists, and a test of scaffolding outlives
-its subject silently. `tests/test_deploy_config.py` — opened at P3a, 8 tests parsing
+its subject silently. 209 written minus 2 deleted is the 207.
+`tests/test_deploy_config.py` — opened at P3a, 8 parsing
 `railway.toml`. Those eight guard the deploy config rather than the engine, and
 they are counted here because `uv run pytest` runs them; the eight numbered
 tests below are a different set entirely.
 
-No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4 closes
-by collecting and mapping** T1–T8 into it, each docstring naming the sentence it
-protects. **T1 and T2 are green as of Sprint 2B; T3, T4 and T5 as of Sprint 2C; T6, T7 and
-T8 as of Sprint 3B.** Each asserts a claim made elsewhere in the docs:
+No sprint creates `tests/test_engine.py` — Sprint 2A opened it. **Sprint 4B
+closes by mapping** T1–T8 within it, each docstring **quoting** the sentence it
+protects with the document and section it came from, so a reviewer can diff a
+test against its claim without holding both in their head. **All eight are
+green: T1 and T2 as of Sprint 2B; T3, T4 and T5 as of Sprint 2C; T6, T7 and
+T8 as of Sprint 3B.** *(This table carried check marks on T6–T8 only, against
+its own prose one paragraph up and against §6, which has marked all eight since
+2C. Corrected at Sprint 4B.)*
 
-| Test | Defends |
-|---|---|
-| T1 · Equal rates at both ends produce equal outcomes | The identity is real |
-| T2 · `t*` unchanged across 4, 7, 9, 12 percent, **and the common draw cancels out of the difference** — `after_tax_trad(100) − roth(100)` is identical at draw = 0, $108,397 and $250,000 | The return rate never affects the choice. **Corrected at Sprint 2A:** the trajectories are not a scalar multiple of each other through decumulation, so the assertion is on the difference, not the ratio — and that is the stronger claim, holding for any `r` and any draw rather than the four sampled |
-| T3 · At the $185,000 test profile with the cap binding, Roth shelters strictly more | The same-dollars trap, and why the limit matters |
-| T4 · A no-crossing cell returns a sentinel rather than raising | The demo survives the interesting cases |
-| T5 · **In the base case**, the today's-law marker is strictly below `t*` | You defer at marginal and withdraw across the whole structure from zero. **The scope is load-bearing and this row used to drop it:** at D-40's early-career preset the marker is 15.9% against `t*` = 12.0%, and that inversion is *why* the preset carries the flip. §6 has always read *in the base case*; this row and remaining-sprints' 2C done-when did not. Corrected at Sprint 2C, with the preset asserted as T5's teeth |
-| T6 ✅ · Low rung — a shock realizes a sale; Traditional takes the penalty, Roth basis is free | The forced-liquidation branch. **The only asymmetric mechanism in the cube**, and 3B measured it larger than D-22 had it |
-| T7 ✅ · Mid rung — a shock skips a contribution year and nothing is sold | The shares not bought |
-| T8 ✅ · High rung — a shock leaves the portfolio untouched | The control case. Bit-identical to the 0-shock run, not merely proportional to it |
+**THE BACKWARD PASS WAS RUN AT SPRINT 4B AND THIS TABLE IS ITS READING.** It
+returns **seventeen `test_T*` functions against eight claims**, and neither side
+is wrong — the relationship was never specified. **One row per CLAIM, with every
+function named inside it and carrying a role**, and the same role word opens the
+function's own docstring, so the table and the file agree by construction rather
+than by care. A *primary/companion* split was rejected: T2's row holds **two
+halves** rather than a primary and a companion, and T4's second function defends
+a 2C done-when about the `Result`'s FIELDS rather than asserting that T4's
+sentinel breaks somewhere (D-55).
+
+**WHICH COLUMN THE QUOTE COMES FROM.** §6's *Claim it defends* column is a
+sentence on T1, T2 and T5 and a citation list on the rest, so the quote is taken
+from **whichever cell states what must be true** and the other cell's citations
+follow it (D-56). Marked below.
+
+| §6 claim, quoted | From | The functions, and their roles |
+|---|---|---|
+| **T1** ✅ 2B · *"The identity is real."* | Claim | `test_T1_equal_rates_at_both_ends_produce_equal_outcomes` **primary** · `test_T1_has_teeth_away_from_t_now` **teeth** |
+| **T2** ✅ 2B/2C · *"Both accounts fund the same net spending, so the draw subtracts the same real amount from both after-tax paths and vanishes."* | Claim | `test_T2_the_common_draw_cancels_out_of_the_difference` **half 1** · `test_T2_t_star_is_unchanged_across_the_return_rate` **half 2** · `test_T2_matches_the_closed_form_difference` **mechanism**. The two halves closed in different sprints and defend the same sentence — L1 as a sweep, then L1 as a solve |
+| **T3** ✅ 2C · *"At the $185,000 test profile (D-42) with D2 ON, Roth shelters strictly more real dollars and the cell returns `always_roth`."* | Test | `test_T3_the_capped_roth_shelters_more_and_the_cell_returns_always_roth` **primary**. **One function, and it is not a gap** — T3 is a strict inequality rather than an identity, asserted at both bracket endpoints, so its teeth are in the same assertions as its claim |
+| **T4** ✅ 2C · *"A no-crossing cell returns its sentinel and does not raise."* | Test | `test_T4_a_no_crossing_cell_returns_a_sentinel_rather_than_raising` **primary** · `test_T4s_result_is_fully_populated_and_dollars_is_none_on_purpose` **fields**. *(The second name reads `T4s` rather than `T4`, so a grep anchored on the trailing underscore misses it while `-k "T4"` does not. Left as written; noted so a later backward pass does not read 1 where there are 2.)* |
+| **T5** ✅ 2C · *"The headline sentence — you defer at marginal and withdraw across the whole structure from zero."* | Claim | `test_T5_the_todays_law_marker_is_strictly_below_t_star_in_the_base_case` **primary** · `test_T5_has_teeth_because_the_preset_inverts_it` **teeth**. The scope *in the base case* is load-bearing: unscoped the claim is false by design, and at D-40's preset the marker is 15.9% against `t*` = 12.0% |
+| **T6** ✅ 3B · *"Low rung: a shock realizes a $40,000 sale; Traditional takes the penalty while Roth basis comes out free."* | Test | `test_T6_a_low_rung_shock_realizes_a_sale_and_breaks_the_multiple` **primary**, which carries its own teeth — the identity holds at 0 shocks and breaks above · `test_T6_traditional_pays_the_penalty_and_roth_basis_comes_out_free` **mechanism** · `test_T6_no_balance_is_clamped_when_a_shock_exceeds_it` **guard**, D-38 reaching the accumulation phase |
+| **T7** ✅ 3B · *"Mid rung: a shock skips the contribution year and the balance is never sold."* | Test | `test_T7_a_mid_rung_shock_skips_the_contribution_and_preserves_the_multiple` **primary** · `test_T7_mid_sells_nothing_and_the_cost_is_exactly_the_shares_not_bought` **mechanism**. If Mid ever sold anything the equality breaks and the branch has quietly become Low |
+| **T8** ✅ 3B · *"High rung: a shock leaves the portfolio untouched."* | Test | `test_T8_a_high_rung_shock_leaves_the_portfolio_untouched` **primary** · `test_T8_has_teeth_because_the_other_two_rungs_move` **teeth**. Bit-identical to the 0-shock run, not merely proportional to it |
+
+**Both directions, and the backward one is the one nobody runs.** Forward: every
+row above names functions that exist. Backward: `grep -c "^def .*T[1-8]"` returns
+**17**, and all seventeen appear above — 2 · 3 · 1 · 2 · 2 · 3 · 2 · 2. Selected,
+`uv run pytest -k "T1 or T2 or T3 or T4 or T5 or T6 or T7 or T8"` is **59 passed,
+191 deselected**; the 59 is the eight claims with their parametrize expansions.
 
 T6–T8 assert the *mechanism*, not the magnitude. Three rungs are three code
 branches, so three tests — a severity dial would have needed one.
