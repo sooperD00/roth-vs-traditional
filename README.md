@@ -459,7 +459,7 @@ dollar sentence is the weaker of the two instruments on this page.
 *Measured at Sprint 4A by `scripts/measure_4a.py` — the collapse table in §1, the
 `$X`/`$Y` pairs in §3, the four crossings in §5, all read off `cube.json` at seed
 20260815 over 2,000 paths. Output in
-`scripts/out_measure_4a_20260819-2237.txt`, which captures §1–§4; §5 was added at
+`scripts/out_measure_4a_20260819-2128.txt`, which captures §1–§4; §5 was added at
 the docs pass and joins the capture on the next run.*
 
 ---
@@ -546,7 +546,9 @@ sprint has run. `planning-archive/` holds the plan-tightening sessions — the
 passes that decided a sprint's shape before its reading list was built, which is
 why they sit beside the lists rather than in them. **`reading-list-sprint-4A-cube.txt` is still in `prompts/` rather than
 `reading-list-archive/`**, and moves there at the 4B docs pass along with every
-other closed sprint's list. 4B's own reading list is not written yet.
+other closed sprint's list. `reading-list-sprint-4B-mapping.txt` is written and
+its sprint has not run — it is in the directory ahead of the work, not missing
+from the table above.
 
 Sessions 3 and 4 were deliberately cold: a fresh agent with no access to the
 design conversation, given the documents only. **Gate two is the reason three
