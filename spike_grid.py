@@ -161,14 +161,8 @@ def constants_fingerprint():
     repr() on a float is shortest-round-trip and stable across platforms in
     Python 3. blake2b is paths_digest()'s primitive rather than a second idiom.
 
-    [SPRINT-4B-CLEANUP] NOTHING PINS THIS VALUE YET. The header block's own
-    decision table says "a test pins it -- move a model constant without
-    bumping engine_version and the test fails; that is the whole mechanism."
-    Sprint 4A's seam forbids opening tests/test_engine.py, so 4A can write the
-    field and not its guard. Until that test exists this string is computed and
-    published but never compared, which reads as coverage and is not. Sprint 4B
-    already owns that file and already owns D-49's one validate_cube wire; this
-    is the second wire, same commit. See D-52 and remaining-sprints 4B.
+    The value IS pinned now, by 
+    tests/test_engine.py::test_the_committed_constants_fingerprint_still_recomputes
     """
     profile = engine.ARCHETYPE
     items = [(name, getattr(engine, name)) for name in FINGERPRINT_CONSTANTS]
