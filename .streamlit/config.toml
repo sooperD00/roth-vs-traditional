@@ -1,0 +1,24 @@
+# Streamlit theme.  Sprint 6, build order step 1.
+#
+# DARK IS THE DESIGN, NOT A DEFAULT.  DESIGN.md part 3's mockups are drawn on
+# black and the threshold axis depends on it: two saturated bars and a warm
+# marker have to sit on something that is neither, or the marker stops reading
+# as "you are here" and starts reading as a third category.
+#
+# NOTHING SERVER-SIDE LIVES HERE.  port, address, headless, fileWatcherType and
+# gatherUsageStats are all set as flags in railway.toml's start command, which
+# is config-as-code and overrides the dashboard.  Putting any of them here too
+# would be a second place to keep them in step -- and the deploy test reads the
+# start command, not this file.
+
+[theme]
+base = "dark"
+
+# The marker's orange.  primaryColor is what Streamlit gives to widget accents,
+# so the controls and the today's-law line share one colour on purpose: both of
+# them are THE USER, as against the two bars, which are the two bets.
+primaryColor = "#E8912A"
+
+backgroundColor = "#0D1117"
+secondaryBackgroundColor = "#161B22"
+textColor = "#E6EDF3"
