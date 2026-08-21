@@ -427,23 +427,30 @@ The claim that would have to be measured first: the segment approach is only hon
 # Tests
 
 **TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **281 items**;
-the suite holds **186 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
+the suite holds **183 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
 T8 alone expand twelve ways each. Both numbers are published because the suite
 asserts one of them: `test_the_suite_asserts_its_own_size` walks the three
 ENGINE-SIDE test files with `ast` and checks the FUNCTION counts, which is the
 half an AST can see without running pytest inside pytest, and the half that
 survives a filtered run (D-57).
 
-    functions   29 · 133 · 6 · 18  = 186
+    functions   29 · 133 · 6 · 15  = 183
     collected   35 · 207 · 8 · 31  = 281
 
-**THE SELF-COUNT COVERS THREE FILES AND THERE ARE NOW FOUR, WHICH IS A SCOPE TO
-STATE RATHER THAN A GAP TO CLOSE.** D-57's assertion names its three files, so
-`tests/test_app.py` arriving at Sprint 6 left it green without an edit — which
-is the behaviour a hard-coded list buys and a glob would not have. The published
-totals above cover all four. Widening the assertion means editing
-`tests/test_engine.py`, which Sprint 6's seam forbids; **it is Housekeeping, not
-a defect**, and the day a fifth suite lands is the day it stops being optional.
+**THE SELF-COUNT COVERS THREE FILES AND THERE ARE NOW FOUR, AND THE GAP HAS NOW
+COST SOMETHING.** D-57's assertion names its three files, so `tests/test_app.py`
+arriving at Sprint 6 left it green without an edit — which is the behaviour a
+hard-coded list buys and a glob would not have. **This section then published
+`test_app.py` at 18 functions against an actual 15, and a total of 186 against
+an actual 183, in the same commit that brought the file to 15.** Corrected at
+the Sprint 6 docs pass. Nothing downstream moved: the collected counts were
+right, the suite was green, and the wrong number sat in the one file the guard
+cannot see — which is the whole argument, arriving as an instance rather than as
+a worry. Housekeeping already carries the item that predicted it, in its own
+words: *correct at every gate so far by care rather than by construction.*
+**Widening the assertion still means editing `tests/test_engine.py`, which
+Sprint 6's seam forbids** — so it stays Housekeeping, now with a demonstration
+attached, and the day a fifth suite lands is the day it stops being optional.
 
 Four suites, 281 collected. `tests/test_tax.py` — 35, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
@@ -465,7 +472,7 @@ for the reason 3A set the precedent for. **One test was
 DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
 `NotImplementedError` that no longer exists, and a test of scaffolding outlives
 its subject silently. 209 written minus 2 deleted is the 207.
-`tests/test_app.py` — **opened at Sprint 6, 18 functions expanding to 31**: two
+`tests/test_app.py` — **opened at Sprint 6, 15 functions expanding to 31**: two
 greps promoted to assertions (D-12's `bootstrap|numpy.random` scan and the
 five-cleanup-tag enumeration, both scoped to code for the reason Sprint 2
 already recorded), the archetype detector 32.5 / 58.4 / 15.2 read where a
@@ -533,7 +540,11 @@ follow it (D-56). Marked below.
 row above names functions that exist. Backward: `grep -c "^def .*T[1-8]"` returns
 **17**, and all seventeen appear above — 2 · 3 · 1 · 2 · 2 · 3 · 2 · 2. Selected,
 `uv run pytest -k "T1 or T2 or T3 or T4 or T5 or T6 or T7 or T8"` is **59 passed,
-191 deselected**; the 59 is the eight claims with their parametrize expansions.
+222 deselected**; the 59 is the eight claims with their parametrize expansions.
+*(The deselect count was 191 against a 250-item suite. `tests/test_app.py`'s 31
+moved the total to 281 and the subtraction did not follow it — corrected at
+Sprint 6, and it is the same hand-maintained-number failure as the one two
+paragraphs up, in the same commit.)*
 
 T6–T8 assert the *mechanism*, not the magnitude. Three rungs are three code
 branches, so three tests — a severity dial would have needed one.

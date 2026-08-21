@@ -701,21 +701,6 @@ def _balance_panel(frame, order, ages, scale_type: str, title: str,
     )
 
 
-def milestone_ages(series, current_age: int) -> dict:
-    """First age at which the balance clears each milestone.  None if never.
-
-    THE POINT OF THIS IS TO PUT L1 IN YEARS RATHER THAN IN DOLLARS.  Dollars at
-    65 are abstract -- $2.1M and $5.3M are both "a lot" and the difference does
-    not land.  Ages land: eight working years to go from the first million to
-    the second at 7% real, five at 12%.  Same gesture, a unit a person feels.
-    """
-    return {
-        target: next((current_age + i for i, v in enumerate(series)
-                      if v >= target), None)
-        for target in MILESTONES
-    }
-
-
 def balance_graphs(readings: dict, profile: engine.Profile):
     """THE SAME DATA TWICE -- linear on the left, logarithmic on the right.
 

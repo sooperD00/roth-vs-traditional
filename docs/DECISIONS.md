@@ -73,13 +73,16 @@ explains them rather than defining them. **One exception worth naming:** the
 block-vs-IID measurement lives there in full, and D-05 carries the summary. If
 those two ever disagree, the measurement is the fact and D-05 is the stale copy.
 
-`EVIDENCE.md` holds **measurements a decision cites** — the run behind a number,
+`RESULTS.md` holds **measurements a decision cites** — the run behind a number,
 kept separately from the number. This file still wins on what was DECIDED, and
-`EVIDENCE.md` wins on what was MEASURED: if D-51 and the plateau walk ever
+`RESULTS.md` wins on what was MEASURED: if D-51 and the plateau walk ever
 disagree, the walk is the fact and the decision row is the stale copy. Same
 exemption `ENGINE.md` already carries for the block-vs-IID table, and the same
 rule `scripts/measure_*.py` exists to enforce — a published figure keeps its
 source. **Nothing in it is a contract and nothing plans a sprint.**
+*(This paragraph named `EVIDENCE.md` until Sprint 6. That file was created at
+Sprint 4B and folded into `RESULTS.md` three commits later; the pointer outlived
+it in four places and the README linked it twice.)*
 
 `DESIGN.md` is the **design rationale and the mockup gallery.** The five `*.PNG`
 files now live there with captions saying what each one decides and what moved
@@ -734,7 +737,7 @@ rewritten.
 | D-17 | **Dollar fields are evaluated at `t* + δ`, δ ∈ {2, 10} percentage points**, not at the break-even. The app uses 10; the README reports both. Null for non-crossing cells | At `t*` the two outcomes are equal by construction, so `$X` would be zero. δ is the assumed size of the miss, and it sets `$X` outright while leaving `$Y` nearly untouched — so it must be chosen *against* the L3 claim rather than for it. Ten points is about a bracket and a half, the generous case. The wash band was rejected as the anchor precisely because it minimizes `$X`. δ is named in the app's sentence, not hidden |
 | D-23 | **The $X / $Y sentence reads objective 4 (max 10th percentile) at 1 shock.** Rung comes from the user's control; `$Y` compares that rung to the next one up, same objective and shock count. **The README reports the pair at all four objectives** | Zero shocks makes `$Y` identically zero — with no shock all three branches run the same code. Expected value is the wrong gauge for fragility: a halving and a doubling cancel in the mean, and ruin is absorbing, so the ensemble average is not what any one household lives. Objective 4 is where fragility is visible and it keeps both magnitudes in dollars. It is also the choice that flatters L3 most, so the full four-objective spread is published rather than the single quoted pair |
 | D-36 | **`$Y` compares the user's rung to the next rung up, one step.** Undefined at High; the app says so rather than printing zero | One step is the smaller and more defensible claim, and with three rungs a two-step comparison only exists for Low |
-| D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family** — gray for expected-value (1, 2), neutral for median (3), orange for tail (4, 5). No jitter | The encoding renders DESIGN.md's stated prediction directly: gray dots barely move down the rows because expected value is blind to shocks, while orange dots fan out. The panel carries L3 and the expected-value-vs-tail divergence at the same time, and the second one is free. No jitter because rows already separate the dots; overlap within a row means the objectives agree, which is information rather than clutter |
+| D-34 | **Dot encoding: row = shock count (0 at top, 3 at bottom). Color = objective family** — gray for expected-value (1), neutral for median (3), orange for tail (4, 5). No jitter. **ALL THREE PANELS SHARE ONE PINNED RATE DOMAIN, and that is part of the encoding rather than a styling choice.** *(Two corrections at the Sprint 8 planning pass. **The colour groups named FIVE objectives and four ship** — gray read `(1, 2)` and objective 2 is CUT under D-06, so gray is one dot and every plural attached to it described a panel that cannot be drawn. **And the shared domain is now stated here**, because without it the encoding is not well defined: see the reason column.)* | The encoding carries L3, and no jitter because rows already separate the dots — overlap within a row means the objectives agree, which is information rather than clutter. **THIS ROW PREDICTED A SECOND LESSON AND THE CUBE DOES NOT SUPPORT IT.** The prediction was *gray dots barely move down the rows because expected value is blind to shocks, while orange dots fan out.* Measured at Low: objective 1 moves **32.5000 → 25.8310, 6.67 points**, against objective 4's **32.5000 → 24.4070, 8.09 points** — gray travels 82% as far as orange and expected value is plainly not blind to shocks. What fans out is the spread **within** a row: 0.0000, 0.3581, 0.7604, **1.4656** points at 0, 1, 2 and 3 shocks. Real, and about a fifth of the panel width rather than a second axis. **RESULTS 8.2 already carries the honest reading** — *the divergence is real and it is not a property of the objective menu; it is 8.1 read down a column instead of across a row* — so the panel teaches the descent loudly and the spread quietly, which is the reverse of what this row promised. **Same shape as D-05**, where a named choice's stated reason failed measurement and the reason was rewritten rather than the measurement tuned. **THE PINNED DOMAIN IS THE OTHER HALF, AND IT IS LOAD-BEARING.** Objective 5's bisection lands about 0.08 points below `t_now` for the solver reason RESULTS 8.4 measures, so the Mid and High panels span 0.1757 and 0.0782 points rather than nothing. Auto-scaled, either one turns that artifact into the full panel width and draws a finding that does not exist — every number correct. Pinned to a domain sized for Low's 8.1346 points, both collapse to a visual point, which is D-22 |
 | D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links inward to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule |
 | D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `return_series.py`, a module-level list of annual real returns with a source comment. ~~It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3~~ — the stub period is OVER. The real series landed at gate two: 98 annual real returns, 1928–2025, Damodaran + CPI, Fisher-deflated on load, `STUB = False`, self-test passes. Sprint 3's gate is CLEARED (P4, R5)** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series was legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it — and the stub rule was that it be obviously fake (a short repeating list) so that nobody shipped it by accident. That rule is now spent: the file holds the real record, and what guards it instead is `_selftest()`, which pins the 1931 and 1954 anchors, the 26 negative years, the contiguity of 1928–2025, and the variance-drag identity. **`STUB` survives as the flag `make_paths("block", ...)` raises on, not as a description of the file's contents** |
 
@@ -952,15 +955,54 @@ T6, T7, T8 — with the citations following the quote either way.
 ![App layout](design/ui-design.PNG)
 *Mockup, reconciled at gate two. The ladder's ten stops and its Low 1–3 / Mid 4–6
 / High 7–10 bands are correct as drawn. Superseded: the model box is now
-disabled, and notation `r` → `t*` (D-24).*
+disabled, and notation `r` → `t*` (D-24). **Superseded again at Sprint 6 — read
+the departures table below before reading the spec under it.***
+
+### What Sprint 6 built differently
+
+**SEVEN DEPARTURES, AND THIS SECTION IS THE CONTRACT THEY DEPARTED FROM.** Five
+are Nicole's calls at the round-2 UI review and two are reading-list scope. The
+spec below is left as written, because a contract that quietly rewrites itself to
+match the build stops being evidence of anything — but a reader who takes the
+spec as the page will be wrong in seven places, and this table is where they find
+out.
+
+| §7 as written | Sprint 6 shipped | Why |
+|---|---|---|
+| Three captions on the page — the state-tax default, *this input drives the picture, not the answer*, and *You can still contribute* with its Poland · Ireland · SECURE precedents | **All three removed.** The copy survives verbatim at three `[SPRINT-7-CLEANUP]` sites, so returning them as `help=` tooltips is a paste | They are narration and Nicole says them aloud. **The cost is named rather than absorbed:** the deployed page loses them for a panelist reading without her, and the third is the one that stops the nevermind scenario reading as invented |
+| Headline: two break-even rates **side by side** | **One bar** — the toggle-selected scenario — with the other drawn as **movement**: a span from the current edge to where the edge goes, labelled with the consequence in words | Round 2 kept the inactive threshold as a ghost tick, and **a tick inherits the colour of the bar it is drawn on, which belongs to the other scenario.** At the early-career preset that put 29.1% inside the green *Roth wins* band — and crossing it is exactly what puts that user on **Traditional**. The single most counterintuitive finding in the project, drawn backwards. Words cannot be recoloured by the band beneath them. **D-10 still holds:** both thresholds are computed every rerun and both are on screen always. Two stacked bars were honest and unreadable |
+| Verdict beneath the headline | **Verdict above the axis** | The answer preceded by its evidence read as a proof |
+| Under headline: the `$X` / `$Y` sentence | **`$X` moved beneath the balance graph** | That is where the account question is |
+| Balance graph: two curves diverging during saving | **A pair — linear left, logarithmic right.** Same data, shared $6M ceiling, one legend, **both axes pinned for opposite reasons** | The Traditional-to-Roth ratio is constant at 1.481481… — exactly `1 / (1 − t_now)`, D-22's identity — to nine decimals at every one of the thirty years, so the log panel draws two dead-parallel lines. On the linear panel that same unmoving ratio presents as a gap widening from $7,962 to $685,382, an ~86× spread. **The linear panel is kept precisely because it is how a brokerage statement draws this**, so it is the picture the audience arrives holding, and the misreading it produces — *the account choice matters more later, so I will decide later* — is only retirable by showing it beside the honest one |
+| Tooltip lists all nine return models from CONTEXT part D | **The two implemented models, plus the count** | Part D was not in Sprint 6's reading list. Named rather than invented, and `[SPRINT-7-CLEANUP]` marks the site |
+| Accordion: all eight departure rows | **Five render.** D5 and D6 omitted | Same reason — both are named nowhere in Sprint 6's reading list. Sprint 8 owns the accordion; `[SPRINT-7-CLEANUP]` marks the site |
+
+**ONE THING §7 DID NOT SPECIFY, AND THE APP NOW CARRIES IT.** `Profile.t_now`
+keys off the **current-age income alone**, so zeroing the single visible income
+box drives it to 0 when state tax is off — and the early-career preset sets
+`state_while_working=False`, which makes preset-then-zero a **two-click path to a
+traceback in front of a panel**. Two failures: `ValueError: t_later 0.0 outside
+(0, 1)` across roughly $1–$15,000 with state off, and the D-06
+constant-difference `AssertionError` at zero income outright. **Guarded in
+`app.py`, not `engine.py`** — the seam makes the app a consumer, and a control
+range is not a model question. The copy is an ANSWER rather than an apology: at
+`t_now = 0` the difference is `trad_65 · (0 − t_later)`, negative at every rate in
+the bracket, so **Roth wins everywhere for the plainest reason on the page —
+there is nothing to defer.** The engine cannot express it, because its search
+runs over (0.01, 0.95) and evaluates at `t_now`. **Whether `breakeven()` gains a
+`t_now <= 0` branch is Sprint 8's decision, not this section's.** *(Assigned to
+Sprint 7 when this was written; Sprint 7 was cut on 2026-08-20 and Sprint 8
+inherits it.)*
 
 Top strip, left to right: current income · income shape · **state income tax
 (while working)** · return-rate buttons · nevermind toggle + year · early-career
 preset button.
 
-Caption under the state toggle: *default assumes you earn in a taxing state and
-retire in one that doesn't. Both are toggles.*
-Caption under the return buttons: *this input drives the picture, not the answer.*
+Caption under the state toggle — **NOT ON THE PAGE, see the departures table**:
+*default assumes you earn in a taxing state and retire in one that doesn't. Both
+are toggles.*
+Caption under the return buttons — **NOT ON THE PAGE**: *this input drives the
+picture, not the answer.*
 
 | Region | Contents |
 |---|---|
@@ -971,7 +1013,8 @@ Caption under the return buttons: *this input drives the picture, not the answer
 | Personalize | Accordion, all eight departures, grayed where scoped out |
 | Model | Three dot-plot panels — low, mid, high. The user's rung highlighted, the other two dimmed but **always visible**: the collapse is the lesson, and a trend needs three points |
 
-Beside the nevermind toggle:
+Beside the nevermind toggle — **NOT ON THE PAGE, and of the three removals this
+is the one whose loss costs the most:**
 
 **You can still contribute — it just stops being worth it.**
 
@@ -1000,6 +1043,7 @@ non-expert will arrive at on their own. `r` is the market return; do not reuse
 it for either rate.
 
 Top-right: a DISABLED control labeled **Model (block bootstrap)**. Tooltip lists
+— **shipped as the two implemented plus the count, see the departures table** —
 all nine return models from CONTEXT part D and marks the two implemented — #2
 fixed real rate (app headline), #6 block bootstrap (cube). Disabled rather than
 absent: the option space was mapped, two were built, and the control says so

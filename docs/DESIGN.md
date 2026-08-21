@@ -423,6 +423,28 @@ side am I on" is a spatial question rather than an arithmetic one.
 
 Part 4 is the algebra that forced the reversal.
 
+**What moved again at Sprint 6: not the numbers this time, the reading.**
+
+| This slide | Shipped |
+|---|---|
+| **Two thresholds on one rate scale**, drawn as two positions | **One bar** — the toggle-selected scenario — with the other scenario drawn as **movement**: a span from the current edge to where the edge goes, labelled with the consequence in words |
+
+D-40 corrected the numbers and the direction. **It did not correct the reading,
+and the build repeated the error one layer down.** Round 2 kept the inactive
+threshold as a bare ghost tick on the active scenario's bar — and **a tick
+inherits the colour it is drawn on, which belongs to the OTHER scenario.** At the
+early-career preset the inactive threshold is 29.1%, which lands inside the green
+*Roth wins* band, so the chart read *29.1% is Roth territory* when crossing it is
+exactly what puts that user on **Traditional**. The most counterintuitive finding
+in the project, drawn backwards for the second time, by a different mechanism.
+
+Movement rather than position is the fix, and the reason is a property of the
+medium rather than a preference: **words cannot be recoloured by the band
+beneath them.** The legend moved to the bottom in the same pass — at the top it
+shared a 40px band with the boundary and marker labels, and all three
+overprinted in a narrow container. Both are recorded in DECISIONS §7's
+departures table, which is the contract side of this page.
+
 ---
 
 # Part 4 — What gate two overturned

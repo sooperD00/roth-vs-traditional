@@ -5,7 +5,7 @@ calculators return a recommendation. This one returns the **future marginal tax
 rate at which the two choices tie**, and lets you locate yourself against it.
 
 Built as a design spike for an energy-analytics panel. The brief is in
-[`ASSIGNMENT.md`](ASSIGNMENT.md).
+[`docs/assignment/ASSIGNMENT.md`](docs/assignment/ASSIGNMENT.md).
 
 ---
 
@@ -13,10 +13,10 @@ Built as a design spike for an energy-analytics panel. The brief is in
 
 | | |
 |---|---|
-| **Live demo** | Deploy Probe live at https://roth-vs-traditional-production.up.railway.app/, _Sprint 9 pending_ |
-| **Progress** | Sprint 4B complete — **9 of 14 sprint units.** Done: 1, 2A, 2B, 2C, P3a, 3A, 3B, 4A, 4B. Remaining: 6, 7, 8, 9, 10. *(P3a counts; Sprint 5 folded into 4B and does not. 2 split into 2A / 2B / 2C, 3 into 3A / 3B, 4 into 4A / 4B; 10 is closeout.)* |
-| **Runs today** | `tax.py`, `return_series.py`, `engine.py` end to end — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold, plus the block bootstrap, `paths_digest()` and `path_drawdown()` as of Sprint 3A, and all three rung mechanisms as of Sprint 3B. No path in the engine raises any more. **`spike_grid.py` writes the 48-cell `cube.json` as of Sprint 4A**, validates it against ten invariants, and re-derives it from the header under `--check`. The P3a deploy probe, 250 passing tests |
-| **Not yet written** | The real `app.py` — Sprint 6 replaces the probe |
+| **Live demo** | **https://roth-vs-traditional-production.up.railway.app/ — the Sprint 6 app, live.** Confirmed 2026-08-20 against the local run. P3a's probe is gone from the repo and off the deployment. **Sprint 9 stays open on its own three done-whens** — cold load under five seconds, and the URL opening from a phone — which are measurements rather than a push |
+| **Progress** | Sprint 6 complete — **10 of 13 sprint units.** Done: 1, 2A, 2B, 2C, P3a, 3A, 3B, 4A, 4B, 6. Remaining: 8, 9, 10. *(P3a counts. Sprint 5 folded into 4B and Sprint 7 was cut, and neither is counted — cuts 4 and 6 had already removed everything in Sprint 7 that Sprint 6 did not build, and D-35's verdict suppression moved to Sprint 8. 2 split into 2A / 2B / 2C, 3 into 3A / 3B, 4 into 4A / 4B; 10 is closeout.)* |
+| **Runs today** | `tax.py`, `return_series.py`, `engine.py` end to end — accumulation, the retirement draw, both decumulation loops, the policy branch, the four objective reductions and the bisection that solves for the threshold, plus the block bootstrap, `paths_digest()` and `path_drawdown()` as of Sprint 3A, and all three rung mechanisms as of Sprint 3B. No path in the engine raises any more. **`spike_grid.py` writes the 48-cell `cube.json` as of Sprint 4A**, validates it against ten invariants, and re-derives it from the header under `--check`. **`app.py` is the real Streamlit app as of Sprint 6** — top strip, threshold axis, the two-rates sentence and the balance-graph pair, reading `cube.json` and computing exactly one number. 281 passing tests |
+| **Not yet written** | The three fragility panels and the objective control (Sprint 8), plus D-35's verdict suppression, which landed there when Sprint 7 was cut. **The app ships their region and their caption, not their contents** — seven cleanup tags mark the sites, and the one at `app.py:1085` is written to render on the page on purpose |
 
 **Where the numbers in this file come from.** Design gate two was a cold read: a
 fresh agent, no access to the design conversation, asked to reproduce the
@@ -158,10 +158,10 @@ sha256sum /tmp/cube_a.json /tmp/cube_b.json cube.json cube_reference.json
 | `cube.json` | ✅ | Sprint 4A. The 48 cells the app reads, plus a thirteen-field header: the seed and the two digests that make it reproducible, the archetype minus `stops`, the swept rung axis, and four `captions` carrying sentences that must travel with the artifact. **Byte-reproducible from the header alone** — `.gitattributes` pins it to `eol=lf`, because a checkout conversion breaks the sha without touching the content |
 | `cube_reference.json` | ✅ | The same cube written on a **different OS** — the agent's Linux container — and committed so the local run can be hashed against it. Two runs on one machine agree with each other whichever line-ending convention that machine uses, so the same-machine gate cannot see the failure that actually happened; this file is the half that can. Byte-identical to `cube.json` today, and the day it is not, one of the two machines has moved |
 | `tests/test_engine.py` | ✅ | Opened at Sprint 2A — 207 tests: 54 over the profile, ladder, contributions and accumulation, 47 added at Sprint 2B over the draw, decumulation, the policy branch, the objective reduction and ruin, 3 added post-2B over `geometric_mean`'s overflow (D-39), 24 added at Sprint 2C over the search, the bracket, the sentinel and the `Result` fields, 19 added at Sprint 3A over the bootstrap, the D-43 parameters, the digest, `path-drawdown` and the three measurement records, 59 added at Sprint 3B over the three rung branches, the placement reading and its tie-break, Low's inversion, D-22's slab, the cache key D-48 widened and one recorded measurement, and 3 added at Sprint 4B — 4A's two handover wires (`validate_cube` against the committed cube, and the `constants_fingerprint` recompute) plus one test asserting the suite's own size. **Two tests were deleted rather than skipped** — `test_block_paths_still_raise` at 3A and `test_a_nonzero_shock_count_raises_...` at 3B, both asserting a `NotImplementedError` that no longer exists. 209 written minus 2 deleted is the 207. **Sprint 4B mapped T1–T8 within it rather than creating it: each docstring now QUOTES the sentence it defends with its document and section, and all seventeen `test_T*` functions are named with a role in [`ENGINE.md`](docs/ENGINE.md)'s mapping table.** All eight green — T1 and T2 as of 2B, T3, T4 and T5 as of 2C, T6, T7 and T8 as of 3B |
-| `app.py` | 🟡 | The P3a deploy probe, live on Railway. Scaffolding — Sprint 6 replaces it wholesale with the real Streamlit app, which reads `cube.json` and contains no stochastic code. The name is kept deliberately so Sprint 6 changes no deploy config |
+| `app.py` | ✅ | Sprint 6. The Streamlit app: top strip → `Profile`, the threshold axis, the two-rates sentence, and the balance-graph pair. **It computes one number and reads all the others** — the deterministic line comes from `engine.breakeven()` on a one-row constant array, and every other figure is a control's own state or an index into `cube.json`. No stochastic code (D-12), and the grep that says so is a test rather than a habit. **Five departures from DECISIONS §7 are deliberate and §7 now records them.** Six `[SPRINT-7-CLEANUP]` sites and one `[SPRINT-8-CLEANUP]` hold the copy and the regions Sprint 8 fills — **the tags name sites rather than a schedule, so they outlived Sprint 7's cut unrenamed.** The `[SPRINT-8-CLEANUP]` one is inside a string rather than a comment and renders on the live page, which is a decision: a PoC shown week over week should say what is coming next. The name is kept deliberately, so this sprint changed no deploy config |
 | `railway.toml` | ✅ | P3a. Builder, start command, healthcheck, restart policy. Config-as-code overrides the dashboard, so this file is the source of truth |
-| `deploy_probe.json` | 🟡 | P3a fixture. Repo root, because that is where `cube.json` goes and the probe rehearses that exact read. Deleted at Sprint 6 |
-| `tests/test_deploy_config.py` | ✅ | 8 tests on `railway.toml`. No assertion names the entry file — the one test that checks it reads the name out of the start command, so Sprint 6's rename keeps the guard |
+| `.streamlit/config.toml` | ✅ | Sprint 6, build order step 1. **Theme only.** `base = "dark"`, with the marker's orange as `primaryColor` so the widgets and the today's-law line share one colour on purpose: both of them are the user, as against the two bars, which are the two bets. **Nothing server-side lives here** — port, address, headless, `fileWatcherType` and `gatherUsageStats` are flags in `railway.toml`'s start command, and the deploy test reads that command rather than this file |
+| `tests/test_deploy_config.py` | ✅ | 8 tests on `railway.toml`. No assertion names the entry file — the one test that checks it reads the name out of the start command and asserts that file exists. **Sprint 6 rewrote `app.py` wholesale and this file needed no edit, which was verified rather than assumed.** The rename it was built to absorb never happened; the plan forbids it, because the filename is the one thing keeping the app sprints out of deploy config |
 | `scripts/measure_3a.py` | ✅ | Sprint 3A. Not the engine, and nothing imports it. Five documents cite one block-vs-IID measurement taken at gate two by code that was **not in this repo**; this file makes all five checkable by one command. It also carries the IID arm, which lives here rather than as a third `make_paths` kind because nothing in the model consumes an IID path set |
 | `scripts/measure_4a.py` | ✅ | Sprint 4A. Five runs over the finished cube, each landing in a named document: the L3 collapse (D-22, `## Results` below), ruin at a common `t_now` — the one reading the cube deliberately does not carry (D-50) — the `$X`/`$Y` grid at both δ, the two risk gates, and the δ at which `$Y` and `$X` cross on each objective. Not a deliverable, which is why it may call `engine._outcome_paths` and `spike_grid.py` may not |
 | `scripts/measure_3b.py` | ✅ | Sprint 3B, extended at the results pass to **six runs**. Each lands in a named document: the correlated/uncorrelated placement toggle (`ENGINE.md`), the $25,000 / $80,000 shock-magnitude sensitivity and its bisected crossing (`## Results` below), and D-22's published Low ratios, which do **not** reproduce — the run identifies the rule that produced them rather than guessing. Its stdout names the destination of every figure it prints |
@@ -173,7 +173,8 @@ sha256sum /tmp/cube_a.json /tmp/cube_b.json cube.json cube_reference.json
 | File | What it is | Open it when |
 |---|---|---|
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | **The build contract.** Wins over every other document | You want the authoritative answer |
-| [`docs/EVIDENCE.md`](docs/EVIDENCE.md) | **Measurements a decision cites.** The objective-5 plateau D-51 rests on, and the engine fix that was measured and rejected | You want the numbers under a decision rather than the decision |
+| [`docs/RESULTS.md`](docs/RESULTS.md) | **Measurements a claim rests on** — every published figure with the run behind it, including the objective-5 plateau D-51 rests on and the engine fix that was measured and rejected. *(`EVIDENCE.md` was folded in here at Sprint 4B. There is no separate evidence file)* | You want the number under a decision rather than the decision |
+| [`docs/USER_LESSONS.md`](docs/USER_LESSONS.md) | The four lessons as a reader meets them — L1 to L4, the ones carrying no number, a 90-second path through the app, and what it does not claim | You want what the app teaches, without the machinery |
 | [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) | Every option considered, what each is good and bad at, which one shipped | You want to know what else was on the table |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design rationale — the model, the five mockups, and what gate two overturned | You want the reasoning and the pictures |
 | [`docs/ENGINE.md`](docs/ENGINE.md) | How the math works, and the five choices inside it that change an answer | You want the numerical dynamics |
@@ -182,7 +183,7 @@ sha256sum /tmp/cube_a.json /tmp/cube_b.json cube.json cube_reference.json
 | [`docs/review/GATE-1.md`](docs/review/GATE-1.md) · [`GATE-2.md`](docs/review/GATE-2.md) | Cold-read design reviews by fresh agents | You want to see what the reviews caught |
 | [`docs/sprints/`](docs/sprints/) | Per-sprint execution records, commit plans, verification batteries | You want commit-level detail |
 | [`prompts/`](prompts/) | The prompt given to each agent session | You want the AI disclosure to be checkable |
-| [`DEVLOG.txt`](DEVLOG.txt) | Working log | — |
+| [`docs/sprints/DEVLOG.txt`](docs/sprints/DEVLOG.txt) | Working log | — |
 
 ---
 
@@ -537,7 +538,7 @@ asserted.
 | 10 | Sprint 2C | `reading-list-archive/reading-list-sprint-2C.txt` | [`docs/sprints/Sprint2C.txt`](docs/sprints/Sprint2C.txt) · _(link)_ |
 | 11 | Sprint 3A | `reading-list-archive/reading-list-sprint-3A-paths.txt` | [`docs/sprints/Sprint3A.txt`](docs/sprints/Sprint3A.txt) · _(link)_ |
 | 12 | Sprint 3B | `reading-list-archive/reading-list-sprint-3B-rungs.txt` | [`docs/sprints/Sprint3B.txt`](docs/sprints/Sprint3B.txt) · _(link)_ |
-| 13 | Sprint 4A planning | `planning-archive/Sprint-4A-planning-round-2.txt` | [`docs/sprints/Decisions-Gating-4A.txt`](docs/sprints/Decisions-Gating-4A.txt) · [`EVIDENCE.md`](docs/EVIDENCE.md) |
+| 13 | Sprint 4A planning | `planning-archive/Sprint-4A-planning-round-2.txt` | [`docs/sprints/Decisions-Gating-4A.txt`](docs/sprints/Decisions-Gating-4A.txt) · [`RESULTS.md`](docs/RESULTS.md) |
 | 14 | Sprint 4A | `reading-list-archive/reading-list-sprint-4A-cube.txt` | [`docs/sprints/Sprint4A.txt`](docs/sprints/Sprint4A.txt) · _(link)_ |
 
 `prompts/` also holds `readinglist.sh`, which builds a reading list from a sprint
@@ -558,7 +559,7 @@ headline numbers changed.**
 
 ## References
 
-1. **r/personalfinance flowchart** — [`docs/reddit_personal_finance_flowchart.jpeg`](docs/reddit_personal_finance_flowchart.jpeg) ·
+1. **r/personalfinance flowchart** — [`docs/design/reddit_personal_finance_flowchart.jpeg`](docs/design/reddit_personal_finance_flowchart.jpeg) ·
    [source](https://www.reddit.com/r/personalfinance/comments/4gdlu9/how_to_prioritize_spending_your_money_a_flowchart/)
    The ten-stop ladder is this flowchart's ordering, including the detail that
    the employer match comes before clearing medium-interest debt.
