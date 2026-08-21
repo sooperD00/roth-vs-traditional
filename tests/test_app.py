@@ -36,6 +36,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+import app
 import engine
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -343,6 +344,192 @@ def test_both_balance_panels_are_pinned_and_share_a_ceiling(
         in spec, "the log panel must tick at its own ceiling, and at $1M/$2M"
     assert edge in _spec(_run(return_button=button), 0), (
         "and the rate axis boundary still reads 32.5% -- L1"
+    )
+
+
+@pytest.mark.parametrize("state,label", [
+    ({}, "defaults, user at Mid"),
+    ({"stop_0": False}, "user dropped to Low"),
+    ({"stop_6": True, "stop_7": True, "stop_8": True, "stop_9": True},
+     "user raised to High"),
+    ({"return_button": "12% real  (~15% nominal, implausible)"}, "12% real"),
+    ({"policy_on": True}, "nevermind on"),
+])
+def test_all_three_fragility_panels_share_one_pinned_rate_domain(
+    state: dict, label: str
+) -> None:
+    """THE THIRD PINNED AXIS, AND THE FIRST THAT WOULD INVENT A FINDING.
+
+    The two tests above this one were written after a chart with every number
+    correct drew a false picture -- once by rescaling under a number that does
+    not move, once by rescaling under numbers that do.  Both were DELETING a
+    lesson.  This one is the same defect pointed the other way.
+
+    Objective 5's break-even is the LEFT EDGE OF A PLATEAU rather than a point
+    (D-51): `P(not running out)` counts a discrete event over 2,000 paths, so
+    its difference is zero across an interval and the bisection closes on the
+    left edge, ~0.08 points below `t_now`, deterministically.  Across the whole
+    Mid slab that artifact is 0.1757 points wide.
+
+    LET THE MID PANEL SCALE TO ITS OWN DATA AND 0.1757 POINTS BECOMES 196
+    PIXELS.  Four columns, one of them visibly offset, descending nowhere --
+    a finding manufactured out of a sampling artifact, with every number on
+    screen correct.  Pinned, it collapses to a dot, which is D-22.
+
+    Asserted across five control states because the domain must not be
+    reachable from the data by ANY route: the rung control chooses which panel
+    is highlighted and the return buttons and the policy toggle move the line
+    through the cloud, and none of them may touch the axis.
+    """
+    spec = _spec(_run(**state), 2)
+    assert '"domain": [0.0, 40.0]' in spec, (
+        f"a fragility panel rescaled at {label}: all three are pinned to "
+        "0-40%, and an upper panel that sizes to its own data draws a finding "
+        "that is not there"
+    )
+    assert '"domain": [24' not in spec and '"domain": [32' not in spec, (
+        "a domain sized to the cube's own values is the defect, not the fix"
+    )
+
+
+def test_the_upper_panels_collapse_to_a_visual_point() -> None:
+    """WHAT THE PANELS DRAW, ASSERTED ON THE DATA RATHER THAN ON THE SPEC.
+
+    `_spec` cannot see this.  Altair sends 48 rows to the browser as a named
+    dataset in the arrow payload, not inline in the Vega-Lite spec -- the same
+    trap `_spec`'s own docstring names for mark text.  `app.panel_frame()`
+    exists so a test can read the plotted values directly instead of parsing a
+    payload that is not there.
+
+    THE NUMBERS ARE THE SPRINT'S WHOLE CORRECTION.  Its first done-when said
+    the two upper panels render as single, identical points.  Measured against
+    the committed cube they are neither single nor identical: Mid spans 0.1757
+    points and High 0.0782, and High's objective-5 column is flat at -0.0782 on
+    every row while Mid's wobbles.  They collapse VISUALLY, on a shared domain,
+    and that distinction is the reason the domain is pinned.
+
+    The ratio is the assertion worth having: Low occupies a fifth of the panel
+    and the other two occupy under half a percent of it, which at 196px is
+    under a pixel -- one dot, four objectives deep.
+    """
+    frame = app.panel_frame(app.load_cube.__wrapped__()["cells"])
+    assert len(frame) == 48, "three rungs x four objectives x four shock counts"
+
+    spans = {
+        rung: frame[frame["rung"] == rung]["rate"].max()
+             - frame[frame["rung"] == rung]["rate"].min()
+        for rung in ("low", "mid", "high")
+    }
+    width = app.PANEL_RATE_AXIS[1] - app.PANEL_RATE_AXIS[0]
+
+    assert spans["low"] > 8.0, (
+        f"Low must visibly fan -- 8.1346 points measured, got {spans['low']}"
+    )
+    for rung in ("mid", "high"):
+        assert spans[rung] / width < 0.01, (
+            f"{rung} spans {spans[rung]:.4f} points, {spans[rung] / width:.2%} "
+            "of the pinned domain. Over 1% and the solver artifact has started "
+            "reading as structure (D-51, RESULTS 8.4)"
+        )
+    assert spans["mid"] > spans["high"] > 0.0, (
+        "and they are NOT identical to each other -- the done-when this test "
+        "corrects said they were"
+    )
+
+
+@pytest.mark.parametrize("state,suppressed,extra", [
+    ({}, False, False),
+    ({"stop_0": False}, True, False),
+    ({"stop_1": False}, True, False),
+    ({"stop_2": False}, False, True),
+    ({"stop_0": False, "stop_2": False}, True, True),
+    ({"stop_0": False, "policy_on": True, "policy_year": 1}, True, False),
+])
+def test_d35_replaces_the_verdict_line_and_only_the_verdict_line(
+    state: dict, suppressed: bool, extra: bool
+) -> None:
+    """D-35, AND THE POINT OF IT IS WHAT SURVIVES.
+
+    Suppressing the verdict without hiding the numbers is what keeps the page
+    from reading as a lockout.  `t*`, both thresholds, the two-rates sentence
+    and the $X/$Y pair all stay, and this asserts their presence in exactly the
+    states that remove the verdict.
+
+    TWO GATES, NOT THREE, AND THAT IS D-61.  The corpus said this three ways --
+    D-35 names the first two stops, D-33's reason column reads as all three, and
+    section 7 reads as the whole Low rung.  D-35 is the decision.  Stop 3 adds
+    its own line and suppresses nothing, which is the last row's shape here.
+
+    THE SUPPRESSION OUTRANKS THE SENTINELS and the last case is why: a profile
+    can be both `always_trad` and standing under an unmet $400 gate, and the
+    gate is the more urgent true thing to say.
+    """
+    app_ = _run(**state)
+    assert not app_.exception, app_.exception
+    verdicts, visible = _verdicts(app_), _visible(app_)
+
+    assert verdicts, "D-35: something must render where the verdict was"
+    replaced = "This election is not your binding constraint yet" in verdicts[0]
+    assert replaced == suppressed, (
+        f"expected suppressed={suppressed} at {state}, got {verdicts[0]!r}"
+    )
+    assert (("beats either account, at any tax rate" in visible) == extra), (
+        f"stop 3's own copy should be {'present' if extra else 'absent'} at "
+        f"{state} -- it names an arithmetic fact and takes no verdict away"
+    )
+
+    assert "32.5%" in visible, "D-35: t* stays visible"
+    assert "15.2%" in visible, "D-35: the marker stays visible"
+    assert "You defer at 32.5 cents" in visible, "D-35: the sentence stays"
+    assert "Getting this right is worth" in visible, "D-35: $X stays visible"
+    if suppressed:
+        assert engine.LADDER_STOPS[0] in visible or \
+               engine.LADDER_STOPS[1] in visible, (
+            "the copy must NAME the binding gate rather than announce a tier"
+        )
+
+
+def test_all_eight_departures_render_and_three_leans_are_corrected() -> None:
+    """SECTION 4 IS THE DISPOSITION TABLE AND THE PAGE NOW AGREES WITH IT.
+
+    Sprint 6 shipped five rows and sourced their leans from the page rather
+    than from section 4.  Three disagreed, and two of the three were INVERTED:
+    D3 and D8 shipped as leaning Traditional against section 4's Roth.
+
+    THE INVERSION IS ONE MISREADING MADE TWICE.  DESIGN 3.3 already named it --
+    a row states its LEAN, not its verdict.  D3 and D8 are Traditional-flavored
+    money, which Sprint 6's own caption says correctly, and a dollar that
+    already arrives pre-tax is exactly what makes deferring the next one worth
+    LESS.  The flavour of the dollar and the direction of the effect point
+    opposite ways.
+
+    D7 IS THE EXPENSIVE ONE.  Shipped as leaning Roth, it restates the design
+    deck's retired claim that the rule moving makes Roth safer -- the single
+    error D-40 exists to correct, back on the page in a table cell.  A policy
+    that harms only Roth strictly RAISES the rate at which Roth becomes
+    worthwhile, so it widens Traditional's lead at the archetype and flips at
+    the early-career preset.  Either direction.
+    """
+    visible = _visible(_run())
+
+    for row in ("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"):
+        assert f"| {row} |" in visible, (
+            f"{row} must render -- the grayed rows are the evidence of "
+            "completeness, and section 7 and DESIGN 3.3 both say eight"
+        )
+    assert visible.count("`TODO`") == 2, (
+        "exactly D3 and D8 are grayed with a visible TODO"
+    )
+    for row, lean in (("D3", "Roth"), ("D8", "Roth"),
+                      ("D7", "either direction")):
+        line = next(seg for seg in visible.split("\n") if seg.startswith(f"| {row} |"))
+        assert f"| {lean} |" in line, (
+            f"{row} leans {lean} per DECISIONS section 4, not what Sprint 6 "
+            f"shipped: {line!r}"
+        )
+    assert "$36,296" in visible, (
+        "D2's row carries D-42: the archetype cannot afford to max a Roth, "
+        "which is the cap lesson from the other side"
     )
 
 
