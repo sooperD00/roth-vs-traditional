@@ -29,11 +29,14 @@ two-rates sentence, both of which restate `t*` and the marker in prose by design
 smoke-test checklist instead.
 """
 
+import json
 import re
 from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
+
+import engine
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP = REPO_ROOT / "app.py"
@@ -70,6 +73,23 @@ def _visible(app: AppTest) -> str:
 
 def _verdicts(app: AppTest) -> list:
     return [m.value for m in app.markdown if m.value.startswith("### ")]
+
+
+def _spec(app: AppTest, index: int) -> str:
+    """One chart's Vega-Lite spec as text.  0 = rate axis, 1 = balance graph.
+
+    LABELS ARE ASSERTED HERE ONLY BECAUSE THE APP WRITES THEM AS MARK
+    PROPERTIES.  Text carried in a data COLUMN reaches the browser in the arrow
+    payload rather than in the spec -- it renders the same and is invisible from
+    here, which is a trap worth naming once.
+    """
+    element = app.get("vega_lite_chart")[index]
+    spec = element.spec
+    spec = json.loads(spec) if isinstance(spec, str) else spec
+    # ensure_ascii=False, and that is not cosmetic: the panel titles carry em
+    # dashes, and the default escapes them to \u2014 so a substring check for
+    # the title a reader sees silently fails against text that is really there.
+    return json.dumps(spec, ensure_ascii=False)
 
 
 # =============================================================================
@@ -258,3 +278,316 @@ def test_the_return_buttons_never_move_the_current_rules_threshold(
         f"{shown} -- asserted so the done-when's 'both thresholds still' stays "
         "corrected rather than quietly re-inherited"
     )
+
+
+# =============================================================================
+# ROUND 2 -- the two axes, pinned for opposite reasons.
+# =============================================================================
+@pytest.mark.parametrize("state,label", [
+    ({}, "defaults"),
+    ({"policy_on": True}, "nevermind on at the default year"),
+    ({"policy_on": True, "policy_year": 3}, "N=3, where t* reaches 93.5%"),
+    ({"policy_on": True, "policy_year": 1}, "N=1, the always_trad sentinel"),
+    ({"return_button": "12% real  (~15% nominal, implausible)"}, "12% real"),
+])
+def test_the_rate_axis_never_rescales(state: dict, label: str) -> None:
+    """THE AXIS IS FIXED BECAUSE THE NUMBER IS NOT MOVING.
+
+    Round 1 sized the domain to the data, which is the ordinary default and is
+    wrong here: changing the nevermind year rescaled the axis, so the 32.5%
+    boundary SLID ACROSS THE SCREEN while continuing to read 32.5%.  L1's first
+    lesson is that a number holds still, and it was being taught on a chart that
+    moved underneath it.
+
+    Nicole caught this at review and it is the one regression in this file that
+    would never show up as a wrong number -- every figure was correct the whole
+    time.  Hence a test: correctness cannot catch it, so something else must.
+    """
+    assert '"domain": [0.0, 100.0]' in _spec(_run(**state), 0), (
+        f"the rate axis rescaled at {label}: it must be pinned to 0-100 in "
+        "every control state"
+    )
+
+
+@pytest.mark.parametrize("button,edge", [
+    ("7% real  (~10% nominal)", "32.5%"),
+    ("9% real  (~12% nominal)", "32.5%"),
+    ("12% real  (~15% nominal, implausible)", "32.5%"),
+])
+def test_both_balance_panels_are_pinned_and_share_a_ceiling(
+    button: str, edge: str
+) -> None:
+    """THE BALANCE AXES ARE FIXED BECAUSE THE NUMBER *IS* MOVING.
+
+    The mirror image of the rate-axis test, and the reason both belong here.
+    Auto-scaled, the 7% and the 12% curves are THE SAME SHAPE and only the tick
+    labels differ -- so clicking the return buttons appeared to do nothing, and
+    L1's only gesture was silently absent while the done-when that asked for
+    "visibly swings" read as satisfied.
+
+    THE SHARED $6M CEILING IS WHAT MAKES THE TWO PANELS COMPARABLE rather than
+    merely adjacent.  If they drifted apart the pair would stop being the same
+    data twice, which is the entire claim the caption makes.
+    """
+    spec = _spec(_run(return_button=button), 1)
+    assert '"domain": [0.0, 6000000.0]' in spec, "the linear panel is pinned"
+    assert '"domain": [10000.0, 6000000.0]' in spec, "the log panel is pinned"
+    assert '"type": "log"' in spec and '"type": "linear"' in spec, (
+        "both scale types must be present -- the pair IS the lesson"
+    )
+    # THE CEILING NEEDS A LABEL OR THE SHARED CEILING IS INVISIBLE.  A log axis
+    # left alone ticks at 1-3-10 multiples, so $6M gets none: the top label
+    # reads $3M with a 10.8% empty band above it, and the two panels look drawn
+    # to different scales when their domains are identical.
+    assert '"values": [10000, 30000, 100000, 300000, 1000000, 2000000, 6000000]' \
+        in spec, "the log panel must tick at its own ceiling, and at $1M/$2M"
+    assert edge in _spec(_run(return_button=button), 0), (
+        "and the rate axis boundary still reads 32.5% -- L1"
+    )
+
+
+def test_the_two_balance_panels_are_one_chart_with_a_shared_legend() -> None:
+    """ONE hconcat, NOT TWO CHARTS IN TWO COLUMNS, and the difference matters.
+
+    Two separate charts would each carry their own legend, which duplicates the
+    key and -- worse -- makes the two plot areas start at different heights, so
+    the panels no longer line up.  A pair whose baselines disagree is a pair a
+    reader compares wrongly.  `hconcat` with `resolve_scale(color="shared")`
+    gives one legend, one colour scale, and two aligned plot areas.
+
+    THE TITLES ARE ASSERTED BECAUSE THEY CARRY THE ARGUMENT.  "how a statement
+    draws it" against "what the ratio does" is the sentence the pair
+    exists to make; without them it is two charts of the same thing.
+    """
+    spec = _spec(_run(), 1)
+    assert '"hconcat"' in spec, "the pair is one concatenated chart"
+    assert "linear — how a statement draws it" in spec
+    assert "logarithmic — what the ratio does" in spec
+
+
+def test_the_constant_ratio_the_log_panel_exists_to_show() -> None:
+    """THE MEASUREMENT BEHIND THE PAIR, asserted so the caption cannot go stale.
+
+    trad/roth is 1.481481... to nine decimals at EVERY one of the thirty years
+    -- exactly 1 / (1 - t_now), which is D-22's accumulation identity.  On a log
+    axis that is two parallel lines.  On a linear axis the same unchanged ratio
+    presents as a gap widening from about $8,000 to about $685,000, an
+    eighty-six-fold spread in a number that never moved.
+
+    THAT ILLUSION IS THE WHOLE REASON THE LINEAR PANEL IS KEPT.  It is how a
+    brokerage statement draws this, so it is the picture the audience arrives
+    holding, and the misreading it produces -- *the account choice matters more
+    later, so I will decide later* -- is only retirable by making it visible.
+    """
+    profile = engine.ARCHETYPE
+    paths = engine.make_paths("constant", 1, profile.n_years, rate=0.07)
+    acc = engine.accumulate(profile, paths[0], 0)
+
+    ratios = [t / r for t, r in zip(acc.trad_by_year, acc.roth_by_year)]
+    assert max(ratios) - min(ratios) < 1e-9, (
+        "the log panel draws parallel lines only because this ratio is constant"
+    )
+    assert abs(max(ratios) - 1.0 / (1.0 - acc.t_now)) < 1e-9, (
+        "and the constant is exactly 1 / (1 - t_now), which is D-22"
+    )
+
+    gaps = [t - r for t, r in zip(acc.trad_by_year, acc.roth_by_year)]
+    assert gaps[-1] / gaps[0] > 80, (
+        "while in dollars the same ratio appears to widen ~86x, which is the "
+        "misreading the linear panel is kept in order to expose"
+    )
+
+
+@pytest.mark.parametrize("state,edge,ghost", [
+    ({}, "32.5%", "58.4%"),
+    ({"policy_on": True}, "58.4%", "32.5%"),
+    ({"policy_on": True, "policy_year": 1}, "no break-even", "32.5%"),
+])
+def test_both_thresholds_stay_on_screen_and_the_active_one_swaps(
+    state: dict, edge: str, ghost: str
+) -> None:
+    """D-10 SURVIVES THE ROUND-2 REDESIGN, WHICH IS THE POINT OF ASSERTING IT.
+
+    Round 1 drew two stacked bars and nobody could read the comparison: the rows
+    share an axis, a marker and a palette, so the reader has to construct the
+    difference out of one boundary.  Round 2 draws ONE bar -- the scenario the
+    toggle selects -- and the movement between them does the teaching.
+
+    THE RISK THAT CHANGE CREATES IS EXACTLY WHAT D-10 FORBIDS: showing one
+    exposure and hiding the offsetting one, which is the failure D-10 was
+    written to correct in the first place.  The ghost tick is the answer, so
+    the invariant asserted here is that BOTH numbers are on screen in every
+    state and only which one is emphasised changes.
+    """
+    spec = _spec(_run(**state), 0)
+    assert edge in spec, f"the active bar's boundary should read {edge}"
+    assert ghost in spec, (
+        f"D-10: the inactive threshold {ghost} must stay on screen as a ghost "
+        "tick, not disappear with the toggle"
+    )
+
+
+@pytest.mark.parametrize("button,first,second,gap", [
+    ("7% real  (~10% nominal)", "56", "64", "8"),
+    ("9% real  (~12% nominal)", "53", "60", "7"),
+    ("12% real  (~15% nominal, implausible)", "51", "56", "5"),
+])
+def test_the_milestone_sentence_puts_l1_in_years(
+    button: str, first: str, second: str, gap: str
+) -> None:
+    """L1 IN A UNIT A PERSON FEELS.
+
+    $2.1M and $5.3M are both "a lot" and the difference does not land.  Eight
+    working years against five does.  The sentence moves hard with the return
+    rate while the break-even above it does not move at all, which is the same
+    lesson the two pinned axes are drawing.
+    """
+    text = _visible(_run(return_button=button))
+    assert f"$1M at age {first}" in text
+    assert f"$2M at age {second}" in text
+    assert f"{gap} more working years" in text
+    assert "The break-even above does not move at all." in text
+
+
+# =============================================================================
+# ROUND 3 -- the engine raises on inputs these controls can reach.
+# =============================================================================
+@pytest.mark.parametrize("state,heading", [
+    ({"income_35": 0, "state_while_working": False}, "Roth, at every rate."),
+    ({"income_35": 10_000, "state_while_working": False},
+     "Roth, at every rate."),
+    ({"income_35": 0, "income_38": 0, "income_55": 0, "income_65": 0,
+      "state_while_working": False}, "Nothing to compare yet."),
+    ({"income_35": 0, "income_38": 0, "income_55": 0, "income_65": 0},
+     "Nothing to compare yet."),
+])
+def test_low_income_renders_copy_instead_of_a_traceback(
+    state: dict, heading: str
+) -> None:
+    """THE ENGINE RAISES HERE, AND THESE ARE ALL TWO CLICKS FROM THE DEFAULTS.
+
+    Measured at round 3, after a traceback appeared on screen:
+
+        current income 0, state OFF   ValueError: t_later 0.0 outside (0, 1)
+        all income 0, either state    AssertionError: the difference is
+                                      constant at 0.0 across the bracket
+
+    `Profile.t_now` keys off the CURRENT-AGE income alone, so zeroing the one
+    visible "Current income" box is enough to reach the first -- and the
+    early-career preset sets `state_while_working=False`, which makes
+    preset-then-zero a TWO-CLICK PATH TO A TRACEBACK IN FRONT OF A PANEL.
+
+    THE FIRST GUARD'S COPY IS AN ANSWER RATHER THAN AN APOLOGY.  At t_now = 0
+    the difference is `trad_65 * (0 - t_later)`, negative at every rate in the
+    bracket, so Roth wins everywhere -- and the reason is the plainest on the
+    page: there is no tax to defer. The engine cannot SAY it, because its search
+    runs over (0.01, 0.95) and evaluates at t_now, so a t_now of exactly zero
+    sits outside its own bracket. The algebra is unambiguous where the search is
+    not, so the app states the conclusion and says it did not draw it.
+
+    WHY THE GUARD IS IN THE APP.  The seam makes the app a consumer and forbids
+    editing `engine.py`; these are control-range questions rather than model
+    questions, so this is the right side of the seam regardless.
+    """
+    app = _run(**state)
+    assert not app.exception, (
+        f"a traceback reached the page at {state}: {app.exception}"
+    )
+    verdicts = _verdicts(app)
+    assert verdicts and heading in verdicts[0], (
+        f"expected {heading!r}, got {verdicts[:1]}"
+    )
+
+
+def test_the_guards_sit_upstream_of_the_engine_call() -> None:
+    """THE BUG WAS NOT THE MISSING GUARD.  IT WAS THE GUARD IN THE WRONG PLACE.
+
+    Round 2 already dropped non-positive points inside `balance_graphs()` and
+    the smoke checklist claimed zero income produced an info box.  It could not
+    have: `deterministic_readings()` runs first, and that is where the raise
+    comes from -- so the chart guard was unreachable code defending an input
+    that never got that far.
+
+    Asserted structurally, because the failure it prevents is one where every
+    number in the file is still correct: the guards must come BEFORE the
+    `breakeven()` calls in the source, not merely exist somewhere in it.
+    """
+    source = APP.read_text(encoding="utf-8")
+    body = source[source.index("def deterministic_readings("):
+                  source.index("# ====", source.index("def deterministic_readings("))]
+    guard = body.index('return {"blocked": "no_contributions"}')
+    call = body.index("engine.breakeven(")
+    assert guard < call, (
+        "the low-income guards must run BEFORE breakeven(), or they defend "
+        "nothing -- this is the exact shape of the round-2 miss"
+    )
+
+
+@pytest.mark.parametrize("state,consequence", [
+    ({}, "you would be on the Traditional side"),
+    ({"policy_on": True}, "you would be on the Traditional side"),
+])
+def test_the_other_scenario_states_its_consequence_in_words(
+    state: dict, consequence: str
+) -> None:
+    """THE ROUND-3 REVIEW BUG WAS A MEANING BUG WEARING A LAYOUT BUG'S CLOTHES.
+
+    The inactive threshold was drawn as a bare tick on the active scenario's
+    bar.  A tick INHERITS THE COLOUR IT IS DRAWN ON, and that colour belongs to
+    the other scenario.  At the early-career preset the inactive threshold is
+    29.1%, which lands in the green "Roth wins" band -- so the chart said
+    *29.1% is Roth territory* when crossing it is precisely what puts this user
+    on the TRADITIONAL side.  The single most counterintuitive result in the
+    project, drawn backwards.
+
+    IT IS ALSO THE DESIGN DECK'S OWN ERROR IN A NEW COSTUME.  DESIGN 3.5 drew
+    the second threshold so Roth appeared to win beyond it; D-40 corrected the
+    number and the direction, and this corrects the READING.  Every number was
+    right in both cases, which is the third time this sprint that sentence has
+    been the whole problem.
+
+    The fix is words, because words cannot be recoloured by the band under
+    them -- so the words are what gets asserted.
+    """
+    spec = _spec(_run(**state), 0)
+    assert consequence in spec, (
+        "the inactive threshold must state which side the user would land on, "
+        "not merely where it sits"
+    )
+
+
+def test_no_annotation_is_positioned_in_absolute_pixels() -> None:
+    """STREAMLIT'S autosize MAKES `height` A TOTAL, NOT A DRAWABLE AREA.
+
+    `.properties(height=...)` looks like it buys that many pixels to draw in.
+    It does not: Streamlit sends `autosize: {"type": "fit"}`, so the title, the
+    x-axis and the legend all come out of that number and the plot area is
+    roughly 120px of a nominal 200.  Annotations placed at `y=alt.value(121)`
+    and `y=alt.value(152)` therefore rendered BELOW the axis, past the legend,
+    hanging off the bottom of the chart -- with every number in them correct,
+    which is the fourth time this sprint that has been the whole problem.
+
+    THE STANDALONE RENDER COULD NOT SEE IT because it omitted `autosize`.  A
+    harness that drops the host's layout directives is a harness that certifies
+    a layout the host will never draw.
+
+    Every annotation now encodes `y` on the bar's own band scale and offsets
+    with `dy`, which is relative to the band centre and therefore survives any
+    plot height autosize settles on.  Asserted structurally: a pixel `y` value
+    on a layer is the defect itself, so its ABSENCE is what gets checked.
+    """
+    spec = _spec(_run(), 0)
+    layers = json.loads(spec)["layer"]
+    offenders = [
+        i for i, layer in enumerate(layers)
+        if isinstance(layer.get("encoding", {}).get("y"), dict)
+        and "value" in layer["encoding"]["y"]
+    ]
+    assert offenders == [], (
+        f"layers {offenders} position y in absolute pixels; under autosize:fit "
+        "that lands them outside the plot area. Use the band scale and dy."
+    )
+    assert all(
+        layer["encoding"]["y"].get("field") == "row"
+        for layer in layers if "y" in layer.get("encoding", {})
+    ), "every annotation shares the bar's band scale, so the row label survives"

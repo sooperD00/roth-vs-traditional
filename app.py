@@ -79,6 +79,39 @@ SERIES_GEOMETRIC_MEAN = 6.8   # D-15.  The historical series' own geometric
                               # recomputation -- the app does no math on the
                               # deck (D-12).
 
+# ---- FIXED AXIS DOMAINS.  BOTH ARE FIXED AND FOR OPPOSITE REASONS ----------
+# THE RATE AXIS IS FIXED BECAUSE THE NUMBER DOES NOT MOVE.  A dynamic domain
+# rescaled when the nevermind year changed, so 32.5% slid across the screen
+# while reading 32.5% -- the first lesson, taught backwards.  An axis that moves
+# under a number that does not is the chart lying about the thing it exists to
+# show.  0-100 is also the honest range for "what could a future tax rate be".
+RATE_AXIS = [0.0, 100.0]
+
+# THE BALANCE AXES ARE FIXED BECAUSE THE NUMBER DOES MOVE.  Auto-scaling hid the
+# L1 gesture completely: at 7% and at 12% the curve is the SAME SHAPE and only
+# the tick labels change, so clicking appeared to do nothing.  Pinned, the curve
+# visibly climbs.
+#
+# BOTH PANELS SHARE A CEILING ON PURPOSE.  $6M clears the highest reachable
+# value among the shipped presets -- the archetype at 12% real tops out at
+# $5,278,624 -- and a shared ceiling is what makes the two panels comparable
+# rather than merely adjacent.  The log floor is $10,000: below the lowest
+# first-year contribution either preset produces ($12,000 at early-career).
+BALANCE_AXIS_LINEAR = [0.0, 6_000_000.0]
+BALANCE_AXIS_LOG = [10_000.0, 6_000_000.0]
+
+# EXPLICIT LOG TICKS, AND THE CEILING IS THE WHOLE REASON.  A log axis left to
+# itself ticks at 1-3-10 multiples, so a $6M ceiling gets NO tick -- the top
+# label reads $3M and the shared ceiling becomes invisible, which makes the two
+# panels look like they are drawn to different scales when they are not.  Naming
+# the values also kills the minor-gridline hatching a log axis draws by default,
+# and it anchors both panels at the same three reference points: $1M, $2M, $6M.
+BALANCE_TICKS_LOG = [10_000, 30_000, 100_000, 300_000,
+                     1_000_000, 2_000_000, 6_000_000]
+MILESTONES = (1_000_000.0, 2_000_000.0)   # The two numbers people cite as
+                                          # "when you can retire".  Debatable as
+                                          # targets, excellent as checkpoints.
+
 TRAD_BLUE = "#2E7BC4"
 ROTH_GREEN = "#1F8A5F"
 MARKER_ORANGE = "#E8912A"
@@ -142,13 +175,43 @@ def deterministic_readings(profile: engine.Profile, rate: float,
     function with one step.
     """
     paths = engine.make_paths("constant", 1, profile.n_years, rate=rate)
-
-    rules_hold = engine.breakeven(profile, SENTENCE_OBJECTIVE, 0, None, paths)
-    treatment_moves = engine.breakeven(
-        profile, SENTENCE_OBJECTIVE, 0, policy_year, paths
-    )
-
     accumulation = engine.accumulate(profile, paths[0], 0)
+
+    # ---- TWO GUARDS, AND THEY RUN BEFORE breakeven() FOR A REASON -----------
+    # THE ENGINE RAISES ON INPUTS THESE CONTROLS CAN REACH.  The module
+    # docstring's "nothing raises" is a statement about the SEARCH under a valid
+    # profile; it is not a promise about every profile a number_input can build.
+    # Measured at Sprint 6 round 3:
+    #
+    #   current income 0, state tax OFF   ValueError: t_later 0.0 outside (0, 1)
+    #   all income 0, either state        AssertionError: the difference is
+    #                                     constant at 0.0 across the bracket
+    #
+    # `t_now` keys off the CURRENT-AGE income alone, so zeroing the one visible
+    # "Current income" box is enough -- and the early-career preset sets
+    # state_while_working=False, which makes preset-then-zero a TWO-CLICK path
+    # to a traceback on screen. Guarding here rather than at the chart, because
+    # the chart never gets reached.
+    #
+    # THE SEAM FORBIDS FIXING THIS IN engine.py (the app is a consumer), and it
+    # is the right place for the guard anyway: these are control-range
+    # questions, not model questions.
+    if accumulation.trad <= 0:
+        return {"blocked": "no_contributions"}
+    if profile.t_now <= 0:
+        return {"blocked": "no_deferral", "t_now": profile.t_now}
+
+    try:
+        rules_hold = engine.breakeven(profile, SENTENCE_OBJECTIVE, 0, None,
+                                      paths)
+        treatment_moves = engine.breakeven(
+            profile, SENTENCE_OBJECTIVE, 0, policy_year, paths
+        )
+    except (ValueError, AssertionError) as exc:
+        # BELT AND BRACES, AND IT NAMES WHAT HAPPENED RATHER THAN SWALLOWING IT.
+        # A traceback on screen in front of a panel is the worst outcome this
+        # app has; a caught raise that reports nothing is the second worst.
+        return {"blocked": "engine", "detail": str(exc)}
     draw = engine.retirement_draw(
         accumulation.roth,
         profile.n_decumulation_years,
@@ -157,6 +220,7 @@ def deterministic_readings(profile: engine.Profile, rate: float,
     marker_gross = tax.gross_for_net(draw)
 
     return {
+        "blocked": None,
         "rules_hold": rules_hold,
         "treatment_moves": treatment_moves,
         "marker": tax.effective_rate(marker_gross),
@@ -232,94 +296,195 @@ def profile_from_state() -> engine.Profile:
 # =============================================================================
 # THE HEADLINE.  Threshold axis, verdict, two-rates sentence.
 # =============================================================================
-def threshold_axis(readings: dict, policy_year: int, axis_max: float):
-    """Two thresholds and the marker on ONE rate scale (DESIGN 3.5).
+def threshold_axis(readings: dict, policy_on: bool, policy_year: int):
+    """ONE bar -- the scenario the toggle has selected -- and a ghost tick.
 
-    "Which side am I on" becomes a spatial question rather than an arithmetic
-    one, and the GAP BETWEEN THE TWO LINES IS THE LESSON -- separate charts
-    would hide it.
+    CHANGED AT ROUND 2, AND THE ARGUMENT IS ABOUT WHAT TEACHES RATHER THAN WHAT
+    IS TRUE.  Two stacked bars showed both thresholds honestly and nobody could
+    read them: the rows share an axis, a marker and a palette, so a viewer has
+    to construct the comparison out of one differing boundary.  Juxtaposition
+    asks the reader to do the work.  MOVEMENT DOES THE WORK FOR THEM -- a
+    boundary that slides when you click is attributed causally and instantly,
+    which is the whole reason the toggle exists.
 
-    THE SECOND THRESHOLD IS TO THE RIGHT.  58.4% against 32.5% at the archetype
-    (D-40).  The design deck drew it at 14% with Roth winning to its right and
-    the algebra cannot do that: a policy that harms only Roth strictly RAISES
-    the rate at which Roth becomes worthwhile.  If this axis ever draws the
-    second line left of the first, it has reproduced the deck's error.
+    D-10 STILL HOLDS AND THAT IS WHY THE GHOST TICK IS HERE.  Both thresholds
+    are computed every rerun and both are on screen always; the inactive one is
+    a dimmed tick with its own label rather than a second bar.  That keeps the
+    panelist who never touches the toggle from seeing only one exposure -- the
+    exact failure D-10 was written to correct -- and it does something two rows
+    could not: it shows WHERE THE BOUNDARY IS ABOUT TO GO, so the movement is
+    anticipated, and a movement you saw coming reads as a mechanism rather than
+    as an animation.
+
+    THE DOMAIN IS FIXED AT 0-100 (see RATE_AXIS).  Nothing about this chart
+    rescales, ever.
+
+    THE SECOND THRESHOLD IS TO THE RIGHT.  58.4% against 32.5% (D-40).  The
+    design deck drew it at 14% with Roth winning beyond it and the algebra
+    cannot do that: a policy that harms only Roth strictly RAISES the rate at
+    which Roth becomes worthwhile.
 
     TWO UNITS SHARE THIS AXIS AND IT SAYS SO (D-24).  t* is a future MARGINAL
-    rate; the today's-law marker is an EFFECTIVE rate.  You defer at marginal
-    and you withdraw across the whole structure from zero.
+    rate; the today's-law marker is an EFFECTIVE rate.
     """
-    rows = []
-    boundaries = []
-    scenarios = (
-        ("If rules hold", readings["rules_hold"]),
-        (f"If treatment moves at year {policy_year}", readings["treatment_moves"]),
-    )
-    for label, result in scenarios:
-        if result.status == "crosses":
-            edge = result.breakeven * 100.0
-            rows.append({"row": label, "lo": 0.0, "hi": edge, "who": "Traditional wins"})
-            rows.append({"row": label, "lo": edge, "hi": axis_max, "who": "Roth wins"})
-            boundaries.append({"row": label, "at": edge, "text": f"{edge:.1f}%"})
-        else:
-            # NO BOUNDARY IS DRAWN BECAUSE THERE IS NO CROSSING.  D-35 forbids
-            # printing nothing, so the percentage is replaced by copy rather
-            # than by a null -- see verdict_block(), which carries the sentence.
-            winner = ("Traditional wins" if result.status == "always_trad"
-                      else "Roth wins")
-            rows.append({"row": label, "lo": 0.0, "hi": axis_max, "who": winner})
-            boundaries.append({"row": label, "at": axis_max / 2.0,
-                               "text": "no break-even"})
+    if policy_on:
+        active, inactive = readings["treatment_moves"], readings["rules_hold"]
+        active_label = f"if tax rules change at year {policy_year}"
+        inactive_label = "if rules hold instead"
+    else:
+        active, inactive = readings["rules_hold"], readings["treatment_moves"]
+        active_label = "assuming tax rules hold"
+        inactive_label = f"if rules change at year {policy_year}"
 
-    order = [label for label, _ in scenarios]
-    frame = pd.DataFrame(rows)
+    lo, hi = RATE_AXIS
     marker = readings["marker"] * 100.0
 
-    bars = alt.Chart(frame).mark_bar(height=34).encode(
-        x=alt.X("lo:Q", title=None,
-                scale=alt.Scale(domain=[0, axis_max], nice=False),
-                axis=alt.Axis(format=".0f", labelExpr="datum.value + '%'")),
-        x2="hi:Q",
-        y=alt.Y("row:N", title=None, sort=order,
-                axis=alt.Axis(labelLimit=220, labelFontSize=13)),
+    if active.status == "crosses":
+        edge = active.breakeven * 100.0
+        bars = [{"lo": lo, "hi": edge, "who": "Traditional wins"},
+                {"lo": edge, "hi": hi, "who": "Roth wins"}]
+        edge_text = f"{edge:.1f}%"
+    else:
+        # NO BOUNDARY IS DRAWN BECAUSE THERE IS NO CROSSING.  D-35 forbids
+        # printing nothing, so the verdict block carries the sentence and the
+        # bar carries one colour end to end.
+        who = "Traditional wins" if active.status == "always_trad" else "Roth wins"
+        bars = [{"lo": lo, "hi": hi, "who": who}]
+        edge = None
+        edge_text = "no break-even"
+
+    frame = pd.DataFrame([dict(b, row=active_label) for b in bars])
+    scale = alt.Scale(domain=RATE_AXIS, nice=False)
+    row_axis = alt.Axis(labelLimit=260, labelFontSize=13)
+    x_axis = alt.Axis(values=list(range(0, 101, 10)), format=".0f",
+                      labelExpr="datum.value + '%'", grid=True)
+
+    chart = alt.Chart(frame).mark_bar(height=42).encode(
+        x=alt.X("lo:Q", title=None, scale=scale, axis=x_axis), x2="hi:Q",
+        y=alt.Y("row:N", title=None, axis=row_axis),
         color=alt.Color(
             "who:N", title=None,
             scale=alt.Scale(domain=["Traditional wins", "Roth wins"],
                             range=[TRAD_BLUE, ROTH_GREEN]),
-            legend=alt.Legend(orient="top", direction="horizontal"),
+            # LEGEND AT THE BOTTOM.  At the top it lands in the same 40px band
+            # as the boundary label and the marker label, and in a narrow
+            # container all three overprint -- which is what a review screenshot
+            # caught.  Nothing above the bar now except the two value labels.
+            legend=alt.Legend(orient="bottom", direction="horizontal"),
         ),
     )
-    edges = alt.Chart(pd.DataFrame(boundaries)).mark_text(
-        dy=-26, fontSize=14, fontWeight="bold", color="#E6EDF3",
-    ).encode(x="at:Q", y=alt.Y("row:N", sort=order), text="text:N")
 
-    rule = alt.Chart(pd.DataFrame([{"at": marker}])).mark_rule(
-        strokeDash=[6, 4], strokeWidth=2, color=MARKER_ORANGE,
-    ).encode(x="at:Q")
-    rule_text = alt.Chart(pd.DataFrame([{"at": marker}])).mark_text(
-        dy=8, dx=4, align="left", fontSize=12, color=MARKER_ORANGE,
-        text=f"{marker:.1f}%  your withdrawal rate under today's law (effective)",
-    ).encode(x="at:Q")
+    def _mark(value):
+        """A one-row frame carrying the SAME band key as the bar.
 
-    return (bars + edges + rule + rule_text).properties(
-        height=170,
+        EVERY ANNOTATION ENCODES y ON THE BAR'S OWN BAND SCALE, and that is the
+        round-3 review fix rather than a style choice.  These layers previously
+        used absolute pixel offsets -- y=alt.value(121) and friends -- which
+        assumed the plot area was the 200px passed to .properties(height=...).
+        IT IS NOT.  Streamlit sends autosize {"type": "fit"}, which fits the
+        WHOLE view into that height, so the title, the axis and the legend all
+        come out of it and the drawable area is nearer 120px.  The annotations
+        landed below the axis, past the legend, hanging off the bottom of the
+        chart -- while every number in them was correct.
+        """
+        return alt.Chart(pd.DataFrame([{"at": value, "row": active_label}]))
+
+    def _place(dy):
+        # dy is relative to the band centre, so it survives any plot height
+        # autosize decides on. Nothing here may be an absolute pixel again.
+        # THE SAME y SPEC AS THE BAR, NOT axis=None. Vega-Lite MERGES axes
+        # across a layered chart, so one layer suppressing the axis suppresses
+        # it for all of them -- which silently deleted the row label naming
+        # which scenario is on screen.
+        return dict(x=alt.X("at:Q", scale=scale, axis=x_axis),
+                    y=alt.Y("row:N", title=None, axis=row_axis),
+                    tooltip=alt.value(None)), dy
+
+    def _text(value, text, dy, **mark):
+        enc, dy = _place(dy)
+        return _mark(value).mark_text(text=text, dy=dy, **mark).encode(**enc)
+
+    def _rule(value, **mark):
+        # x only: a full-height locator, which needs no y arithmetic at all.
+        return _mark(value).mark_rule(**mark).encode(
+            x=alt.X("at:Q", scale=scale, axis=x_axis), tooltip=alt.value(None))
+
+    # THE LABEL IS A MARK PROPERTY, NOT AN ENCODING, and that is deliberate:
+    # text carried in a data column travels to the browser in the arrow payload
+    # rather than in the spec, which renders identically and is invisible to a
+    # test.  A literal is in the spec, so the boundary reading 32.5% is
+    # assertable -- and this is the sprint's cheapest detector.
+    chart += _text(edge if edge is not None else (lo + hi) / 2.0, edge_text,
+                   dy=-36, fontSize=16, fontWeight="bold", color="#E6EDF3")
+
+    # THE MARKER LABEL IS LEFT-ALIGNED OFF THE LINE.  Centred, the dashed rule
+    # runs straight through the digits.
+    chart += _rule(marker, strokeDash=[6, 4], strokeWidth=2.5,
+                   color=MARKER_ORANGE)
+    chart += _text(marker, f"you: {marker:.1f}%", dy=-58, align="left", dx=6,
+                   fontSize=12, color=MARKER_ORANGE)
+
+    # ---- THE OTHER SCENARIO, DRAWN AS MOVEMENT RATHER THAN AS A POSITION ----
+    # THIS WAS A MEANING BUG, NOT A LAYOUT ONE.  A bare tick at the inactive
+    # threshold inherits the colour it is drawn on, and that colour belongs to
+    # the OTHER scenario.  At the early-career preset the inactive threshold is
+    # 29.1%, which lands in the green "Roth wins" band -- so the chart said
+    # "29.1% is Roth territory" when crossing it is exactly what puts that user
+    # on the TRADITIONAL side.  The most counterintuitive result in the project,
+    # drawn backwards.
+    #
+    # It is also the design deck's own error in a new costume: 3.5 drew the
+    # second threshold so that Roth appeared to win beyond it.  D-40 corrected
+    # the number and the direction; this corrects the READING.
+    #
+    # The fix is words, because WORDS CANNOT BE RECOLOURED BY THE BAND UNDER
+    # THEM. The arrow carries the direction of travel; the clause carries the
+    # consequence.
+    if inactive.status == "crosses":
+        ghost = inactive.breakeven * 100.0
+        side = "Traditional" if marker < ghost else "Roth"
+        arrow = "\u2192" if (edge is None or ghost > edge) else "\u2190"
+        chart += _rule(ghost, strokeWidth=2, color=RAIL_GREY, opacity=0.6,
+                       strokeDash=[2, 3])
+        # ANCHORED AT THE RIGHT END OF THE SPAN, not at the ghost. Anchored at
+        # the ghost, a leftward movement puts the label underneath the span it
+        # describes and the orange marker rule prints through it.
+        anchor = ghost if edge is None else max(edge, ghost)
+        # THE SENTENCE IS ~55 CHARACTERS AND THE AXIS IS 100 UNITS WIDE, so it
+        # spans roughly half of it and cannot be anchored blindly: at the
+        # early-career preset the span ends at 29.1% and a right-aligned label
+        # runs off the left edge of the chart. Anchor away from the near wall.
+        right = anchor > 50.0
+        chart += _text(anchor,
+                       f"{arrow} {ghost:.1f}% {inactive_label} \u2014 "
+                       f"you would be on the {side} side",
+                       dy=42, align="right" if right else "left",
+                       dx=-6 if right else 6, fontSize=11.5, color=RAIL_GREY)
+
+    return chart.properties(
+        # Autosize "fit" spends this on the title, the axis and the legend as
+        # well as the plot, so it is a TOTAL, not a drawable area.
+        height=240,
         title=alt.TitleParams(
-            "future tax rate  —  the two bars are MARGINAL rates (t*), "
-            "the dashed line is an EFFECTIVE rate",
+            "future tax rate  —  the bar's edge is a MARGINAL rate (t*), "
+            "the orange line is your EFFECTIVE rate today",
             fontSize=12, color=RAIL_GREY, anchor="start",
         ),
     )
 
 
-def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
-    """The verdict, and the copy that replaces it when there is no crossing.
+def _active(readings: dict, policy_on: bool):
+    """The threshold the verdict is measured against.  The toggle selects it."""
+    return readings["treatment_moves"] if policy_on else readings["rules_hold"]
 
-    WHICH THRESHOLD THE VERDICT READS AGAINST IS WHAT THE NEVERMIND TOGGLE
-    SELECTS.  Both thresholds are always computed and always drawn (D-10); the
-    toggle moves the question, not the picture.  That is the gesture the
-    early-career preset needs: at the preset the marker sits RIGHT of t* (Roth)
-    and LEFT of the policy threshold (Traditional), so throwing the toggle flips
-    the verdict without moving a single number on the axis.
+
+def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
+    """THE ANSWER, AND NOTHING ELSE.  One line, above the chart that argues it.
+
+    SPLIT FROM ITS OWN EXPLANATION AT ROUND 2.  The verdict was rendering below
+    the threshold axis, so the page asked a reader to interpret a bar before it
+    told them what the bar concluded.  A page whose answer arrives after its
+    evidence is a page that reads as a proof rather than as an answer.
 
     THE WASH BAND IS +/- 2 POINTS (D-02).  Inside it the headline says it is a
     wash; outside it names the winner.  At the archetype the gap is 17.3 points
@@ -327,87 +492,127 @@ def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
     in, which is exactly what happens at a demo.
 
     A NON-CROSSING PROFILE PRINTS COPY, NEVER A NULL (D-35).  The reachable case
-    is always_trad: drag the nevermind year down to 1 or 2 and the frozen
-    allowance is one or two years of contributions, so Roth's advantage never
-    catches up at any rate on the axis.  That is D-40 at full strength rather
-    than an error state -- the scenario you were told makes Roth safe is the one
-    that widens Traditional's lead, and here it widens it past the edge of the
-    chart.
+    is always_trad: drag the nevermind year to 1 or 2 and the frozen allowance
+    is one or two years of contributions, so Roth never catches up at any rate
+    on the axis.  D-40 at full strength rather than an error state.
     """
-    active = readings["treatment_moves"] if policy_on else readings["rules_hold"]
+    active = _active(readings, policy_on)
     marker = readings["marker"] * 100.0
 
-    if active.status != "crosses":
-        if active.status == "always_trad":
-            st.markdown("### No future tax rate rescues Roth here.")
-            st.markdown(
-                f"A rule change in year {policy_year} freezes "
-                f"**${readings['allowance']:,.0f}** tax-free and taxes "
-                "everything after it as ordinary income. Traditional wins at "
-                "every rate on this axis. There is no line here to be on the "
-                "wrong side of."
-            )
-            st.markdown(
-                "**Under current rules the break-even is still "
-                f"{readings['rules_hold'].breakeven:.1%}**, and your "
-                f"withdrawal rate today is {marker:.1f}%."
-            )
-        else:
-            # UNREACHABLE FROM THESE CONTROLS TODAY and written anyway.  Under
-            # D-01's convention roth_65 is exactly trad_65 * (1 - t_now), so the
-            # difference is trad_65 * (t_now - t_later) and its sign always
-            # flips inside the bracket.  It stops being unreachable the day the
-            # accordion's D2 row becomes editable, which is Sprint 7's.
-            st.markdown("### No future tax rate rescues Traditional here.")
-            st.markdown(
-                "This profile fills the Roth to the contribution cap, so both "
-                "accounts receive the same nominal dollars and the Roth's are "
-                "already taxed. Roth wins at every rate on this axis."
-            )
-            if readings["rules_hold"].status == "crosses":
-                st.markdown(
-                    "**Under current rules the break-even is still "
-                    f"{readings['rules_hold'].breakeven:.1%}**, and your "
-                    f"withdrawal rate today is {marker:.1f}%."
-                )
+    if active.status == "always_trad":
+        st.markdown("### No future tax rate rescues Roth here.")
+    elif active.status == "always_roth":
+        st.markdown("### No future tax rate rescues Traditional here.")
     else:
         gap = active.breakeven * 100.0 - marker
         if abs(gap) <= WASH_BAND_POINTS:
             st.markdown("### It's a wash.")
-            st.markdown(
-                f"You are within {WASH_BAND_POINTS:.0f} points of the "
-                "break-even. The account choice is not what decides this."
-            )
-        elif gap > 0:
-            st.markdown("### Traditional, by "
-                        f"{gap:.1f} points.")
-            st.markdown(
-                f"Your withdrawal rate today is {marker:.1f}%. The future "
-                f"marginal rate that would tie them is {active.breakeven:.1%}. "
-                "You are to the left of it."
-            )
         else:
-            st.markdown("### Roth, by "
+            st.markdown(f"### {'Traditional' if gap > 0 else 'Roth'}, by "
                         f"{abs(gap):.1f} points.")
-            st.markdown(
-                f"Your withdrawal rate today is {marker:.1f}%. The future "
-                f"marginal rate that would tie them is {active.breakeven:.1%}. "
-                "You are to the right of it."
-            )
 
-    # D-10's label, and it goes BETWEEN the two thresholds because that is what
-    # it is about.  Neither bar is the neutral one.
+
+def verdict_detail(readings: dict, policy_on: bool) -> None:
+    """The sentences that describe the chart, and they sit beneath it.
+
+    THE NUMBERS SURVIVE THE SUPPRESSION.  D-35's point is that the verdict line
+    is REPLACED while t*, both thresholds and the $X/$Y sentence stay -- hiding
+    them would make the page read as a lockout rather than as an answer.
+    """
+    active = _active(readings, policy_on)
+    marker = readings["marker"] * 100.0
+
+    if active.status == "always_trad":
+        st.markdown(
+            f"A rule change this early freezes **${readings['allowance']:,.0f}**"
+            " tax-free and taxes everything after it as ordinary income. "
+            "Traditional wins at every rate on the axis. There is no line here "
+            "to be on the wrong side of."
+        )
+    elif active.status == "always_roth":
+        # UNREACHABLE FROM THESE CONTROLS TODAY and written anyway.  Under
+        # D-01's convention roth_65 is exactly trad_65 * (1 - t_now), so the
+        # difference is trad_65 * (t_now - t_later) and its sign always flips
+        # inside the bracket.  It stops being unreachable the day the accordion's
+        # D2 row becomes editable, which is Sprint 7's.
+        st.markdown(
+            "This profile fills the Roth to the contribution cap, so both "
+            "accounts receive the same nominal dollars and the Roth's are "
+            "already taxed. Roth wins at every rate on the axis."
+        )
+    else:
+        side = "left" if active.breakeven * 100.0 > marker else "right"
+        st.markdown(
+            f"Your withdrawal rate today is {marker:.1f}%. The future marginal "
+            f"rate that would tie them is {active.breakeven:.1%}. You are to "
+            f"the {side} of it."
+        )
+
+    if active.status != "crosses" and readings["rules_hold"].status == "crosses":
+        st.markdown(
+            "**Under current rules the break-even is still "
+            f"{readings['rules_hold'].breakeven:.1%}**, and your withdrawal "
+            f"rate today is {marker:.1f}%."
+        )
+
+    # D-10's label.  It is a statement about TWO simultaneous exposures, which
+    # is why the inactive threshold stays on the axis as a ghost tick rather
+    # than disappearing with the toggle.
     st.caption(
         "**Roth bets the treatment holds. Traditional bets the rates do.** "
         "Neither is the neutral choice — pick which rule you'd rather be "
         "exposed to."
     )
 
-    # D-35's slot.  The verdict above is REPLACED when either of the first two
-    # gates is unchecked and t*, both thresholds and the $X/$Y sentence all
-    # stay -- suppressing the verdict without hiding the numbers is what keeps
-    # the page from reading as a lockout.  [SPRINT-7-CLEANUP] Sprint 7 wires the
-    # ladder and fires this; Sprint 6 owes it the room, which is this block.
+    # D-35's slot.  [SPRINT-7-CLEANUP] Sprint 7 wires the suppression; Sprint 6
+    # owes it the room, which is this block.
+
+
+def blocked_notice(readings: dict) -> None:
+    """Copy for a profile the deterministic line cannot be computed for.
+
+    D-35's principle, applied one layer out: the page never prints nothing, and
+    it never prints a traceback. Each of these is a real statement about the
+    profile rather than an apology for the software.
+    """
+    reason = readings["blocked"]
+
+    if reason == "no_deferral":
+        # THIS IS AN ANSWER, NOT AN ERROR, AND IT IS THE STRONGEST FORM OF ONE.
+        # At t_now = 0 the difference is trad_65 * (0 - t_later), which is
+        # negative for every rate in the bracket -- so Roth wins everywhere, and
+        # it wins for the plainest possible reason. The engine cannot SAY it:
+        # its search runs over (0.01, 0.95) and evaluates at t_now, so a t_now
+        # of exactly 0 is outside its own bracket. The algebra is unambiguous
+        # even where the search is not, so the app states the conclusion and is
+        # explicit about not having drawn it.
+        st.markdown("### Roth, at every rate.")
+        st.markdown(
+            "Your marginal rate today is **0%**, so a Traditional contribution "
+            "defers no tax at all. There is nothing to trade away, and so "
+            "nothing to trade it for — Roth wins at every future rate."
+        )
+        st.caption(
+            "No axis is drawn because there is no break-even to draw: the "
+            "search runs over rates from 1% to 95% and the answer here sits "
+            "outside it. Raise the current income, or turn on state income tax "
+            "while working, and the chart returns."
+        )
+    elif reason == "no_contributions":
+        st.markdown("### Nothing to compare yet.")
+        st.markdown(
+            "At this income the model contributes nothing, so there is no "
+            "balance in either account and no rate at which the two could tie."
+        )
+        st.caption("Raise the current income and the whole page returns.")
+    else:
+        st.markdown("### This profile can't be evaluated.")
+        st.markdown(
+            "The engine declined it rather than returning a number, which is "
+            "the behaviour you want from it. Change a control and the page "
+            "returns."
+        )
+        st.caption(f"Reported: {readings.get('detail', 'no detail given')}")
 
 
 def two_rates_sentence(readings: dict) -> None:
@@ -432,58 +637,146 @@ def two_rates_sentence(readings: dict) -> None:
 # =============================================================================
 # THE BALANCE GRAPH.  L1's only gesture.
 # =============================================================================
-def balance_graph(readings: dict, profile: engine.Profile):
-    """Two curves diverging during saving, landing together after tax.
+def milestone_ages(series, current_age: int) -> dict:
+    """First age at which the balance clears each milestone.  None if never.
 
-    NOTE THE UNITS, BECAUSE THIS IS THE G4 TRAP DRAWN INSTEAD OF WRITTEN.
-    trad_by_year is a PRE-TAX balance.  roth_by_year is ALREADY AFTER TAX.
-    Plotting them as though they shared a unit is the same error D-01's
-    convention exists to prevent -- same-nominal-dollars silently favours Roth.
-
-    THE DASHED THIRD CURVE IS THE ARGUMENT.  Traditional multiplied by
-    (1 - t_now) lies exactly on the Roth curve, and not only at 65: measured
-    across all thirty years the worst deviation is 1.16e-10 dollars, which is
-    float noise.  That is D-22's accumulation identity -- roth/trad == 1 - t_now
-    EXACTLY -- drawn rather than captioned, and it is the strongest visual
-    statement of L1 the page can make.  The divergence between the two solid
-    curves is the money the deferral is holding for the government; the dashed
-    line is what is left after handing it back.
-
-    NOTHING IS CLAMPED (D-38) and the caption says so.  This is an
-    ACCUMULATION-PHASE balance and it can go negative: Low's forced sale is not
-    affordability-checked, so a Low-rung saver with $8,000 in the account
-    "sells" $73,959 of it.  Right for the cube, wrong as a sentence about a
-    person, and a graph is where someone would notice.
+    THE POINT OF THIS IS TO PUT L1 IN YEARS RATHER THAN IN DOLLARS.  Dollars at
+    65 are abstract -- $2.1M and $5.3M are both "a lot" and the difference does
+    not land.  Ages land: eight working years to go from the first million to
+    the second at 7% real, five at 12%.  Same gesture, a unit a person feels.
     """
-    t_now = readings["t_now"]
-    ages = [profile.current_age + i for i in range(len(readings["trad_by_year"]))]
-    rows = []
-    for age, trad, roth in zip(ages, readings["trad_by_year"],
-                               readings["roth_by_year"]):
-        rows.append({"age": age, "series": "Traditional (pre-tax)", "d": trad})
-        rows.append({"age": age, "series": "Roth (after tax)", "d": roth})
-        rows.append({"age": age, "series": "Traditional after tax",
-                     "d": trad * (1.0 - t_now)})
-    frame = pd.DataFrame(rows)
-    order = ["Traditional (pre-tax)", "Roth (after tax)",
-             "Traditional after tax"]
+    return {
+        target: next((current_age + i for i, v in enumerate(series)
+                      if v >= target), None)
+        for target in MILESTONES
+    }
 
-    return alt.Chart(frame).mark_line(strokeWidth=2.5).encode(
+
+def _balance_panel(frame, order, ages, scale_type: str, title: str,
+                   legend: bool):
+    """One balance panel.  The pair differs ONLY in the y scale."""
+    log = scale_type == "log"
+    domain = BALANCE_AXIS_LOG if log else BALANCE_AXIS_LINEAR
+    y = alt.Y("d:Q", title=None,
+              scale=alt.Scale(type=scale_type, domain=domain, nice=False),
+              # alt.Undefined, not None: Altair validates the schema at
+              # construction and `None` is not a legal `values`, so the linear
+              # panel has to OMIT the property rather than null it.
+              axis=alt.Axis(format="$,.0s", grid=True,
+                            values=(BALANCE_TICKS_LOG if log
+                                    else alt.Undefined)))
+
+    lines = alt.Chart(frame).mark_line(strokeWidth=2.5).encode(
         x=alt.X("age:Q", title="age",
                 scale=alt.Scale(domain=[ages[0], ages[-1]], nice=False)),
-        y=alt.Y("d:Q", title=None, axis=alt.Axis(format="$,.0s")),
+        y=y,
         color=alt.Color(
             "series:N", title=None, sort=order,
             scale=alt.Scale(domain=order,
                             range=[TRAD_BLUE, ROTH_GREEN, MARKER_ORANGE]),
-            legend=alt.Legend(orient="top", direction="horizontal", columns=3),
+            legend=(alt.Legend(orient="top", direction="horizontal", columns=1)
+                    if legend else None),
         ),
         strokeDash=alt.StrokeDash(
             "series:N", sort=order,
             scale=alt.Scale(domain=order, range=[[1, 0], [1, 0], [7, 4]]),
             legend=None,
         ),
-    ).properties(height=260)
+    )
+
+    # THE TWO CHECKPOINTS, DRAWN ON BOTH PANELS.  They are the clearest place to
+    # SEE the difference between the two scales: on the linear panel the $1M and
+    # $2M rules crowd the top, and on the log panel they are evenly spaced,
+    # because a doubling is a doubling wherever it happens.
+    marks = pd.DataFrame([{"d": m} for m in MILESTONES])
+    rules = alt.Chart(marks).mark_rule(
+        color=RAIL_GREY, opacity=0.45, strokeDash=[3, 4],
+    ).encode(y=alt.Y("d:Q", scale=alt.Scale(type=scale_type, domain=domain,
+                                            nice=False)))
+
+    return (lines + rules).properties(
+        width=300, height=300,
+        title=alt.TitleParams(title, fontSize=12, color=RAIL_GREY,
+                              anchor="start"),
+    )
+
+
+def milestone_ages(series, current_age: int) -> dict:
+    """First age at which the balance clears each milestone.  None if never.
+
+    THE POINT OF THIS IS TO PUT L1 IN YEARS RATHER THAN IN DOLLARS.  Dollars at
+    65 are abstract -- $2.1M and $5.3M are both "a lot" and the difference does
+    not land.  Ages land: eight working years to go from the first million to
+    the second at 7% real, five at 12%.  Same gesture, a unit a person feels.
+    """
+    return {
+        target: next((current_age + i for i, v in enumerate(series)
+                      if v >= target), None)
+        for target in MILESTONES
+    }
+
+
+def balance_graphs(readings: dict, profile: engine.Profile):
+    """THE SAME DATA TWICE -- linear on the left, logarithmic on the right.
+
+    THE PAIR IS THE LESSON AND NEITHER PANEL CARRIES IT ALONE.  Measured at the
+    archetype: the Traditional-to-Roth gap is a CONSTANT RATIO, 1.481481..., to
+    nine decimal places at every one of the thirty years -- it is exactly
+    1 / (1 - t_now) and it never budges, which is D-22's identity.  On the LOG
+    panel that reads as what it is: two dead-parallel lines, 0.170696 decades
+    apart, from the first contribution to the last.
+
+    ON THE LINEAR PANEL THE IDENTICAL RATIO LOOKS LIKE A GAP THAT EXPLODES --
+    $7,962 at 35, $685,382 at 64, an eighty-six-fold widening of a number that
+    did not change.  That is not a drawing error; it is what a linear axis does
+    to a ratio, and it is the visual root of "the account choice matters more
+    later, so I will decide later."  IT DOES NOT MATTER MORE LATER.  The ratio
+    was fixed the day the first contribution was made.
+
+    WHY BOTH PANELS AND NOT JUST THE HONEST ONE.  The linear panel is how
+    everyone's brokerage statement draws this, so it is the picture the audience
+    arrives holding.  Deleting it wins the argument against nobody.  Showing the
+    two side by side makes the misreading visible AS a misreading, which is the
+    only way to retire it.
+
+    BOTH PANELS ARE PINNED AND SHARE A CEILING, so the L1 gesture works on both:
+    click a return rate and the curves climb rather than the labels changing.
+
+    A LOG AXIS CANNOT DRAW A NON-POSITIVE NUMBER, so non-positive points are
+    dropped from BOTH panels rather than clamped -- keeping the two panels drawn
+    from exactly the same rows matters more here than showing one extra point on
+    the left.  The gap in the curve is honest; a clamp would not be (D-38).
+
+    NOTE THE UNITS (the G4 trap drawn).  trad_by_year is PRE-TAX and
+    roth_by_year is ALREADY AFTER TAX.  The dashed orange curve is Traditional
+    after tax and lies exactly on Roth -- worst deviation across all thirty
+    years is 1.16e-10 dollars, which is float noise.
+    """
+    t_now = readings["t_now"]
+    ages = [profile.current_age + i for i in range(len(readings["trad_by_year"]))]
+    rows = []
+    for age, trad, roth in zip(ages, readings["trad_by_year"],
+                               readings["roth_by_year"]):
+        after_tax = trad * (1.0 - t_now)
+        if min(trad, roth, after_tax) <= 0:
+            continue
+        rows.append({"age": age, "series": "Traditional (pre-tax)", "d": trad})
+        rows.append({"age": age, "series": "Roth (after tax)", "d": roth})
+        rows.append({"age": age, "series": "Traditional after tax",
+                     "d": after_tax})
+    if not rows:
+        return None
+    frame = pd.DataFrame(rows)
+    order = ["Traditional (pre-tax)", "Roth (after tax)",
+             "Traditional after tax"]
+
+    left = _balance_panel(frame, order, ages, "linear",
+                          "linear — how a statement draws it", legend=True)
+    right = _balance_panel(frame, order, ages, "log",
+                           "logarithmic — what the ratio does",
+                           legend=False)
+    return alt.hconcat(left, right, spacing=40).resolve_scale(
+        color="shared", strokeDash="shared")
 
 
 # =============================================================================
@@ -594,24 +887,35 @@ with main:
                                 label_visibility="visible")
 
     with strip[2]:
+        # [SPRINT-7-CLEANUP] Section 7's caption -- "Default assumes you earn
+        # in a taxing state and retire in one that doesn't. Both are toggles."
+        # -- is REMOVED at Nicole's round-2 review: it is narration, and she
+        # says it out loud. It is copy the deployed page loses for a panelist
+        # reading alone. Decide at Sprint 7 whether it returns as a `help=`
+        # tooltip, which costs no screen and survives without a narrator.
         st.toggle("State income tax (while working)",
                   key="state_while_working")
-        st.caption("Default assumes you earn in a taxing state and retire in "
-                   "one that doesn't. Both are toggles.")
 
     with strip[3]:
+        # [SPRINT-7-CLEANUP] Section 7's "This input drives the picture, not
+        # the answer" removed, same reason. It was also the caption Sprint 6
+        # measured as INCOMPLETE -- true at the defaults, but with the tax-law
+        # toggle on the policy threshold moves 58.4% to 66.5% across these
+        # buttons. Removing it retires that issue for now rather than fixing it.
         st.radio("Investment return rate", list(RETURN_BUTTONS),
                  key="return_button")
-        st.caption("This input drives the picture, not the answer.")
 
     with strip[4]:
         st.toggle("Tax law changes", key="policy_on")
+        # [SPRINT-7-CLEANUP] Section 7's "You can still contribute — it just
+        # stops being worth it. Poland 2013 · Ireland 2011 · US SECURE Act
+        # 2019" removed, same reason. This is the one of the three whose loss
+        # costs the most unnarrated: the three precedents are what stop the
+        # nevermind scenario reading as invented.
         st.number_input("in year", min_value=1,
                         max_value=engine.RETIREMENT_AGE
                         - engine.Profile.current_age - 1,
                         step=1, key="policy_year")
-        st.caption("**You can still contribute — it just stops being worth "
-                   "it.** Poland 2013 · Ireland 2011 · US SECURE Act 2019.")
 
     with strip[5]:
         st.button("Early-career preset", on_click=load_early_career,
@@ -640,6 +944,13 @@ with main:
         profile, RETURN_BUTTONS[st.session_state["return_button"]],
         st.session_state["policy_year"]
     )
+    if readings["blocked"]:
+        blocked_notice(readings)
+        # st.stop() rather than an indent over the whole computed half: the
+        # strip and the ladder are already on screen above, which is everything
+        # a reader needs in order to change the input that caused this.
+        st.stop()
+
     dollars = x_and_y(cube["cells"], rung)
 
     # D-40 again, defensively: the axis has to reach past the second threshold
@@ -650,7 +961,73 @@ with main:
             reach.append(result.breakeven * 100.0)
     axis_max = min(100.0, max(70.0, 10.0 * (int(max(reach) / 10.0) + 2)))
 
-    # --- $X, ABOVE THE AXIS --------------------------------------------------
+    # --- THE ANSWER, FIRST -------------------------------------------------
+    # MOVED AT ROUND 2.  The verdict is what the page is FOR, and it was sitting
+    # below the chart that argues for it -- a reader had to interpret the bar
+    # before being told the conclusion the bar supports.  Answer first, evidence
+    # under it: the explainer sentences stayed where they were, which now reads
+    # correctly because they describe the chart they now sit beneath.
+    verdict_block(readings, st.session_state["policy_on"],
+                  st.session_state["policy_year"])
+
+    st.altair_chart(
+        threshold_axis(readings, st.session_state["policy_on"],
+                       st.session_state["policy_year"]),
+        width="stretch",
+    )
+
+    verdict_detail(readings, st.session_state["policy_on"])
+    two_rates_sentence(readings)
+
+    st.divider()
+
+    # --- THE BALANCE GRAPH ---------------------------------------------------
+    st.markdown("#### What the two accounts hold while you save")
+    t_display = f"{readings['t_now']:.1%}"
+    charts = balance_graphs(readings, profile)
+    if charts is None:
+        st.info("No balance to draw — every year of this profile contributes "
+                "nothing. Raise the income or clear a ladder stop.")
+    else:
+        st.altair_chart(charts)
+        st.caption(
+            "**Same data, both panels.** On the left the gap between "
+            "Traditional and Roth grows from about $8,000 to about $685,000 — "
+            "and the ratio behind it never changed. It is fixed at "
+            f"1 ÷ (1 − {t_display}) for all thirty years, which is why the "
+            "right-hand panel draws two parallel lines. **The account choice "
+            "does not start mattering later. It mattered identically from the "
+            "first contribution.**"
+        )
+
+    # THE YEARS SENTENCE.  L1 in a unit a person feels.  The account threshold
+    # above does not move when the rate changes; these ages move by YEARS.
+    reached = milestone_ages(readings["trad_by_year"], profile.current_age)
+    first, second = reached[MILESTONES[0]], reached[MILESTONES[1]]
+    rate_now = RETURN_BUTTONS[st.session_state["return_button"]]
+    if first and second:
+        st.markdown(
+            f"At {rate_now:.0%} real, the Traditional balance crosses "
+            f"**$1M at age {first}** and **$2M at age {second}** — "
+            f"**{second - first} more working years** for the second million. "
+            "Change the return rate and those ages move by years. The "
+            "break-even above does not move at all."
+        )
+    elif first:
+        st.markdown(
+            f"At {rate_now:.0%} real, the Traditional balance crosses "
+            f"**$1M at age {first}** and does not reach $2M by "
+            f"{engine.RETIREMENT_AGE}."
+        )
+    else:
+        st.markdown(
+            f"At {rate_now:.0%} real, this profile does not reach $1M by "
+            f"{engine.RETIREMENT_AGE}."
+        )
+
+    # --- $X, MOVED HERE AT ROUND 2 ------------------------------------------
+    # It belongs to the ACCOUNT question, and this is the account graph. Above
+    # the threshold axis it competed with the verdict for the same glance.
     if dollars["x"] is not None:
         ratio_clause = (
             f" — about {1 / dollars['ratio']:.1f}× what moving up a rung is worth"
@@ -665,35 +1042,22 @@ with main:
             "rung — your controls choose the rung, not the dollars."
         )
 
-    st.altair_chart(
-        threshold_axis(readings, st.session_state["policy_year"], axis_max),
-        width="stretch",
-    )
-
-    verdict_block(readings, st.session_state["policy_on"],
-                  st.session_state["policy_year"])
-    two_rates_sentence(readings)
-
-    st.divider()
-
-    # --- THE BALANCE GRAPH ---------------------------------------------------
-    st.markdown("#### What the two accounts hold while you save")
-    st.altair_chart(balance_graph(readings, profile),
-                    width="stretch")
     st.caption(
         f"**Units differ on purpose.** Traditional is a PRE-TAX balance and "
         f"Roth is ALREADY AFTER TAX — the dashed line is Traditional after tax "
         f"at your {readings['t_now']:.1%} deferral rate, and it sits on the "
         "Roth curve at every year, not just at 65. Same pre-tax dollars in "
         "(D-01); the divergence is the share the deferral is holding for the "
-        "government."
+        "government. Both y-axes are pinned and share a $6M ceiling, so a "
+        "click on the return rate moves the curves rather than the labels."
     )
     st.caption(
         "**Nothing is clamped.** Balances are allowed to go negative and ruin "
         "is recorded rather than floored (D-38). At the Low rung a forced sale "
         "is not affordability-checked, so a saver with $8,000 in the account "
         "can 'sell' $73,959 of it — right for the grid, wrong as a sentence "
-        "about a person."
+        "about a person. A log axis cannot draw a non-positive number, so such "
+        "a year leaves a gap in the line rather than being clamped to the floor."
     )
 
     st.divider()

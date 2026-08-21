@@ -426,16 +426,16 @@ The claim that would have to be measured first: the segment approach is only hon
 
 # Tests
 
-**TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **257 items**;
-the suite holds **173 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
+**TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **281 items**;
+the suite holds **186 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
 T8 alone expand twelve ways each. Both numbers are published because the suite
 asserts one of them: `test_the_suite_asserts_its_own_size` walks the three
 ENGINE-SIDE test files with `ast` and checks the FUNCTION counts, which is the
 half an AST can see without running pytest inside pytest, and the half that
 survives a filtered run (D-57).
 
-    functions   29 · 133 · 6 · 5   = 173
-    collected   35 · 207 · 8 · 7   = 257
+    functions   29 · 133 · 6 · 18  = 186
+    collected   35 · 207 · 8 · 31  = 281
 
 **THE SELF-COUNT COVERS THREE FILES AND THERE ARE NOW FOUR, WHICH IS A SCOPE TO
 STATE RATHER THAN A GAP TO CLOSE.** D-57's assertion names its three files, so
@@ -445,7 +445,7 @@ totals above cover all four. Widening the assertion means editing
 `tests/test_engine.py`, which Sprint 6's seam forbids; **it is Housekeeping, not
 a defect**, and the day a fifth suite lands is the day it stops being optional.
 
-Four suites, 257 collected. `tests/test_tax.py` — 35, each defending a number
+Four suites, 281 collected. `tests/test_tax.py` — 35, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
 imported. `tests/test_engine.py` — opened at Sprint 2A, 207: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
@@ -465,13 +465,30 @@ for the reason 3A set the precedent for. **One test was
 DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
 `NotImplementedError` that no longer exists, and a test of scaffolding outlives
 its subject silently. 209 written minus 2 deleted is the 207.
-`tests/test_app.py` — **opened at Sprint 6, 5 functions expanding to 7**: two
+`tests/test_app.py` — **opened at Sprint 6, 18 functions expanding to 31**: two
 greps promoted to assertions (D-12's `bootstrap|numpy.random` scan and the
 five-cleanup-tag enumeration, both scoped to code for the reason Sprint 2
 already recorded), the archetype detector 32.5 / 58.4 / 15.2 read where a
 panelist reads it, the `always_trad` sentinel under D-35, and L1 across the
 three return buttons. **It asserts no chart internals** — an Altair spec is an
 implementation detail and a test that reads one punishes Sprint 8 for restyling.
+**Eight were added at Sprint 6's round-2 UI review** and four of them defend a
+class of defect the rest of the suite structurally cannot see: **the numbers
+were right the whole time.** A rate axis sized to its data rescaled when the
+nevermind year changed, so 32.5% slid across the screen while reading 32.5%; a
+balance axis sized to its data drew the same curve at 7% and at 12%, so L1's
+only gesture was silently absent under a done-when that read as satisfied.
+Correctness testing cannot reach either, which is the argument for asserting
+axis domains at all. **Three more were added after a traceback reached the page**, and they defend
+the one thing the engine's own suite structurally cannot: **`engine.py` raises
+on profiles the app's controls can build.** `ValueError: t_later 0.0 outside
+(0, 1)` at zero current income with state tax off, and the D-06 constant-
+difference `AssertionError` at zero income outright. The engine is right to
+refuse both; the app is what must not show a stack trace to a panel. One of the
+three is structural rather than behavioural — it asserts the guards appear
+BEFORE the `breakeven()` call in the source, because the original defect was not
+a missing guard but a guard placed downstream of the raise it was meant to
+catch, which is a class of error where every number in the file stays correct.
 `tests/test_deploy_config.py` — opened at P3a, 8 parsing
 `railway.toml`. Those eight guard the deploy config rather than the engine, and
 they are counted here because `uv run pytest` runs them; the eight numbered
