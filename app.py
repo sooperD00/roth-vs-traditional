@@ -65,6 +65,23 @@ NEXT_RUNG = {"low": "mid", "mid": "high"}       # D-36.  One step, and High has
                                                 # so rather than printing zero.
 RUNG_LABEL = {"low": "Low", "mid": "Mid", "high": "High"}   # DESIGN 3.4: named,
                                                             # never numbered.
+RUNG_MECHANISM = {"low": "no buffer", "mid": "some buffer", "high": "deep buffer"}
+                                                # D-16's three mechanisms, in the
+                                                # deck's own words.  Low sells at
+                                                # the bottom, Mid fails to buy at
+                                                # the bottom, High does neither.
+
+# D-35.  TWO GATES SUPPRESS THE VERDICT AND A THIRD STOP GETS ITS OWN LINE, and
+# the difference between those two sentences is D-61.  The corpus said this
+# three ways -- D-35 names the first two gates, D-33's reason column reads as
+# all three, and section 7 reads as the whole Low rung, which is any of stops
+# 1-3 cleared.  D-35 is the decision and section 0 gives it precedence.
+GATE_STOPS = (0, 1)             # $400 and $2,000.  Zero-indexed against
+                                # engine.LADDER_STOPS, which is bottom-up.
+DEBT_STOP = 2                   # High-interest debt.  Adds a line; suppresses
+                                # nothing (D-61).
+
+# ---- FIXED AXIS DOMAINS.  BOTH ARE FIXED AND FOR OPPOSITE REASONS ----------
 
 # D-15, decided 2026-08-18.  The balance graph and the dot panels run on
 # different return models and the caption says by how much.  THE MEDIAN, not the
@@ -79,7 +96,6 @@ SERIES_GEOMETRIC_MEAN = 6.8   # D-15.  The historical series' own geometric
                               # recomputation -- the app does no math on the
                               # deck (D-12).
 
-# ---- FIXED AXIS DOMAINS.  BOTH ARE FIXED AND FOR OPPOSITE REASONS ----------
 # THE RATE AXIS IS FIXED BECAUSE THE NUMBER DOES NOT MOVE.  A dynamic domain
 # rescaled when the nevermind year changed, so 32.5% slid across the screen
 # while reading 32.5% -- the first lesson, taught backwards.  An axis that moves
@@ -112,10 +128,47 @@ MILESTONES = (1_000_000.0, 2_000_000.0)   # The two numbers people cite as
                                           # "when you can retire".  Debatable as
                                           # targets, excellent as checkpoints.
 
+
 TRAD_BLUE = "#2E7BC4"
 ROTH_GREEN = "#1F8A5F"
 MARKER_ORANGE = "#E8912A"
 RAIL_GREY = "#8B949E"
+
+# THE PANEL AXIS IS THE THIRD PINNED ONE AND IT IS THE WORST CASE OF THE THREE.
+# The other two protect a lesson from being DELETED.  This one protects the
+# reader from a lesson that is not there.
+#
+# Objective 5's break-even is the LEFT EDGE OF A PLATEAU rather than a point
+# (D-51): P(not running out) counts a discrete event over 2,000 paths, so its
+# difference is zero across an interval and the bisection lands ~0.08 points
+# below t_now on every upper-panel cell.  Auto-scaled, the Mid panel turns
+# 0.1757 points into its full width and draws four columns with one of them
+# offset -- every number on screen correct, and a finding fabricated out of a
+# solver artifact.  Pinned, Mid and High collapse to a visual point, which is
+# D-22 and which is the truth.
+#
+# 0-40 IS THE DECK'S OWN DOMAIN (DESIGN 3.4), drawn before the trap that needs
+# it was written.  It is a LITERAL and never a read of the cube: a domain sized
+# to today's data is exactly the habit the two axis tests exist to punish.  Low
+# spans 8.1346 points, a fifth of the width; Mid 0.1757 and High 0.0782.
+PANEL_RATE_AXIS = [0.0, 40.0]
+PANEL_RATE_TICKS = [0, 10, 20, 30, 40]
+
+# D-34's encoding, REBUILT FOR FOUR OBJECTIVES.  The row assigned gray to (1, 2)
+# and objective 2 is CUT (D-06), so "gray dots" is ONE dot and every plural
+# attached to it described a panel that cannot be drawn.  Four groups, named
+# here rather than left to a legend key: the reader has to be able to say which
+# definition of "optimal" each colour is.  Objectives 4 and 5 share orange
+# BECAUSE THEY ARE ONE FAMILY -- colour is the family, not the objective.
+PANEL_OBJECTIVES = (1, 3, 4, 5)
+OBJECTIVE_LABEL = {
+    1: "1 · mean — expected value",
+    3: "3 · median",
+    4: "4 · 10th percentile — tail",
+    5: "5 · P(not running out) — tail",
+}
+OBJECTIVE_COLOR = {1: "#6E7681", 3: "#C9D1D9",
+                   4: MARKER_ORANGE, 5: MARKER_ORANGE}
 
 # D-04a.  7 / 9 / 12, ALL REAL, default 7.  Each labelled with its nominal
 # equivalent, and 12 labelled implausible ON PURPOSE: it is the button a skeptic
@@ -478,8 +531,35 @@ def _active(readings: dict, policy_on: bool):
     return readings["treatment_moves"] if policy_on else readings["rules_hold"]
 
 
-def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
+def binding_gate(stops: tuple) -> int | None:
+    """The lowest of D-35's two gates the user has not cleared, or None.
+
+    TWO BOOLEANS, AND WHICH TWO IS D-61.  D-35 names the first two stops -- $400
+    and $2,000 -- and nothing else suppresses.  Stop 3 gets its own line and
+    takes the verdict away from nobody, which is the reading that keeps this
+    function returning a GATE rather than a rung: `rung` is already on screen
+    three feet away and it answers a different question.
+
+    It is deliberately not `highest_contiguous_stop() < 2`.  D-37's contiguity
+    rule is about where the rung sits; this is about which specific gate is
+    binding, and the copy has to name it.
+    """
+    for stop in GATE_STOPS:
+        if not stops[stop]:
+            return stop
+    return None
+
+
+def verdict_block(readings: dict, policy_on: bool, policy_year: int,
+                  stops: tuple) -> None:
     """THE ANSWER, AND NOTHING ELSE.  One line, above the chart that argues it.
+
+    D-35 REPLACES THIS LINE AND ONLY THIS LINE.  The suppression outranks every
+    branch below it, including the two sentinels: a profile can be both
+    always_trad and standing under an unmet $400 gate, and the gate is the more
+    urgent true thing.  `t*`, both thresholds, the two-rates sentence and the
+    $X/$Y pair all survive one function down -- hiding numbers would make the
+    page read as a lockout, and this app has never once printed nothing.
 
     SPLIT FROM ITS OWN EXPLANATION AT ROUND 2.  The verdict was rendering below
     the threshold axis, so the page asked a reader to interpret a bar before it
@@ -499,6 +579,13 @@ def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
     active = _active(readings, policy_on)
     marker = readings["marker"] * 100.0
 
+    # D-35, AND IT RUNS FIRST.  Section 7 supplies the replacement sentence
+    # verbatim; verdict_detail names which gate is binding, which is the whole
+    # reason Sprint 6 reserved the room down there rather than up here.
+    if binding_gate(stops) is not None:
+        st.markdown("### This election is not your binding constraint yet.")
+        return
+
     if active.status == "always_trad":
         st.markdown("### No future tax rate rescues Roth here.")
     elif active.status == "always_roth":
@@ -512,7 +599,7 @@ def verdict_block(readings: dict, policy_on: bool, policy_year: int) -> None:
                         f"{abs(gap):.1f} points.")
 
 
-def verdict_detail(readings: dict, policy_on: bool) -> None:
+def verdict_detail(readings: dict, policy_on: bool, stops: tuple) -> None:
     """The sentences that describe the chart, and they sit beneath it.
 
     THE NUMBERS SURVIVE THE SUPPRESSION.  D-35's point is that the verdict line
@@ -564,8 +651,30 @@ def verdict_detail(readings: dict, policy_on: bool) -> None:
         "exposed to."
     )
 
-    # D-35's slot.  [SPRINT-7-CLEANUP] Sprint 7 wires the suppression; Sprint 6
-    # owes it the room, which is this block.
+    # ---- D-35'S SLOT, FILLED.  The room Sprint 6 reserved here is now the copy.
+    # THE COPY IS AN ANSWER, NOT A LOCKOUT, and blocked_notice() set that
+    # precedent three branches ago: each of these is a true statement about the
+    # profile rather than an apology for the software.  Nothing above is hidden.
+    gate = binding_gate(stops)
+    if gate is not None:
+        st.markdown(
+            f"**{engine.LADDER_STOPS[gate]} sits below this question on the "
+            "flowchart.** Without it a life event forces a sale, which is the "
+            "Low-rung mechanism the panels below draw — and it moves the "
+            "outcome further than the account election can at any rate on this "
+            "axis. The break-even is still true. It is just not the number "
+            "doing the most work for you yet."
+        )
+
+    if not stops[DEBT_STOP]:
+        # STOP 3 GETS ITS OWN COPY AND SUPPRESSES NOTHING (D-61).  Arithmetic
+        # rather than advice: no 401(k) election returns 20% guaranteed, so this
+        # comparison needs no model and no rate.
+        st.markdown(
+            f"**Paying off {engine.LADDER_STOPS[DEBT_STOP]} beats either "
+            "account, at any tax rate.** That is arithmetic rather than "
+            "advice — no 401(k) election returns 20% guaranteed."
+        )
 
 
 def blocked_notice(readings: dict) -> None:
@@ -812,6 +921,138 @@ def x_and_y(cells: dict, rung: str) -> dict:
 
 
 # =============================================================================
+# THE FRAGILITY PANELS.  48 cells, indexed.  THIS SPRINT COMPUTES NOTHING --
+# every dot is cells[(rung, objective, shocks)]["breakeven"], read and scaled to
+# percent for display.  There is no breakeven() call here and no second x_and_y.
+# =============================================================================
+def panel_frame(cells: dict) -> pd.DataFrame:
+    """The whole cube, long-form, ready to plot.  One row per dot, 48 of them.
+
+    SEPARATE FROM THE CHART ON PURPOSE.  A test that wants to know what the
+    panels DRAW should not have to parse a Vega spec to find out -- the two axis
+    tests already do that and their docstrings say why it is a last resort.
+    This function is the same data the spec carries, in a shape a test can
+    assert on directly.
+    """
+    return pd.DataFrame([
+        {"rung": rung,
+         "objective": OBJECTIVE_LABEL[objective],
+         "shocks": shocks,
+         "rate": cells[(rung, objective, shocks)]["breakeven"] * 100.0}
+        for rung in RUNG_LABEL
+        for objective in PANEL_OBJECTIVES
+        for shocks in range(4)
+        if cells[(rung, objective, shocks)]["breakeven"] is not None
+    ])
+
+
+def _fragility_panel(frame, rung: str, user_rung: str, line, order, legend):
+    """One rung's panel.  The three differ ONLY in which rows they draw.
+
+    THE SHARED DOMAIN IS THE WHOLE ARGUMENT AND IT IS NOT A STYLE CHOICE.  Let
+    either upper panel size itself to its own data and 0.08 points of solver
+    artifact becomes the full panel width: four columns, one of them offset,
+    with every number on screen correct.  That is the third occurrence of the
+    defect the two axis tests upstairs were written for, and the first that
+    would INVENT a finding rather than delete one.
+    """
+    active = rung == user_rung
+    scale = alt.Scale(domain=PANEL_RATE_AXIS, nice=False)
+    x_axis = alt.Axis(values=PANEL_RATE_TICKS, format=".0f",
+                      labelExpr="datum.value + '%'", grid=False,
+                      labelFontSize=10)
+
+    dots = alt.Chart(frame).mark_circle(
+        # THE USER'S RUNG IS HIGHLIGHTED AND THE OTHER TWO ARE DIMMED, NEVER
+        # DROPPED (DESIGN 3.1).  The collapse is the lesson and a trend needs
+        # three points; showing only the user's rung deletes the comparison L3
+        # is made of.
+        # SIZED DOWN AFTER LOOKING AT IT.  At size 120 the four objectives in a
+        # Low row merged into one blob: the within-row spread is 1.4656 points
+        # at three shocks, which on a domain pinned for Low's 8.1346 is under
+        # ten pixels.  Smaller dots plus partial opacity let an overlap read as
+        # an overlap, which is what "no jitter" (D-34) depends on -- dots on top
+        # of each other are supposed to MEAN the objectives agree, and that
+        # cannot be read off a shape that is opaque and too big to resolve.
+        size=68 if active else 44,
+        opacity=0.88 if active else 0.34,
+    ).encode(
+        x=alt.X("rate:Q", title=None, scale=scale, axis=x_axis),
+        # ROW = SHOCK COUNT, 0 AT TOP (D-34).  An ordinal y sorted ascending
+        # puts 0 at the top, which is the deck's own reading order: the
+        # undisturbed life first and the descent below it.
+        # THE Y TITLE RIDES ON THE LEFTMOST PANEL ONLY.  Repeated across three
+        # panels it reads as three separate charts, which is the opposite of
+        # what one shared domain is for.
+        y=alt.Y("shocks:O", title=("life events" if legend else None),
+                sort="ascending",
+                axis=alt.Axis(labelFontSize=11, titleFontSize=10, grid=False)),
+        color=alt.Color(
+            "objective:N", title=None, sort=order,
+            scale=alt.Scale(domain=order,
+                            range=[OBJECTIVE_COLOR[o] for o in PANEL_OBJECTIVES]),
+            legend=(alt.Legend(orient="bottom", direction="vertical",
+                               columns=1, labelFontSize=10)
+                    if legend else None),
+        ),
+        tooltip=[alt.Tooltip("objective:N", title="definition of optimal"),
+                 alt.Tooltip("shocks:O", title="life events"),
+                 alt.Tooltip("rate:Q", title="break-even t*", format=".4f")],
+    )
+
+    layers = dots
+    if line is not None:
+        # D-15 DRAWN.  User inputs move the LINE; they never move the dots.  The
+        # dots are the archetype's and the line is the user's own break-even, so
+        # setting the state toggle slides the line through a cloud that stays
+        # where it is -- which is the mismatch stated as an interaction rather
+        # than buried in a caption.
+        rule = alt.Chart(pd.DataFrame([{"at": line}])).mark_rule(
+            color=TRAD_BLUE, strokeWidth=2, opacity=1.0 if active else 0.45,
+        ).encode(x=alt.X("at:Q", scale=scale, axis=x_axis),
+                 tooltip=alt.value(None))
+        layers = dots + rule
+
+    return layers.properties(
+        width=196, height=186,
+        title=alt.TitleParams(
+            f"{RUNG_LABEL[rung]} — {RUNG_MECHANISM[rung]}"
+            + ("  ·  your rung" if active else ""),
+            fontSize=12, anchor="start",
+            color="#E6EDF3" if active else RAIL_GREY,
+        ),
+    )
+
+
+def fragility_panels(cells: dict, user_rung: str, line):
+    """Three panels, ONE shared pinned domain.  L3 shown rather than asserted.
+
+    THREE, NEVER TWO.  The cut ladder refuses a two-rung version in writing: it
+    saves five minutes and costs L3, which needs three points to read as a
+    trend.  The design deck drew two because the third had not been named yet.
+
+    WHAT THE READER IS SUPPOSED TO SEE.  Low's four definitions of "optimal"
+    fan out across 8.1346 points of tax rate as the life events stack up.  Mid
+    and High do not move -- 0.1757 and 0.0782 points, which at this scale is one
+    dot.  That is D-22 and it is derived rather than observed: only Low's
+    penalty is asymmetric, so 36 of 48 cells equal `t_now` exactly.
+
+    ONE hconcat, NOT THREE CHARTS IN THREE COLUMNS, for the reason the balance
+    pair already records: three charts carry three legends and their plot areas
+    start at three different heights, so the panels stop lining up and a reader
+    compares them wrongly.
+    """
+    frame = panel_frame(cells)
+    order = [OBJECTIVE_LABEL[objective] for objective in PANEL_OBJECTIVES]
+    panels = [
+        _fragility_panel(frame[frame["rung"] == rung], rung, user_rung, line,
+                         order, legend=(rung == "low"))
+        for rung in RUNG_LABEL
+    ]
+    return alt.hconcat(*panels, spacing=18).resolve_scale(color="shared")
+
+
+# =============================================================================
 # LAYOUT
 # =============================================================================
 st.set_page_config(page_title="Traditional vs Roth", layout="wide")
@@ -872,32 +1113,45 @@ with main:
                                 label_visibility="visible")
 
     with strip[2]:
-        # [SPRINT-7-CLEANUP] Section 7's caption -- "Default assumes you earn
-        # in a taxing state and retire in one that doesn't. Both are toggles."
-        # -- is REMOVED at Nicole's round-2 review: it is narration, and she
-        # says it out loud. It is copy the deployed page loses for a panelist
-        # reading alone. Decide at Sprint 7 whether it returns as a `help=`
-        # tooltip, which costs no screen and survives without a narrator.
+        # RETURNED AS A TOOLTIP AT SPRINT 8, verbatim from section 7.  It was
+        # removed at round 2 for being narration Nicole says out loud, and the
+        # cost named at the time was the panelist who reads the deployed page
+        # WITHOUT her.  `help=` pays that back for no screen at all.
         st.toggle("State income tax (while working)",
-                  key="state_while_working")
+                  key="state_while_working",
+                  help="Default assumes you earn in a taxing state and retire "
+                       "in one that doesn't. Both are toggles.")
 
     with strip[3]:
-        # [SPRINT-7-CLEANUP] Section 7's "This input drives the picture, not
-        # the answer" removed, same reason. It was also the caption Sprint 6
-        # measured as INCOMPLETE -- true at the defaults, but with the tax-law
-        # toggle on the policy threshold moves 58.4% to 66.5% across these
-        # buttons. Removing it retires that issue for now rather than fixing it.
+        # RETURNED AS A TOOLTIP, AND CORRECTED ON THE WAY BACK.  Section 7's
+        # line is "this input drives the picture, not the answer," which Sprint
+        # 6 measured as INCOMPLETE: it is exact for the current-rules threshold
+        # and false for the policy one, which moves 58.4% -> 66.5% across these
+        # three buttons.  Restoring the sentence unqualified would re-ship a
+        # claim this project already disproved, so the qualifier travels with it.
         st.radio("Investment return rate", list(RETURN_BUTTONS),
-                 key="return_button")
+                 key="return_button",
+                 help="This input drives the picture, not the answer — the "
+                      "break-even under current rules is the same 32.5% at all "
+                      "three rates. The nevermind threshold DOES move with it "
+                      "(58.4% to 66.5%), because a frozen allowance is a "
+                      "smaller share of a bigger portfolio.")
 
     with strip[4]:
         st.toggle("Tax law changes", key="policy_on")
-        # [SPRINT-7-CLEANUP] Section 7's "You can still contribute — it just
-        # stops being worth it. Poland 2013 · Ireland 2011 · US SECURE Act
-        # 2019" removed, same reason. This is the one of the three whose loss
-        # costs the most unnarrated: the three precedents are what stop the
-        # nevermind scenario reading as invented.
+        # RETURNED AS A TOOLTIP.  Of the three removals this was the one whose
+        # loss cost the most unnarrated -- the three precedents are what stop
+        # the nevermind scenario reading as invented, and a panelist reading
+        # alone had no way to reach them.
         st.number_input("in year", min_value=1,
+                        help="You can still contribute — it just stops being "
+                             "worth it. Direct taxation of Roth withdrawals is "
+                             "the least likely form this takes; what has "
+                             "repeatedly happened instead is that tax-free "
+                             "money stops being invisible — counted toward a "
+                             "Medicare premium, the taxable share of Social "
+                             "Security, or an ACA subsidy. Poland 2013 · "
+                             "Ireland 2011 · US SECURE Act 2019.",
                         max_value=engine.RETIREMENT_AGE
                         - engine.Profile.current_age - 1,
                         step=1, key="policy_year")
@@ -953,7 +1207,7 @@ with main:
     # under it: the explainer sentences stayed where they were, which now reads
     # correctly because they describe the chart they now sit beneath.
     verdict_block(readings, st.session_state["policy_on"],
-                  st.session_state["policy_year"])
+                  st.session_state["policy_year"], profile.stops)
 
     st.altair_chart(
         threshold_axis(readings, st.session_state["policy_on"],
@@ -961,7 +1215,7 @@ with main:
         width="stretch",
     )
 
-    verdict_detail(readings, st.session_state["policy_on"])
+    verdict_detail(readings, st.session_state["policy_on"], profile.stops)
     two_rates_sentence(readings)
 
     st.divider()
@@ -1081,11 +1335,56 @@ with main:
         "rather than the mean, because the ensemble average is not what any "
         "one household lives (D-15, D-23)."
     )
-    st.info(
-        "**Fragility panels — Low, Mid and High, your rung highlighted.** "
-        "The collapse is the lesson and a trend needs three points, so all "
-        "three stay visible. [SPRINT-8-CLEANUP] Sprint 8 builds the panels; "
-        "Sprint 6 owns this region and the caption above it."
+    # --- THE PANELS.  The region Sprint 6 reserved, consumed. ----------------
+    # THE LINE IS READ UNDER CURRENT RULES EVEN WHEN THE NEVERMIND TOGGLE IS ON,
+    # and that is D-63 rather than an oversight.  Every cell in the cube carries
+    # `policy: null` (D-26 keeps policy off the cube axes), so a policy
+    # threshold drawn against a no-policy cloud would put two different
+    # questions on one axis -- the exact defect D-24 named upstairs when two
+    # units shared the rate axis.
+    panel_line = (readings["rules_hold"].breakeven * 100.0
+                  if readings["rules_hold"].status == "crosses" else None)
+
+    st.altair_chart(fragility_panels(cube["cells"], rung, panel_line))
+
+    st.caption(
+        "**The collapse is the lesson, and it is derived rather than "
+        "observed.** Only the Low rung's mechanism is asymmetric — a forced "
+        "sale grosses up through the early-withdrawal penalty while Roth basis "
+        "comes out free — so 36 of these 48 cells equal your current combined "
+        f"rate exactly (D-22). Low spans **8.13 points** of break-even; Mid "
+        "spans 0.18 and High 0.08. **All three panels are pinned to one "
+        "0–40% domain**, which is why the upper two collapse to a point: that "
+        "is the finding, not a rendering failure. Let either of them scale to "
+        "its own data and a tenth of a point becomes the full panel width."
+    )
+    st.caption(
+        "**Four definitions of \"optimal,\" and the loud lesson is the "
+        "descent.** Reading down a Low column, the mean falls 6.67 points and "
+        "the 10th percentile falls 8.09 — expected value travels 82% as far as "
+        "the tail, so it is not blind to shocks. The quieter lesson is the "
+        "spread ACROSS a row: 0.00, 0.36, 0.76 and 1.47 points at zero, one, "
+        "two and three life events. The definition of optimal is contested for "
+        "exactly the population the fragility argument is about, and settled "
+        "for everyone else."
+    )
+    st.caption(
+        f"**Your rung is {RUNG_LABEL[rung]}, so the panel that is highlighted "
+        "is"
+        + (" one of the settled ones — at your rung this question is already "
+           "decided, and the argument is happening below you. Uncheck a bottom "
+           "stop to drop to Low and watch the four definitions come apart."
+           if rung != "low" else
+           " the contested one — this is where the four definitions disagree, "
+           "and where the ladder outranks the account election.")
+        + f" **The dots are modeled for the reference profile** (D-15): your "
+        "controls choose which rung is highlighted and where the blue line "
+        "sits, not where the dots are. The line is your own break-even under "
+        "current rules."
+    )
+    st.caption(
+        "**Why the P(not running out) column sits slightly left of the "
+        f"others.** {header['captions']['breakeven_objective_5']}"
     )
 
     st.divider()
@@ -1105,6 +1404,25 @@ with main:
                    "booleans share one 8.5% rate; turning this on narrows the "
                    "gap back toward baseline.")
         st.divider()
+        # ALL EIGHT ROWS, AND THREE LEANS ARE CORRECTED RATHER THAN CARRIED.
+        # Sprint 6 sourced this table from the page rather than from section 4,
+        # and shipped D3 and D8 as leaning TRADITIONAL and D7 as leaning ROTH.
+        # Section 4 says Roth, Roth and EITHER DIRECTION, and it is the
+        # disposition table -- section 0 gives it precedence over the deck.
+        #
+        # THE TWO INVERSIONS ARE THE SAME MISREADING TWICE, and DESIGN 3.3
+        # already named it: a row states its LEAN, not its verdict.  D3 and D8
+        # are Traditional-FLAVORED money, which is what Sprint 6's own caption
+        # says -- and money that already arrives pre-tax is precisely what makes
+        # deferring MORE of it worth less.  The flavour of the dollar and the
+        # direction of the effect point opposite ways.
+        #
+        # D7 IS THE ONE THAT MATTERED MOST.  Labelled "Roth," it reproduces the
+        # design deck's retired claim that the rule moving makes Roth safer.
+        # D-40 is the algebra that reversed it: a policy harming only Roth
+        # strictly RAISES the rate at which Roth becomes worthwhile, so at the
+        # archetype it widens Traditional's lead -- and it flips the other way
+        # at the early-career preset.  Either direction, and the preset is why.
         st.markdown(
             "| # | Departure | Leans | Modeled |\n"
             "|---|---|---|---|\n"
@@ -1112,20 +1430,37 @@ with main:
             " | yes |\n"
             "| D2 | Contribution limit binds — Roth shelters more real money | "
             "Roth | yes, off by default |\n"
-            "| D3 | Taxable side account | Traditional | `TODO` |\n"
-            "| D7 | Tax treatment changes prospectively, Roth only | Roth | "
-            "yes, the toggle above |\n"
-            "| D8 | Employer match | Traditional | `TODO` |\n"
+            "| D3 | Below the limit, the tax saving sits in a taxable side "
+            "account | Roth | `TODO` |\n"
+            "| D4 | You retire to a state that also taxes income | Roth | yes, "
+            "the toggle above |\n"
+            "| D5 | A shock forces withdrawal — Traditional penalty vs. Roth "
+            "basis | Roth | yes, the panels below |\n"
+            "| D6 | \"Optimal\" isn't expected value | either | yes, always on "
+            "— the four colours below |\n"
+            "| D7 | The rule moves | either direction | yes, the toggle above |"
+            "\n"
+            "| D8 | Employer match pushes withdrawals into higher brackets | "
+            "Roth | `TODO` |\n"
         )
         st.caption(
             "Each row names its **lean**, not its verdict — a departure that "
             "leans Roth is not an argument for Roth. The threshold is the "
             "argument. D3 and D8 are real effects left unmodeled on purpose: "
             "both are Traditional-flavored money that arrives whether or not "
-            "you choose it, so almost nobody is a pure case, and saying that "
-            "is worth more than modeling it badly."
+            "you choose it — which is exactly why they lean Roth, since a "
+            "dollar already coming out pre-tax makes deferring the next one "
+            "worth less. Almost nobody is a pure case, and saying that is "
+            "worth more than modeling it badly."
         )
-        # [SPRINT-7-CLEANUP] Section 7 and DESIGN 3.3 both say EIGHT departure
-        # rows.  Five are sourced above; D5 and D6 are named nowhere in Sprint
-        # 6's reading list, so they are omitted rather than invented.  Sprint 7
-        # owns the accordion and should add them from the departures table.
+        # D-42, AND IT IS THE CAP LESSON FROM THE OTHER SIDE.  The row above
+        # says the limit binds and Roth shelters more; this says the archetype
+        # cannot reach that shelter, for the same reason.
+        st.caption(
+            "**D2, and why it ships off by default.** The archetype cannot "
+            "afford to max a Roth: 20% of $165,000 is $33,000 of capacity "
+            "against the $36,296 pre-tax cost of filling a $24,500 Roth. The "
+            "cap is denominated in dollars that cost you more, so it binds "
+            "before it looks like it should — which is the same lesson the row "
+            "above states from the side where the cap helps (D-42, D-25)."
+        )
