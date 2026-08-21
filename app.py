@@ -180,6 +180,31 @@ RETURN_BUTTONS = {
 }
 
 
+def escape_dollars(text: str) -> str:
+    """`$` IS A KaTeX DELIMITER IN st.markdown, AND THIS PAGE IS ABOUT MONEY.
+
+    Streamlit renders LaTeX between dollar signs, so any rendered string
+    carrying TWO of them hands the span between them to the maths renderer.
+    "crosses **$1M at age 56** and **$2M at age 64**" came out as one run of
+    italic maths -- in the sentence that puts L1 in years, which is the most
+    quotable line on the page.  Ten strings were affected and five of them
+    paired.
+
+    A LONE `$` IS HARMLESS, WHICH IS EXACTLY WHY THIS SURVIVED REVIEW.  The
+    defect only appears when a SECOND one arrives, usually in a different edit
+    months later, and it lands in whichever sentence happened to be nearby.  So
+    the rule is every dollar sign rather than every pair, because a rule about
+    pairs cannot be checked one string at a time.
+
+    TWO ROUTES, ONE INVARIANT.  Literals this file owns escape inline as `\\$`;
+    text arriving from outside -- `engine.LADDER_STOPS` carries "$400" and
+    "$2,000" and the seam forbids editing it -- comes through here.
+    `test_no_rendered_copy_hands_a_dollar_sign_to_the_maths_renderer` enforces
+    the outcome and does not care which route was taken.
+    """
+    return text.replace("$", "\\$")
+
+
 # =============================================================================
 # THE ARTIFACT.  Read, never computed.
 # =============================================================================
@@ -611,7 +636,8 @@ def verdict_detail(readings: dict, policy_on: bool, stops: tuple) -> None:
 
     if active.status == "always_trad":
         st.markdown(
-            f"A rule change this early freezes **${readings['allowance']:,.0f}**"
+            f"A rule change this early freezes "
+            f"**\\${readings['allowance']:,.0f}**"
             " tax-free and taxes everything after it as ordinary income. "
             "Traditional wins at every rate on the axis. There is no line here "
             "to be on the wrong side of."
@@ -658,7 +684,8 @@ def verdict_detail(readings: dict, policy_on: bool, stops: tuple) -> None:
     gate = binding_gate(stops)
     if gate is not None:
         st.markdown(
-            f"**{engine.LADDER_STOPS[gate]} sits below this question on the "
+            f"**{escape_dollars(engine.LADDER_STOPS[gate])} sits below this "
+            "question on the "
             "flowchart.** Without it a life event forces a sale, which is the "
             "Low-rung mechanism the panels below draw — and it moves the "
             "outcome further than the account election can at any rate on this "
@@ -671,7 +698,8 @@ def verdict_detail(readings: dict, policy_on: bool, stops: tuple) -> None:
         # rather than advice: no 401(k) election returns 20% guaranteed, so this
         # comparison needs no model and no rate.
         st.markdown(
-            f"**Paying off {engine.LADDER_STOPS[DEBT_STOP]} beats either "
+            f"**Paying off {escape_dollars(engine.LADDER_STOPS[DEBT_STOP])} "
+            "beats either "
             "account, at any tax rate.** That is arithmetic rather than "
             "advice — no 401(k) election returns 20% guaranteed."
         )
@@ -1150,7 +1178,8 @@ with rail_box:
     # markers stay.  Rendered top-down so the picture matches the mockup, while
     # engine.LADDER_STOPS stays bottom-up because contiguity is a MODELING rule.
     for i in range(len(engine.LADDER_STOPS) - 1, -1, -1):
-        st.checkbox(f"{i + 1}. {engine.LADDER_STOPS[i]}", key=f"stop_{i}")
+        st.checkbox(f"{i + 1}. {escape_dollars(engine.LADDER_STOPS[i])}",
+                    key=f"stop_{i}")
 
 profile = profile_from_state()
 rung = profile.rung
@@ -1165,12 +1194,19 @@ with rail_box:
     if cleared < len(engine.LADDER_STOPS) and any(profile.stops[cleared:]):
         st.warning(
             "You have assets above a gap — the flowchart would prioritize "
-            f"**{engine.LADDER_STOPS[cleared]}** first."
+            f"**{escape_dollars(engine.LADDER_STOPS[cleared])}** first."
         )
 
 with main:
     # --- TOP STRIP.  DECISIONS section 7, left to right ----------------------
-    strip = st.columns([1.1, 1.5, 1.0, 1.5, 1.2, 1.1])
+    # WIDTHS REBALANCED: THE NARROWEST SLOT HELD THE LONGEST LABEL.  "State
+    # income tax (while working)" sat at 1.0 of 8.4 and clipped mid-word.  The
+    # parenthetical cannot be dropped -- D-30 splits state tax into TWO
+    # booleans and "while working" is the only thing distinguishing this one
+    # from D4's row in the accordion, so shortening the label would delete the
+    # distinction rather than the overflow.  Widened from its neighbours
+    # instead: "Current income" and the return radio both had slack.
+    strip = st.columns([1.0, 1.45, 1.55, 1.4, 1.15, 1.05])
 
     with strip[0]:
         st.number_input("Current income", min_value=0, step=1_000,
@@ -1306,7 +1342,8 @@ with main:
         st.altair_chart(charts)
         st.caption(
             "**Same data, both panels.** On the left the gap between "
-            "Traditional and Roth grows from about $8,000 to about $685,000 — "
+            "Traditional and Roth grows from about \\$8,000 to about "
+            "\\$685,000 — "
             "and the ratio behind it never changed. It is fixed at "
             f"1 ÷ (1 − {t_display}) for all thirty years, which is why the "
             "right-hand panel draws two parallel lines. **The account choice "
@@ -1322,7 +1359,7 @@ with main:
     if first and second:
         st.markdown(
             f"At {rate_now:.0%} real, the Traditional balance crosses "
-            f"**$1M at age {first}** and **$2M at age {second}** — "
+            f"**\\$1M at age {first}** and **\\$2M at age {second}** — "
             f"**{second - first} more working years** for the second million. "
             "Change the return rate and those ages move by years. The "
             "break-even above does not move at all."
@@ -1330,12 +1367,12 @@ with main:
     elif first:
         st.markdown(
             f"At {rate_now:.0%} real, the Traditional balance crosses "
-            f"**$1M at age {first}** and does not reach $2M by "
+            f"**\\$1M at age {first}** and does not reach \\$2M by "
             f"{engine.RETIREMENT_AGE}."
         )
     else:
         st.markdown(
-            f"At {rate_now:.0%} real, this profile does not reach $1M by "
+            f"At {rate_now:.0%} real, this profile does not reach \\$1M by "
             f"{engine.RETIREMENT_AGE}."
         )
 
@@ -1347,7 +1384,7 @@ with main:
             f" — about {1 / dollars['ratio']:.1f}× what moving up a rung is worth"
             if dollars["ratio"] else ""
         )
-        st.markdown(f"#### Getting this right is worth ~${dollars['x']:,.0f}"
+        st.markdown(f"#### Getting this right is worth ~\\${dollars['x']:,.0f}"
                     f"{ratio_clause}")
         st.caption(
             f"10th-percentile outcome (objective 4) at one shock, if you miss "
@@ -1362,14 +1399,14 @@ with main:
         f"at your {readings['t_now']:.1%} deferral rate, and it sits on the "
         "Roth curve at every year, not just at 65. Same pre-tax dollars in "
         "(D-01); the divergence is the share the deferral is holding for the "
-        "government. Both y-axes are pinned and share a $6M ceiling, so a "
+        "government. Both y-axes are pinned and share a \\$6M ceiling, so a "
         "click on the return rate moves the curves rather than the labels."
     )
     st.caption(
         "**Nothing is clamped.** Balances are allowed to go negative and ruin "
         "is recorded rather than floored (D-38). At the Low rung a forced sale "
-        "is not affordability-checked, so a saver with $8,000 in the account "
-        "can 'sell' $73,959 of it — right for the grid, wrong as a sentence "
+        "is not affordability-checked, so a saver with \\$8,000 in the account "
+        "can 'sell' \\$73,959 of it — right for the grid, wrong as a sentence "
         "about a person. A log axis cannot draw a non-positive number, so such "
         "a year leaves a gap in the line rather than being clamped to the floor."
     )
@@ -1381,7 +1418,7 @@ with main:
     if dollars["y"] is not None:
         st.markdown(
             f"#### Moving from {RUNG_LABEL[rung]} to "
-            f"{RUNG_LABEL[NEXT_RUNG[rung]]} is worth ~${dollars['y']:,.0f}"
+            f"{RUNG_LABEL[NEXT_RUNG[rung]]} is worth ~\\${dollars['y']:,.0f}"
             + (f" — about {dollars['ratio']:.1f}× what getting the account "
                "right is worth" if dollars["ratio"] else "")
         )
@@ -1389,7 +1426,7 @@ with main:
         # D-36.  UNDEFINED at High, and the app says so rather than printing a
         # zero that would read as "moving up is worth nothing."
         st.markdown("#### There is no rung above High.")
-        st.caption("$Y compares one step up, and High is the top of the "
+        st.caption("\\$Y compares one step up, and High is the top of the "
                    "ladder — so it is undefined here rather than zero (D-36).")
 
     # D-15.  THE TWO RETURN MODELS ARE CAPTIONED WHERE THEY MEET, and the number
@@ -1405,7 +1442,7 @@ with main:
         f"{SERIES_GEOMETRIC_MEAN:.1f}%. "
         f"**Thresholds agree across the two** — the scalar multiple guarantees "
         f"it — **but the dollars do not**: Traditional's balance at 65 has a "
-        f"median of ${SERIES_MEDIAN_T65:,} under the series, "
+        f"median of \\${SERIES_MEDIAN_T65:,} under the series, "
         f"{SERIES_MEDIAN_GAP} against the deterministic proxy. The median "
         "rather than the mean, because the ensemble average is not what any "
         "one household lives (D-15, D-23)."
@@ -1443,19 +1480,32 @@ with main:
         "exactly the population the fragility argument is about, and settled "
         "for everyone else."
     )
+    # WRITTEN AS TWO WHOLE SENTENCES PER BRANCH RATHER THAN AS ONE STRING WITH
+    # A CONDITIONAL SPLICED INTO THE MIDDLE.  The first version opened `**` in
+    # the shared head, closed it inside the shared tail, and put a branch
+    # between them -- so the bold ran across the join, the tail's own `**` pair
+    # was read as the closer, and the paragraph shipped with a stray `**` in
+    # front of it.  A markup pair that opens in one fragment and closes in
+    # another is a pair nobody can see is unbalanced.
+    if rung == "low":
+        rung_line = (
+            f"**Your rung is {RUNG_LABEL[rung]}, so the highlighted panel is "
+            "the contested one.** This is where the four definitions disagree, "
+            "and where the ladder outranks the account election."
+        )
+    else:
+        rung_line = (
+            f"**Your rung is {RUNG_LABEL[rung]}, so the highlighted panel is "
+            "already settled.** At your rung this question is decided and the "
+            "argument is happening below you. Uncheck a bottom stop to drop to "
+            "Low and watch the four definitions come apart."
+        )
     st.caption(
-        f"**Your rung is {RUNG_LABEL[rung]}, so the panel that is highlighted "
-        "is"
-        + (" one of the settled ones — at your rung this question is already "
-           "decided, and the argument is happening below you. Uncheck a bottom "
-           "stop to drop to Low and watch the four definitions come apart."
-           if rung != "low" else
-           " the contested one — this is where the four definitions disagree, "
-           "and where the ladder outranks the account election.")
-        + f" **The dots are modeled for the reference profile** (D-15): your "
-        "controls choose which rung is highlighted and where the blue line "
-        "sits, not where the dots are. The line is your own break-even under "
-        "current rules."
+        rung_line
+        + " **The dots are modeled for the reference profile** (D-15): your"
+        " controls choose which rung is highlighted and where the blue line"
+        " sits, not where the dots are. The line is your own break-even under"
+        " current rules."
     )
     st.caption(
         "**Why the P(not running out) column sits slightly left of the "
@@ -1498,30 +1548,49 @@ with main:
         # strictly RAISES the rate at which Roth becomes worthwhile, so at the
         # archetype it widens Traditional's lead -- and it flips the other way
         # at the early-career preset.  Either direction, and the preset is why.
+        # THE STATUS COLUMN READS AS A SYSTEM RATHER THAN AS AN EXCEPTION,
+        # AND THAT IS TWO FIXES IN ONE CELL SHAPE.
+        #
+        # REGISTER.  The column was reporting scope in product words -- yes,
+        # off by default, the toggle above -- and then said `TODO` twice.
+        # `TODO` is a word from a codebase, so it imports a codebase meaning:
+        # UNFINISHED.  D3 and D8 are not unfinished.  They are real effects
+        # left out on purpose, which is a stronger thing to say and the exact
+        # opposite of what the borrowed word says.
+        #
+        # SALIENCE.  Backticks were the only styling in the column, so the two
+        # ABSENCES were the loudest content in a table of eight presences -- the
+        # eye landed on the two things the model does not do.  Chipping every
+        # cell costs the same edit and makes status a column rather than a
+        # flag.  Three values, and the third is real: D2 is implemented in the
+        # engine and reachable from no control, because cut 3 took the
+        # accordion read-only.
         st.markdown(
             "| # | Departure | Leans | Modeled |\n"
             "|---|---|---|---|\n"
             "| D1 | You withdraw across brackets, not at one rate | Traditional"
-            " | yes |\n"
+            " | `modeled` — always on, and it is the orange marker |\n"
             "| D2 | Contribution limit binds — Roth shelters more real money | "
-            "Roth | yes, off by default |\n"
+            "Roth | `modeled · off` — in the engine, reachable from no control"
+            " |\n"
             "| D3 | Below the limit, the tax saving sits in a taxable side "
-            "account | Roth | `TODO` |\n"
-            "| D4 | You retire to a state that also taxes income | Roth | yes, "
-            "the toggle above |\n"
+            "account | Roth | `not modeled` — arrives either way |\n"
+            "| D4 | You retire to a state that also taxes income | Roth | "
+            "`modeled` — the toggle above |\n"
             "| D5 | A shock forces withdrawal — Traditional penalty vs. Roth "
-            "basis | Roth | yes, the panels below |\n"
-            "| D6 | \"Optimal\" isn't expected value | either | yes, always on "
-            "— the four colours below |\n"
-            "| D7 | The rule moves | either direction | yes, the toggle above |"
-            "\n"
+            "basis | Roth | `modeled` — the panels below |\n"
+            "| D6 | \"Optimal\" isn't expected value | either | `modeled` — "
+            "always on, the four colours below |\n"
+            "| D7 | The rule moves | either direction | `modeled` — the toggle "
+            "above |\n"
             "| D8 | Employer match pushes withdrawals into higher brackets | "
-            "Roth | `TODO` |\n"
+            "Roth | `not modeled` — arrives either way |\n"
         )
         st.caption(
             "Each row names its **lean**, not its verdict — a departure that "
             "leans Roth is not an argument for Roth. The threshold is the "
-            "argument. D3 and D8 are real effects left unmodeled on purpose: "
+            "argument. **`not modeled` is a scope report, not a backlog "
+            "item** — D3 and D8 are real effects left out on purpose: "
             "both are Traditional-flavored money that arrives whether or not "
             "you choose it — which is exactly why they lean Roth, since a "
             "dollar already coming out pre-tax makes deferring the next one "
@@ -1533,8 +1602,9 @@ with main:
         # cannot reach that shelter, for the same reason.
         st.caption(
             "**D2, and why it ships off by default.** The archetype cannot "
-            "afford to max a Roth: 20% of $165,000 is $33,000 of capacity "
-            "against the $36,296 pre-tax cost of filling a $24,500 Roth. The "
+            "afford to max a Roth: 20% of \\$165,000 is \\$33,000 of "
+            "capacity against the \\$36,296 pre-tax cost of filling a "
+            "\\$24,500 Roth. The "
             "cap is denominated in dollars that cost you more, so it binds "
             "before it looks like it should — which is the same lesson the row "
             "above states from the side where the cap helps (D-42, D-25)."

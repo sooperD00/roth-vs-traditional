@@ -356,7 +356,7 @@ modeled, and which are visible-but-grayed.
 |---|---|
 | All eight rows render, **including the grayed ones** | The grayed rows are the evidence of completeness. Deleting a scoped-out mechanism makes the model look smaller and less considered than it is |
 | D4 — retirement-state tax — **stays editable** when the rest goes read-only | It is the correction most users should apply to the default, and defaults are earn-taxed / retire-untaxed, the widest honest case (D-30) |
-| D3 and D8 grayed with visible `TODO` | Both are real effects. The taxable side account and the employer match are Traditional-flavored money that arrives whether or not you choose it, so almost nobody is a pure case. Saying that is worth more than modeling it badly |
+| D3 and D8 grayed with a visible out-of-scope status — ~~`TODO`~~ **`not modeled`, amended at Sprint 8 (D-65)** | Both are real effects. The taxable side account and the employer match are Traditional-flavored money that arrives whether or not you choose it, so almost nobody is a pure case. Saying that is worth more than modeling it badly |
 | Each row names its **lean**, not its verdict | A departure that leans Roth is not an argument for Roth. The threshold is the argument |
 
 **What moved.** D7's note in this mockup reads *"in year 20 all tax benefits go

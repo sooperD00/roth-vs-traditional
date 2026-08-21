@@ -511,15 +511,42 @@ def test_all_eight_departures_render_and_three_leans_are_corrected() -> None:
     worthwhile, so it widens Traditional's lead at the archetype and flips at
     the early-career preset.  Either direction.
     """
-    visible = _visible(_run())
+    app_ = _run()
+    visible = _visible(app_)
 
     for row in ("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"):
         assert f"| {row} |" in visible, (
             f"{row} must render -- the grayed rows are the evidence of "
             "completeness, and section 7 and DESIGN 3.3 both say eight"
         )
-    assert visible.count("`TODO`") == 2, (
-        "exactly D3 and D8 are grayed with a visible TODO"
+    # THE TOKEN CHANGED AND THE DONE-WHEN IT ANSWERS DID NOT (D-65).  The row
+    # asked for a visible `TODO` on the grayed rows.  `TODO` is a word from a
+    # codebase and it imports a codebase meaning -- UNFINISHED -- into a column
+    # that is otherwise reporting SCOPE, and D3 and D8 are not unfinished.
+    # `not modeled` keeps the done-when's intent (the page admits out loud what
+    # it does not do) and drops the borrowed meaning.
+    # COUNTED INSIDE THE TABLE ELEMENT, NOT ACROSS THE PAGE.  Two bites at
+    # this, both on this test's own runs.  The caption under the table now
+    # explains the statuses in the same words, so a page-wide count picked it
+    # up -- and `_visible()` joins elements with a SPACE rather than a newline,
+    # so splitting the joined page on "\n" welds that caption onto the D8 row.
+    # The table is one markdown element; read it as one.
+    table = next(m.value for m in app_.markdown if "| D1 |" in m.value)
+    rows = [seg for seg in table.split("\n") if seg.startswith("| D")]
+    assert len(rows) == 8, f"eight departure rows, got {len(rows)}"
+    statuses = "".join(rows)
+    assert statuses.count("`not modeled`") == 2, (
+        "exactly D3 and D8 report out of scope, and they say so on the page"
+    )
+    assert "`TODO`" not in visible, (
+        "the IDE register is gone from the page; §4 keeps it, the page does not"
+    )
+    # AND EVERY CELL IN THE COLUMN CARRIES A CHIP, which is the other half.
+    # Backticks were the only styling in that column, so two ABSENCES were the
+    # loudest content in a table of eight presences.
+    assert statuses.count("`modeled`") == 5 and "`modeled · off`" in statuses, (
+        "all eight status cells are chipped, so status reads as a system "
+        "rather than as an exception flag on the two rows that lack something"
     )
     for row, lean in (("D3", "Roth"), ("D8", "Roth"),
                       ("D7", "either direction")):
@@ -615,6 +642,76 @@ def test_the_sticky_rail_selectors_are_ones_this_streamlit_actually_emits(
             f"{why}. STICKY_RAIL_CSS now matches nothing and the resilience "
             "ladder has silently stopped following the scroll."
         )
+
+
+@pytest.mark.parametrize("state,label", [
+    ({}, "defaults"),
+    ({"stop_0": False}, "gate 1 unmet, D-35's copy on screen"),
+    ({"stop_2": False}, "stop 3's debt line on screen"),
+    ({"stop_3": False, "stop_4": False, "stop_5": False}, "Low rung"),
+    ({"stop_6": True, "stop_7": True, "stop_8": True, "stop_9": True}, "High"),
+    ({"policy_on": True, "policy_year": 1}, "the always_trad sentinel"),
+    ({"income_35": 0, "state_while_working": False}, "the blocked notice"),
+])
+def test_no_rendered_copy_hands_a_dollar_sign_to_the_maths_renderer(
+    state: dict, label: str
+) -> None:
+    """`$` IS A KaTeX DELIMITER, AND EVERY HEADLINE ON THIS PAGE IS MONEY.
+
+    Streamlit gives the span between two dollar signs to the maths renderer.
+    Found at review across TEN rendered strings, five of which paired -- and
+    they paired in the most quotable sentences on the page: *crosses **$1M at
+    age 56** and **$2M at age 64*** rendered as a run of italic maths, which is
+    L1 stated in years, the one sentence the milestone test exists to protect.
+
+    A LONE `$` IS HARMLESS AND THAT IS WHY THIS SURVIVED SIX SPRINTS.  Nothing
+    breaks until a SECOND one arrives, usually in an unrelated edit, and then
+    the damage lands in whichever sentence was nearby.  A rule about pairs
+    cannot be checked one string at a time, so the rule is every dollar sign.
+
+    ASSERTED ON THE RENDERED PAGE RATHER THAN ON THE SOURCE, because the
+    source has two legitimate routes -- inline `\\$` for literals this file
+    owns and `escape_dollars()` for text arriving from `engine.LADDER_STOPS`,
+    which carries "$400" and "$2,000" and which the seam forbids editing.  What
+    matters is what reaches the browser, and only one of these two is a grep.
+
+    THE SECOND HALF IS THE SAME CLASS OF BUG.  An odd number of `**` markers
+    means a bold that opens and never closes; the panel caption shipped with
+    one, because the pair opened in a shared fragment and was supposed to close
+    on the far side of a conditional.  Both defects render, both look like a
+    typo to a reader, and neither is visible to any test that checks numbers.
+    """
+    app_ = _run(**state)
+    assert not app_.exception, app_.exception
+
+    surfaces = (
+        [("markdown", m.value) for m in app_.markdown]
+        + [("caption", c.value) for c in app_.caption]
+        + [("info", i.value) for i in app_.info]
+        + [("warning", w.value) for w in app_.warning]
+        + [("checkbox", c.label) for c in app_.checkbox]
+        + [("toggle", t.label) for t in app_.toggle]
+        + [("radio", r.label) for r in app_.radio]
+    )
+    assert surfaces, "nothing rendered, so nothing was actually checked"
+
+    unescaped = re.compile(r"(?<!\\)\$")
+    offenders = [
+        (kind, text) for kind, text in surfaces if unescaped.search(text)
+    ]
+    assert offenders == [], (
+        f"unescaped $ at {label}: KaTeX will eat the span between any two of "
+        f"them. Escape as \\\\$ inline, or via escape_dollars() for text from "
+        f"engine. {offenders[:2]}"
+    )
+
+    unbalanced = [
+        (kind, text[:70]) for kind, text in surfaces if text.count("**") % 2
+    ]
+    assert unbalanced == [], (
+        f"an unclosed ** at {label} -- the paragraph ships with a stray marker "
+        f"in front of it: {unbalanced[:2]}"
+    )
 
 
 def test_the_two_balance_panels_are_one_chart_with_a_shared_legend() -> None:
