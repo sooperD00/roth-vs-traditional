@@ -573,16 +573,26 @@ def test_the_sticky_rail_is_wired_to_the_column_the_stylesheet_targets() -> None
     That is the same failure shape as the two axis tests above: correct output,
     wrong behaviour, invisible to correctness testing.  Asserted structurally
     because there is nothing on screen to assert.
+
+    **THIS TEST IS NOT SUFFICIENT ON ITS OWN AND ONCE PROVED IT.** It reads the
+    source, so it passed through the entire window in which D-66 had deleted
+    the `st.html()` call: the constant existed, the container was keyed, every
+    selector was present, and none of it reached a browser.  Both ends of the
+    wire, and not the wire.  `test_the_sticky_rail_stylesheet_actually_reaches_
+    the_page` is the other half and was written because of that.
     """
     source = APP.read_text(encoding="utf-8")
     key = "resilience_rail"
 
-    # ASSERTED ON THE CALL, NOT ON THE RECEIVER.  It is `rail.container(...)`
-    # rather than `st.container(...)` because the container has to be created
-    # INSIDE the rail column -- an `st.`-prefixed assertion here was wrong the
-    # first time it ran, which is the cheapest possible demonstration that this
-    # test is reading the file rather than agreeing with me.
-    assert f'container(key="{key}")' in source, (
+    # MATCHED ON THE ARGUMENT, NOT ON THE WHOLE CALL, AND IT TOOK TWO GOES.
+    # First it asserted `st.container(...)` when the call is
+    # `rail.container(...)` -- the container has to be created INSIDE the rail
+    # column.  Then it asserted the exact two-character call `container(key=X)`
+    # and went red the moment a second argument arrived (`gap="xxsmall"`, the
+    # density knob the rail needed once it held every control).  BOTH FAILURES
+    # WERE THE ASSERTION BEING MORE LITERAL THAN THE CLAIM: what matters is that
+    # a container is created with this key, not how many arguments it takes.
+    assert re.search(rf'container\([^)]*key="{key}"', source), (
         "the rail's keyed container is what the stylesheet hangs off"
     )
     assert f".st-key-{key}" in source, (
@@ -600,6 +610,59 @@ def test_the_sticky_rail_is_wired_to_the_column_the_stylesheet_targets() -> None
     assert "with rail:" not in source, (
         "both rail blocks must enter the KEYED container -- a leftover "
         "`with rail:` writes outside it and that content does not stick"
+    )
+
+
+def test_the_sticky_rail_stylesheet_actually_reaches_the_page() -> None:
+    """THE TEST BESIDE THIS ONE PASSED WHILE THE FEATURE WAS DEAD.
+
+    D-66 rewrote the layout from `st.title()` down to the old settings strip,
+    and `st.html(STICKY_RAIL_CSS)` sat two lines under that title.  It was
+    swallowed by the replacement.  The rail stopped following the scroll.
+
+    NOTHING WENT RED.  The stylesheet was still defined, still carried every
+    selector, still had its comment block explaining the three numbers -- and
+    `test_the_sticky_rail_is_wired_to_the_column_the_stylesheet_targets` reads
+    the SOURCE, so it happily confirmed that a constant existed and a container
+    was keyed.  It never asked whether the two were connected at runtime.  Both
+    ends of the wire were tested and the wire was not.
+
+    **THAT IS D-52'S SENTENCE ONE LAYER OUT** -- an unpinned fingerprint *reads
+    as coverage and is not* -- and it is the third instance in this project of a
+    guard that describes a thing rather than checking it.
+
+    So this asserts DELIVERY: the stylesheet is on the rendered page, and the
+    class it selects is the class the rail container actually emits.  Source
+    assertions cannot reach that, because a string in a file is not a byte on a
+    page.
+    """
+    app_ = _run()
+    assert not app_.exception, app_.exception
+
+    blocks = app_.get("html")
+    assert blocks, (
+        "no st.html on the page -- STICKY_RAIL_CSS is defined and never "
+        "injected, which is exactly how this broke the first time"
+    )
+    delivered = " ".join(getattr(b, "body", "") for b in blocks)
+
+    assert "position: sticky" in delivered, (
+        "the sticky rule must reach the browser, not merely exist in app.py"
+    )
+    assert ".st-key-resilience_rail" in delivered, (
+        "the delivered stylesheet must select the class the rail emits"
+    )
+    assert "align-self: flex-start" in delivered, (
+        "a stretched flex item is already full height and cannot stick"
+    )
+    # AND THE TWO ENDS MUST AGREE.  A rename on either side leaves both halves
+    # individually valid and the rail unstuck -- which is the failure this whole
+    # pair of tests exists for.
+    source = APP.read_text(encoding="utf-8")
+    key = re.search(r'container\([^)]*key="([^"]+)"', source).group(1)
+    assert f".st-key-{key}" in delivered, (
+        f"the page styles .st-key-... for a key the rail does not use: the "
+        f"container is keyed {key!r}"
     )
 
 
@@ -711,6 +774,59 @@ def test_no_rendered_copy_hands_a_dollar_sign_to_the_maths_renderer(
     assert unbalanced == [], (
         f"an unclosed ** at {label} -- the paragraph ships with a stray marker "
         f"in front of it: {unbalanced[:2]}"
+    )
+
+
+def test_every_control_survived_the_move_into_the_rail() -> None:
+    """D-66 RELOCATED EVERY CONTROL, AND A RELOCATION CAN DROP ONE SILENTLY.
+
+    The settings strip across the top became the sticky rail, and the two
+    buttons moved beside the title.  A widget that failed to make the trip
+    leaves a page that still renders, still computes, and quietly cannot reach
+    part of its own model -- `seed_state()` would keep supplying the default, so
+    the number on screen would be right and unchangeable.
+
+    Counted rather than eyeballed, because the failure is an ABSENCE and an
+    absence is what nobody notices.  Every key is also checked to still exist in
+    session state, since `profile_from_state()` reads them by name and a dropped
+    widget takes its key with it.
+    """
+    app_ = _run()
+    assert not app_.exception, app_.exception
+
+    assert len(app_.checkbox) == len(engine.LADDER_STOPS) == 10, (
+        "ten stops, one boolean each (D-32)"
+    )
+    assert len(app_.toggle) == 3, (
+        "state-while-working, tax-law-changes, and D4 in the accordion"
+    )
+    assert len(app_.radio) == 1, "the return buttons (D-04a)"
+    assert len(app_.number_input) == 5, "four income knots and the policy year"
+    assert len(app_.button) == 2, "the preset and the disabled model box"
+
+    for key in ("income_35", "income_38", "income_55", "income_65",
+                "state_while_working", "state_in_retirement", "return_button",
+                "policy_on", "policy_year"):
+        assert key in app_.session_state, (
+            f"{key} lost its widget in the move; profile_from_state() reads it "
+            "by name and seed_state() would keep serving the default"
+        )
+    for i in range(10):
+        assert f"stop_{i}" in app_.session_state, f"stop_{i} lost its widget"
+
+    # THE AXIS SENTENCE IS ON THE PAGE AND NOT IN THE CHART.  As a Vega title it
+    # clipped through the middle of the letters at narrow viewports, because
+    # `autosize: fit` spends the chart's height on the title, the axis and the
+    # legend before the plot gets any.  D-24 requires the axis to say that two
+    # units share it; a caption says it and cannot be clipped.
+    captions = " ".join(c.value for c in app_.caption)
+    assert "MARGINAL rate" in captions and "EFFECTIVE rate" in captions, (
+        "D-24's two-units sentence must survive leaving the Vega title"
+    )
+    spec = json.loads(_spec(app_, 0))
+    assert "title" not in spec, (
+        "the threshold axis must carry no Vega title -- that is the thing that "
+        "clipped, and it clipped only at some widths, which is why it shipped"
     )
 
 

@@ -103,6 +103,15 @@ SERIES_GEOMETRIC_MEAN = 6.8   # D-15.  The historical series' own geometric
 # show.  0-100 is also the honest range for "what could a future tax rate be".
 RATE_AXIS = [0.0, 100.0]
 
+# D-24's sentence, and it lives HERE rather than inside the chart.  Two units
+# share that axis -- t* is a future MARGINAL rate and the orange marker is an
+# EFFECTIVE one -- and the axis is required to say so.  As a Vega title it got
+# clipped at narrow viewports; as a caption it wraps.
+RATE_AXIS_CAPTION = (
+    "**future tax rate** — the bar's edge is a MARGINAL rate (t\\*), the "
+    "orange line is your EFFECTIVE rate today"
+)
+
 # THE BALANCE AXES ARE FIXED BECAUSE THE NUMBER DOES MOVE.  Auto-scaling hid the
 # L1 gesture completely: at 7% and at 12% the curve is the SAME SHAPE and only
 # the tick labels change, so clicking appeared to do nothing.  Pinned, the curve
@@ -539,15 +548,22 @@ def threshold_axis(readings: dict, policy_on: bool, policy_year: int):
                        dy=42, align="right" if right else "left",
                        dx=-6 if right else 6, fontSize=11.5, color=RAIL_GREY)
 
+    # THE TITLE IS NOT A VEGA TITLE ANY MORE, AND THAT IS THE FIX FOR A DEFECT
+    # THAT ONLY APPEARED SOMETIMES.  It read as one line at a wide viewport and
+    # wrapped at a narrow one, and `autosize: fit` spends `height` on the title,
+    # the axis AND the legend before the plot gets any -- so the second line had
+    # nowhere to go and Vega clipped the text through the middle of the letters.
+    # Every number was correct; the sentence explaining the units was sheared in
+    # half, which is D-24's whole contribution to this chart.
+    #
+    # A Streamlit caption cannot clip.  It wraps, it reflows, and it is the same
+    # instrument the rest of the page already uses for chart prose.  Rendered
+    # from RATE_AXIS_CAPTION at the call site, immediately above the chart.
     return chart.properties(
-        # Autosize "fit" spends this on the title, the axis and the legend as
-        # well as the plot, so it is a TOTAL, not a drawable area.
-        height=240,
-        title=alt.TitleParams(
-            "future tax rate  —  the bar's edge is a MARGINAL rate (t*), "
-            "the orange line is your EFFECTIVE rate today",
-            fontSize=12, color=RAIL_GREY, anchor="start",
-        ),
+        # Autosize "fit" spends this on the axis and the legend as well as the
+        # plot, so it is a TOTAL, not a drawable area.  The title no longer
+        # comes out of it, which is the whole 24px this went up by.
+        height=264,
     )
 
 
@@ -1087,8 +1103,20 @@ def fragility_panels(cells: dict, user_rung: str, line):
 # fragility panel is highlighted, and the panels are at the BOTTOM of the page.
 # A control you have to scroll away from in order to see its own effect is the
 # same defect DESIGN 3.1 named when it put the ladder in a rail at all: *a
-# control you have to scroll to cannot outrank anything.*  It applies twice --
-# to the panels, and to the balance graphs in the middle.
+# control you have to scroll to cannot outrank anything.*
+#
+# WIDENED AT D-66 TO EVERY CONTROL, and the argument generalised the moment it
+# was written down.  The return buttons move the balance graphs in the middle of
+# the page; the state toggle moves the line through the dot cloud at the bottom.
+# Both were in a strip across the top that scrolled away from every graph they
+# move.  The ladder was the loudest instance, not the only one.
+#
+# THE ONE COST, AND IT IS REAL.  A rail holding every control can be taller than
+# the viewport, and then the rail scrolls INSIDE itself -- with the ladder at
+# the bottom, it is the ladder that goes.  That internal scroll persists while
+# the page scrolls, so it is a one-time adjustment rather than a fight, but on a
+# short viewport it is the first thing to feel wrong.  `gap="xxsmall"` on the
+# container is the density lever; the checkbox list is the tallest block.
 #
 # THE ANCHOR IS STREAMLIT'S OWN, NOT A GUESSED SELECTOR.  `st.container(key=x)`
 # emits `class="st-key-x"`, which is a documented hook.  `:has()` then finds the
@@ -1098,15 +1126,18 @@ def fragility_panels(cells: dict, user_rung: str, line):
 #
 # THE THREE NUMBERS, AND THE MIDDLE ONE IS THE KNOB.
 #   4.5rem   floor.  Clears Streamlit's own fixed header.
-#   15rem    HALF THE RAIL'S HEIGHT, measured by eye at ~30rem: title, caption,
-#            ten checkboxes, the rung readout, and room for D-37's gap warning.
-#            This is what centres it. Raise it to sit higher, lower it to sit
-#            lower, and it is the only value worth touching.
-#   12rem    ceiling, and it buys something specific.  `top` also applies at
-#            scroll zero, where the rail's natural position is already near the
-#            top -- so an uncapped centring offset would push the rail visibly
-#            DOWN on first paint on a tall monitor.  Capped, that push is at
-#            most ~50px and reads as alignment rather than as a bug.
+#   24rem    HALF THE RAIL'S HEIGHT.  RE-MEASURED AT D-66, when the rail went
+#            from ten checkboxes to every control on the page: four income
+#            boxes, three toggles, a radio, a year box, ten checkboxes and the
+#            rung readout, ~48rem in total.  This is what centres it, and it is
+#            the only value worth touching -- raise it to sit higher, lower it
+#            to sit lower.
+#   6rem     ceiling, DOWN FROM 12rem AT D-66 FOR THE SAME REASON.  `top` also
+#            applies at scroll zero, where the rail's natural position is
+#            already near the top, so an uncapped centring offset pushes the
+#            rail visibly DOWN on first paint.  A rail this tall barely has
+#            room to centre at all, so the cap does most of the work now and
+#            the rail effectively pins just under the header.
 #
 # WHAT IT CANNOT DO.  Sticky has ONE threshold, so an element cannot be both
 # flush at scroll zero and centred while scrolling.  This picks centred, because
@@ -1124,11 +1155,11 @@ STICKY_RAIL_CSS = """
   [data-testid="stColumn"]:has(.st-key-resilience_rail) {
     position: sticky;
     align-self: flex-start;
-    top: clamp(4.5rem, calc(50vh - 15rem), 12rem);
+    top: clamp(3rem, calc(50vh - 24rem), 6rem);
     /* If the rail is taller than the viewport it scrolls INSIDE itself rather
        than running off the bottom.  A laptop at 768px is the case that needs
        this and it is the case a demo happens on. */
-    max-height: calc(100vh - 6rem);
+    max-height: calc(100vh - 4.5rem);
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.5rem;
@@ -1155,25 +1186,119 @@ seed_state()
 cube = load_cube()
 header = cube["header"]
 
-st.title("Traditional vs Roth retirement investing")
-
-# Injected once, before the columns exist.  st.html rather than st.markdown:
-# it lands as its own element rather than as page text, so the tests' _visible()
-# does not have a stylesheet spliced into the middle of the page copy.
+# THE STYLESHEET GOES HERE, IN THE SETUP BLOCK, AND THAT IS A SCAR.
+# It used to sit two lines under st.title(), and the D-66 layout pass rewrote
+# everything from that title down to the old settings strip -- which swallowed
+# this call.  The rail silently stopped following the scroll and the SOURCE
+# still contained the whole stylesheet, its comment block, and a test asserting
+# every selector in it.  All of that was true and none of it reached a browser.
+#
+# Two changes so it cannot happen the same way twice: the call lives in the
+# page-setup block, which no layout edit has a reason to touch, and
+# `test_the_sticky_rail_stylesheet_actually_reaches_the_page` asserts DELIVERY
+# rather than definition.  D-52's sentence, one layer out -- a guard nobody
+# runs reads as coverage and is not.
 st.html(STICKY_RAIL_CSS)
 
-rail, main = st.columns([1, 4.2], gap="large")
-# THE KEY IS LOAD-BEARING, NOT COSMETIC.  `st-key-resilience_rail` is the class
-# STICKY_RAIL_CSS keys off, and it is the only thing tying the stylesheet to
-# this column.  Renaming it silently unsticks the rail -- there is a test.
-rail_box = rail.container(key="resilience_rail")
+# --- TITLE ROW.  The two buttons ride beside the title (D-66) --------------
+# NEITHER IS A SETTING.  The preset writes four income boxes and two booleans in
+# one click, and the model box is DISABLED and always has been -- it is a
+# statement about the option space rather than a control.  Both were sitting in
+# the settings strip taking width from controls that change on every click, and
+# both are now beside the title where a masthead action belongs.
+title_col, preset_col, model_col = st.columns(
+    [5, 1.25, 1.4], vertical_alignment="center", gap="small"
+)
+with title_col:
+    st.title("Traditional vs Roth retirement investing")
+with preset_col:
+    st.button("Early-career preset", on_click=load_early_career,
+              width="stretch",
+              help="D-40's flip: Roth under current rules, Traditional once "
+                   "the rule moves. Income (35, $60,000) · (38, $54,000) · "
+                   "(55, $200,000) · (65, $200,000), neither state taxing.")
+with model_col:
+    # THE DISABLED MODEL BOX (section 7).  Disabled rather than absent: the
+    # option space was mapped and two were built, and a disabled control says so
+    # without implying the other seven exist.  The label is read off the
+    # artifact rather than typed, so it cannot drift from the cube.
+    # [SPRINT-7-CLEANUP] section 7 wants the tooltip to list all nine return
+    # models from CONTEXT part D; part D was not in Sprint 6's reading list nor
+    # in Sprint 8's, so the tooltip names the two IMPLEMENTED models and the
+    # count only.  Deferred to Sprint 10, which reads part D anyway.
+    st.button(
+        f"Model ({header['return_model']} resampling, "
+        f"length {header['block_length']})",
+        disabled=True, width="stretch",
+        help="Nine return models were mapped and two are implemented: "
+             "#2 fixed real rate, which draws the page's headline, and #6 "
+             f"{header['return_model']} resampling over the historical "
+             "series, which produced the committed grid.",
+    )
 
-# --- LEFT RAIL: the resilience ladder ----------------------------------------
-# L3 claims fragility outranks the account choice, and a control you have to
-# scroll to cannot outrank anything.  Always visible, never behind a click.
+rail, main = st.columns([1.2, 4.0], gap="large")
+
+# EVERY CONTROL LIVES IN THE STICKY RAIL NOW (D-66).  The strip across the top
+# was a settings bar that scrolled away from every graph it moved, and the page
+# grew two more regions below it this sprint.  `gap="xxsmall"` is the density
+# knob and it is Streamlit's own parameter rather than a CSS bet -- the widget
+# testids this build emits do not include a checkbox or a number input, so
+# there is nothing honest to select on.
+rail_box = rail.container(key="resilience_rail", gap="xxsmall")
+
 with rail_box:
+    # --- INCOME.  D-19's four knots, linearly interpolated ------------------
+    # LABEL BESIDE THE BOX RATHER THAN ABOVE IT.  Four stacked inputs with
+    # labels above cost ~110px of a rail that has to hold ten checkboxes too.
+    # The box keeps the LARGER share of the row because the reported defect was
+    # a clipped VALUE -- "540" where 54000 was typed -- and a number input
+    # spends about 56px of its width on stepper buttons before a digit is drawn.
+    st.markdown("**Income shape**")
+    for age, label in ((35, "At 35 (now)"), (38, "at 38"),
+                       (55, "at 55"), (65, "at 65")):
+        lab_col, box_col = st.columns([0.8, 1.2], vertical_alignment="center",
+                                      gap="small")
+        lab_col.markdown(label)
+        box_col.number_input(f"income at {age}", min_value=0, step=1_000,
+                             key=f"income_{age}", format="%d",
+                             label_visibility="collapsed")
+
+    st.toggle("State income tax (while working)", key="state_while_working",
+              help="Default assumes you earn in a taxing state and retire in "
+                   "one that doesn't. Both are toggles.")
+
+    st.radio("Investment return rate", list(RETURN_BUTTONS),
+             key="return_button",
+             help="This input drives the picture, not the answer — the "
+                  "break-even under current rules is the same 32.5% at all "
+                  "three rates. The nevermind threshold DOES move with it "
+                  "(58.4% to 66.5%), because a frozen allowance is a smaller "
+                  "share of a bigger portfolio.")
+
+    pol_col, year_col = st.columns([1.05, 1], vertical_alignment="bottom",
+                                   gap="small")
+    with pol_col:
+        st.toggle("Tax law changes", key="policy_on")
+    with year_col:
+        st.number_input("in year", min_value=1,
+                        max_value=engine.RETIREMENT_AGE
+                        - engine.Profile.current_age - 1,
+                        step=1, key="policy_year",
+                        help="You can still contribute — it just stops being "
+                             "worth it. Direct taxation of Roth withdrawals is "
+                             "the least likely form this takes; what has "
+                             "repeatedly happened instead is that tax-free "
+                             "money stops being invisible — counted toward a "
+                             "Medicare premium, the taxable share of Social "
+                             "Security, or an ACA subsidy. Poland 2013 · "
+                             "Ireland 2011 · US SECURE Act 2019.")
+
+    st.divider()
+
+    # --- THE LADDER.  L3 claims fragility outranks the account choice, and a
+    # control you have to scroll to cannot outrank anything.
     st.markdown("**Resilience ladder**")
-    st.caption("Ten stops. Check what you have cleared, from the bottom up.")
+    st.caption("Ten stops. Check what you have cleared, bottom up.")
     # CUT 4, PRE-APPROVED: colour bands become a single neutral rail and both
     # markers stay.  Rendered top-down so the picture matches the mockup, while
     # engine.LADDER_STOPS stays bottom-up because contiguity is a MODELING rule.
@@ -1198,95 +1323,6 @@ with rail_box:
         )
 
 with main:
-    # --- TOP STRIP.  DECISIONS section 7, left to right ----------------------
-    # WIDTHS REBALANCED: THE NARROWEST SLOT HELD THE LONGEST LABEL.  "State
-    # income tax (while working)" sat at 1.0 of 8.4 and clipped mid-word.  The
-    # parenthetical cannot be dropped -- D-30 splits state tax into TWO
-    # booleans and "while working" is the only thing distinguishing this one
-    # from D4's row in the accordion, so shortening the label would delete the
-    # distinction rather than the overflow.  Widened from its neighbours
-    # instead: "Current income" and the return radio both had slack.
-    strip = st.columns([1.0, 1.45, 1.55, 1.4, 1.15, 1.05])
-
-    with strip[0]:
-        st.number_input("Current income", min_value=0, step=1_000,
-                        key="income_35", format="%d")
-
-    with strip[1]:
-        # DESIGN 3.2's click-into number boxes.  D-19's four knots, linearly
-        # interpolated; the ages are the decision and only the values move.
-        st.markdown("**Income shape**")
-        shape = st.columns(3)
-        for col, age in zip(shape, (38, 55, 65)):
-            with col:
-                st.number_input(f"at {age}", min_value=0, step=1_000,
-                                key=f"income_{age}", format="%d",
-                                label_visibility="visible")
-
-    with strip[2]:
-        # RETURNED AS A TOOLTIP AT SPRINT 8, verbatim from section 7.  It was
-        # removed at round 2 for being narration Nicole says out loud, and the
-        # cost named at the time was the panelist who reads the deployed page
-        # WITHOUT her.  `help=` pays that back for no screen at all.
-        st.toggle("State income tax (while working)",
-                  key="state_while_working",
-                  help="Default assumes you earn in a taxing state and retire "
-                       "in one that doesn't. Both are toggles.")
-
-    with strip[3]:
-        # RETURNED AS A TOOLTIP, AND CORRECTED ON THE WAY BACK.  Section 7's
-        # line is "this input drives the picture, not the answer," which Sprint
-        # 6 measured as INCOMPLETE: it is exact for the current-rules threshold
-        # and false for the policy one, which moves 58.4% -> 66.5% across these
-        # three buttons.  Restoring the sentence unqualified would re-ship a
-        # claim this project already disproved, so the qualifier travels with it.
-        st.radio("Investment return rate", list(RETURN_BUTTONS),
-                 key="return_button",
-                 help="This input drives the picture, not the answer — the "
-                      "break-even under current rules is the same 32.5% at all "
-                      "three rates. The nevermind threshold DOES move with it "
-                      "(58.4% to 66.5%), because a frozen allowance is a "
-                      "smaller share of a bigger portfolio.")
-
-    with strip[4]:
-        st.toggle("Tax law changes", key="policy_on")
-        # RETURNED AS A TOOLTIP.  Of the three removals this was the one whose
-        # loss cost the most unnarrated -- the three precedents are what stop
-        # the nevermind scenario reading as invented, and a panelist reading
-        # alone had no way to reach them.
-        st.number_input("in year", min_value=1,
-                        help="You can still contribute — it just stops being "
-                             "worth it. Direct taxation of Roth withdrawals is "
-                             "the least likely form this takes; what has "
-                             "repeatedly happened instead is that tax-free "
-                             "money stops being invisible — counted toward a "
-                             "Medicare premium, the taxable share of Social "
-                             "Security, or an ACA subsidy. Poland 2013 · "
-                             "Ireland 2011 · US SECURE Act 2019.",
-                        max_value=engine.RETIREMENT_AGE
-                        - engine.Profile.current_age - 1,
-                        step=1, key="policy_year")
-
-    with strip[5]:
-        st.button("Early-career preset", on_click=load_early_career,
-                  width="stretch")
-        # THE DISABLED MODEL BOX (section 7).  Disabled rather than absent: the
-        # option space was mapped and two were built, and a disabled control
-        # says so without implying the other seven exist.  The label is read off
-        # the artifact rather than typed, so it cannot drift from the cube.
-        # [SPRINT-7-CLEANUP] section 7 wants the tooltip to list all nine return
-        # models from CONTEXT part D; part D was not in Sprint 6's reading list,
-        # so the tooltip names the two IMPLEMENTED models and the count only.
-        st.button(
-            f"Model ({header['return_model']} resampling, "
-            f"length {header['block_length']})",
-            disabled=True, width="stretch",
-            help="Nine return models were mapped and two are implemented: "
-                 "#2 fixed real rate, which draws the page's headline, and #6 "
-                 f"{header['return_model']} resampling over the historical "
-                 "series, which produced the committed grid.",
-        )
-
     st.divider()
 
     # --- THE COMPUTED HALF ---------------------------------------------------
@@ -1320,6 +1356,7 @@ with main:
     verdict_block(readings, st.session_state["policy_on"],
                   st.session_state["policy_year"], profile.stops)
 
+    st.caption(RATE_AXIS_CAPTION)
     st.altair_chart(
         threshold_axis(readings, st.session_state["policy_on"],
                        st.session_state["policy_year"]),
