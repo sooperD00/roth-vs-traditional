@@ -116,7 +116,7 @@ pins 3.13 to match the deploy target.
 
 ```bash
 uv sync                          # installs from uv.lock
-uv run pytest                    # 281 tests, all green
+uv run pytest                    # 294 tests, all green
 uv run python engine.py          # engine self-test — 2A, 2B, 2C, 3A and 3B's published scalars
 uv run python return_series.py   # return-series self-test
 uv run streamlit run app.py      # the app — strip, threshold axis, balance graph
