@@ -1053,6 +1053,72 @@ def fragility_panels(cells: dict, user_rung: str, line):
 
 
 # =============================================================================
+# THE LADDER FOLLOWS THE SCROLL.  One CSS block, and it is the only one.
+# =============================================================================
+# WHY THIS EXISTS.  The ten checkboxes drive the rung, the rung drives which
+# fragility panel is highlighted, and the panels are at the BOTTOM of the page.
+# A control you have to scroll away from in order to see its own effect is the
+# same defect DESIGN 3.1 named when it put the ladder in a rail at all: *a
+# control you have to scroll to cannot outrank anything.*  It applies twice --
+# to the panels, and to the balance graphs in the middle.
+#
+# THE ANCHOR IS STREAMLIT'S OWN, NOT A GUESSED SELECTOR.  `st.container(key=x)`
+# emits `class="st-key-x"`, which is a documented hook.  `:has()` then finds the
+# COLUMN that contains it, so this does not depend on the rail being the first
+# column or on how many `st.columns()` calls the page makes -- and the top strip
+# makes two more, which a `:first-child` rule would have caught by accident.
+#
+# THE THREE NUMBERS, AND THE MIDDLE ONE IS THE KNOB.
+#   4.5rem   floor.  Clears Streamlit's own fixed header.
+#   15rem    HALF THE RAIL'S HEIGHT, measured by eye at ~30rem: title, caption,
+#            ten checkboxes, the rung readout, and room for D-37's gap warning.
+#            This is what centres it. Raise it to sit higher, lower it to sit
+#            lower, and it is the only value worth touching.
+#   12rem    ceiling, and it buys something specific.  `top` also applies at
+#            scroll zero, where the rail's natural position is already near the
+#            top -- so an uncapped centring offset would push the rail visibly
+#            DOWN on first paint on a tall monitor.  Capped, that push is at
+#            most ~50px and reads as alignment rather than as a bug.
+#
+# WHAT IT CANNOT DO.  Sticky has ONE threshold, so an element cannot be both
+# flush at scroll zero and centred while scrolling.  This picks centred, because
+# scrolling is when the rail has a job.  Set the middle number to 0rem and it
+# pins to the top instead.
+STICKY_RAIL_CSS = """
+<style>
+  /* A flex item is stretched to the row's full height by default, and a
+     full-height element has nothing to stick to.  Both properties say the same
+     thing from the two sides; either alone is enough, and saying it twice
+     costs nothing and survives one of them being overridden. */
+  [data-testid="stHorizontalBlock"]:has(.st-key-resilience_rail) {
+    align-items: flex-start;
+  }
+  [data-testid="stColumn"]:has(.st-key-resilience_rail) {
+    position: sticky;
+    align-self: flex-start;
+    top: clamp(4.5rem, calc(50vh - 15rem), 12rem);
+    /* If the rail is taller than the viewport it scrolls INSIDE itself rather
+       than running off the bottom.  A laptop at 768px is the case that needs
+       this and it is the case a demo happens on. */
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+    scrollbar-width: thin;
+    z-index: 5;
+  }
+  /* THE SILENT KILLER.  `position: sticky` does nothing at all if any ancestor
+     between it and the scroll container establishes its own scroll context.
+     Nothing in Streamlit 1.62 sets one here -- checked -- but the rule that
+     protects against it is one line and the failure it prevents is invisible. */
+  [data-testid="stVerticalBlock"]:has(.st-key-resilience_rail) {
+    overflow: visible;
+  }
+</style>
+"""
+
+
+# =============================================================================
 # LAYOUT
 # =============================================================================
 st.set_page_config(page_title="Traditional vs Roth", layout="wide")
@@ -1063,12 +1129,21 @@ header = cube["header"]
 
 st.title("Traditional vs Roth retirement investing")
 
+# Injected once, before the columns exist.  st.html rather than st.markdown:
+# it lands as its own element rather than as page text, so the tests' _visible()
+# does not have a stylesheet spliced into the middle of the page copy.
+st.html(STICKY_RAIL_CSS)
+
 rail, main = st.columns([1, 4.2], gap="large")
+# THE KEY IS LOAD-BEARING, NOT COSMETIC.  `st-key-resilience_rail` is the class
+# STICKY_RAIL_CSS keys off, and it is the only thing tying the stylesheet to
+# this column.  Renaming it silently unsticks the rail -- there is a test.
+rail_box = rail.container(key="resilience_rail")
 
 # --- LEFT RAIL: the resilience ladder ----------------------------------------
 # L3 claims fragility outranks the account choice, and a control you have to
 # scroll to cannot outrank anything.  Always visible, never behind a click.
-with rail:
+with rail_box:
     st.markdown("**Resilience ladder**")
     st.caption("Ten stops. Check what you have cleared, from the bottom up.")
     # CUT 4, PRE-APPROVED: colour bands become a single neutral rail and both
@@ -1081,7 +1156,7 @@ profile = profile_from_state()
 rung = profile.rung
 cleared = engine.highest_contiguous_stop(profile.stops)
 
-with rail:
+with rail_box:
     st.markdown(f"Rung: **{RUNG_LABEL[rung]}**  ·  {cleared} of 10 cleared")
     # D-37.  Non-contiguous checks render top-heavy and the app names the gap.
     # The copy points at the flowchart rather than issuing advice, because the

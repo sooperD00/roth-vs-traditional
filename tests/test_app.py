@@ -34,6 +34,7 @@ import re
 from pathlib import Path
 
 import pytest
+import streamlit
 from streamlit.testing.v1 import AppTest
 
 import app
@@ -531,6 +532,89 @@ def test_all_eight_departures_render_and_three_leans_are_corrected() -> None:
         "D2's row carries D-42: the archetype cannot afford to max a Roth, "
         "which is the cap lesson from the other side"
     )
+
+
+def test_the_sticky_rail_is_wired_to_the_column_the_stylesheet_targets() -> None:
+    """THE LADDER FOLLOWS THE SCROLL, AND THE WIRE IS ONE STRING IN TWO PLACES.
+
+    `rail.container(key="resilience_rail")` emits `class="st-key-resilience_rail"`
+    and `STICKY_RAIL_CSS` selects the column that `:has()` it.  Rename either
+    end and the rail silently stops following the scroll -- the page still
+    renders, every number is still right, and nobody notices until they scroll
+    to the panels in front of somebody.
+
+    That is the same failure shape as the two axis tests above: correct output,
+    wrong behaviour, invisible to correctness testing.  Asserted structurally
+    because there is nothing on screen to assert.
+    """
+    source = APP.read_text(encoding="utf-8")
+    key = "resilience_rail"
+
+    # ASSERTED ON THE CALL, NOT ON THE RECEIVER.  It is `rail.container(...)`
+    # rather than `st.container(...)` because the container has to be created
+    # INSIDE the rail column -- an `st.`-prefixed assertion here was wrong the
+    # first time it ran, which is the cheapest possible demonstration that this
+    # test is reading the file rather than agreeing with me.
+    assert f'container(key="{key}")' in source, (
+        "the rail's keyed container is what the stylesheet hangs off"
+    )
+    assert f".st-key-{key}" in source, (
+        f"STICKY_RAIL_CSS must select .st-key-{key}, which is the class "
+        "Streamlit derives from the container key"
+    )
+    assert source.count(f".st-key-{key}") >= 3, (
+        "all three rules -- the flex row, the sticky column, and the "
+        "overflow guard -- key off the same class"
+    )
+    assert "position: sticky" in source and "align-self: flex-start" in source, (
+        "a stretched flex item is already full height and has nothing to stick "
+        "to; the sticky rule needs both halves"
+    )
+    assert "with rail:" not in source, (
+        "both rail blocks must enter the KEYED container -- a leftover "
+        "`with rail:` writes outside it and that content does not stick"
+    )
+
+
+def test_the_sticky_rail_selectors_are_ones_this_streamlit_actually_emits(
+) -> None:
+    """A THIRD-PARTY DOM DETAIL IS A FACT WITH A VERSION ATTACHED (D-43, D-46).
+
+    This project has been bitten twice by trusting a library's stated behaviour
+    without pinning it: `default_rng`'s stream, and `argsort`'s stability.  A
+    stylesheet written against someone else's `data-testid` is the same bet in
+    a third costume, and it is the worst of the three because **CSS that no
+    longer matches anything fails silently.** No exception, no red test, no
+    visible change until the rail scrolls away during a demo.
+
+    So the selectors are asserted against the INSTALLED frontend bundle rather
+    than against memory.  Upgrade Streamlit past a rename and this goes red and
+    says which name moved -- which is the whole point, because the alternative
+    is finding out from a panelist.
+
+    Checked at streamlit 1.62.0: `stColumn` and `stHorizontalBlock` are both
+    emitted as `data-testid` AND as `className`, and `st-key-` is the prefix
+    the container key is mangled into.
+    """
+    bundle = Path(streamlit.__file__).parent / "static" / "static" / "js"
+    sources = list(bundle.glob("*.js"))
+    if not sources:                     # a wheel that ships no frontend
+        pytest.skip("no frontend bundle in this streamlit install")
+
+    blob = "".join(
+        path.read_text(encoding="utf-8", errors="ignore") for path in sources
+    )
+    for needle, why in (
+        ("stColumn", "the sticky rule selects the COLUMN containing the rail"),
+        ("stHorizontalBlock", "the flex row that stretches its children"),
+        ("stVerticalBlock", "the overflow guard's target"),
+        ("st-key-", "the prefix st.container(key=...) is mangled into"),
+    ):
+        assert needle in blob, (
+            f"streamlit {streamlit.__version__} no longer emits {needle!r} -- "
+            f"{why}. STICKY_RAIL_CSS now matches nothing and the resilience "
+            "ladder has silently stopped following the scroll."
+        )
 
 
 def test_the_two_balance_panels_are_one_chart_with_a_shared_legend() -> None:

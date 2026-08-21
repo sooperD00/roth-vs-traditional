@@ -426,16 +426,16 @@ The claim that would have to be measured first: the segment approach is only hon
 
 # Tests
 
-**TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **294 items**;
-the suite holds **187 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
+**TWO COUNTS, AND THEY ARE DIFFERENT NUMBERS.** `pytest` COLLECTS **296 items**;
+the suite holds **189 `def test_` FUNCTIONS**. The gap is `parametrize` — T7 and
 T8 alone expand twelve ways each. Both numbers are published because the suite
 asserts one of them: `test_the_suite_asserts_its_own_size` walks the three
 ENGINE-SIDE test files with `ast` and checks the FUNCTION counts, which is the
 half an AST can see without running pytest inside pytest, and the half that
 survives a filtered run (D-57).
 
-    functions   29 · 133 · 6 · 19  = 187
-    collected   35 · 207 · 8 · 44  = 294
+    functions   29 · 133 · 6 · 21  = 189
+    collected   35 · 207 · 8 · 46  = 296
 
 **THE SELF-COUNT COVERS THREE FILES AND THERE ARE NOW FOUR, AND THE GAP HAS NOW
 COST SOMETHING.** D-57's assertion names its three files, so `tests/test_app.py`
@@ -452,7 +452,7 @@ words: *correct at every gate so far by care rather than by construction.*
 Sprint 6's seam forbids** — so it stays Housekeeping, now with a demonstration
 attached, and the day a fifth suite lands is the day it stops being optional.
 
-Four suites, 294 collected. `tests/test_tax.py` — 35, each defending a number
+Four suites, 296 collected. `tests/test_tax.py` — 35, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
 imported. `tests/test_engine.py` — opened at Sprint 2A, 207: 54 over the
 profile, the ladder, contributions and accumulation, 47 added at Sprint 2B over
@@ -472,7 +472,7 @@ for the reason 3A set the precedent for. **One test was
 DELETED at 3A rather than skipped** — `test_block_paths_still_raise` asserted a
 `NotImplementedError` that no longer exists, and a test of scaffolding outlives
 its subject silently. 209 written minus 2 deleted is the 207.
-`tests/test_app.py` — **opened at Sprint 6, 19 functions expanding to 44**: two
+`tests/test_app.py` — **opened at Sprint 6, 21 functions expanding to 46**: two
 greps promoted to assertions (D-12's `bootstrap|numpy.random` scan and the
 five-cleanup-tag enumeration, both scoped to code for the reason Sprint 2
 already recorded), the archetype detector 32.5 / 58.4 / 15.2 read where a
