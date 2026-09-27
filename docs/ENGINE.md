@@ -1,5 +1,11 @@
 # The engine
 
+> **Working record.**
+> I built this project with an AI model, and the model wrote much of this file during the build.
+> The file keeps the build's bookkeeping: sprint numbers, two design gates (cold reviews by a fresh agent with no access to the design conversation), and decision IDs that resolve in [DECISIONS.md](DECISIONS.md).
+> CONTEXT, TRADEOFFS, the sprint plan and the gate reviews are design-phase files I kept private.
+> Start with the [README](../README.md).
+
 **What this file is.** How the math works, and the five choices inside it that
 change an answer. `DESIGN.md` argues *why* the model is shaped this way; this
 file is *what it does*.
@@ -25,29 +31,9 @@ outcome(profile, objective, shocks, policy, paths, rate, account) -> float
 The app imports this module. The PoC is a script that imports it and prints a
 table. There is one implementation of the math and two ways to reach it.
 
-**Status: the engine is complete and no path inside it raises.** Sprint 2A
-landed the profile, the income curve, contributions, accumulation, the D-33
-ladder and the constant-path builder. Sprint 2B landed the retirement draw, both
-decumulation loops, the D-26 policy branch, the four objective reductions, ruin
-detection and `outcome()`; it deleted `marker_withdrawal`, which was a pure
-alias for `tax.gross_for_net`. **Sprint 2C landed `breakeven()`** — the search,
-the D-06 degeneracy guard, the no-crossing sentinel and the `Result` shape.
-**Sprint 3A landed the block bootstrap** — `make_paths(kind="block")`, the
-`RandomState`/overlapping-starts/truncation parameters D-05 left open (D-43),
-`paths_digest()` for D-41's cube header, `path_drawdown()` and the D-44
-vocabulary. It also closed the two shock-free decisions Sprint 4A was blocked on:
-R9's ruin question (D-39, option 1) and D-15's reconciliation. **Sprint 3B landed
-the three rung mechanisms behind `accumulate(..., shocks>0)`** — the last stub in
-the module — inside the signature §5 publishes and 2A's 54 accumulation tests sit
-on. `underwater_depth()` implements D-45's placement reading, the `argsort`
-tie-break is D-46's stable one, `forced_sale_gross()` carries D-47's
-deferral-net base, and D-48 puts the placement toggle and the shock amount in
-module constants that `_accumulations()`'s cache key now reads.
+Field-level contracts for `cube.json` and `engine.py` are in [DECISIONS §5](DECISIONS.md#5-contracts).
 
-**What is left is not engine work.** `spike_grid.py` and the cube shipped at
-Sprint 4A and the real `app.py` is Sprint 6. Both import this module rather than
-extending it, and 4A closed without changing a line of it — the sweep reads
-`breakeven()` and `outcome()` through the public signatures §5 publishes.
+**Status: the engine is complete and no path inside it raises.**
 
 **Three parameters more were decided nowhere in this corpus and are now D-43.**
 The generator is `RandomState(20260815)`, MT19937 — picked *against* current
@@ -112,7 +98,7 @@ asserts every one of them against literals restated by hand.
 | [Where the paths come from](#where-the-paths-come-from) | The return series, and a fudge factor that got measured |
 | [Shock timing and size](#shock-timing-and-size) | Three rungs, three code branches |
 | [Output — the cube](#output--the-cube) | 48 cells and what each one carries |
-| [Tests](#tests) | Three suites, and which claim each defends |
+| [Tests](#tests) | Four suites, and which claim each defends |
 
 ---
 
@@ -437,21 +423,6 @@ survives a filtered run (D-57).
     functions   29 · 133 · 6 · 24  = 192
     collected   35 · 207 · 8 · 55  = 305
 
-**THE SELF-COUNT COVERS THREE FILES AND THERE ARE NOW FOUR, AND THE GAP HAS NOW
-COST SOMETHING.** D-57's assertion names its three files, so `tests/test_app.py`
-arriving at Sprint 6 left it green without an edit — which is the behaviour a
-hard-coded list buys and a glob would not have. **This section then published
-`test_app.py` at 18 functions against an actual 15, and a total of 186 against
-an actual 183, in the same commit that brought the file to 15.** Corrected at
-the Sprint 6 docs pass. Nothing downstream moved: the collected counts were
-right, the suite was green, and the wrong number sat in the one file the guard
-cannot see — which is the whole argument, arriving as an instance rather than as
-a worry. Housekeeping already carries the item that predicted it, in its own
-words: *correct at every gate so far by care rather than by construction.*
-**Widening the assertion still means editing `tests/test_engine.py`, which
-Sprint 6's seam forbids** — so it stays Housekeeping, now with a demonstration
-attached, and the day a fifth suite lands is the day it stops being optional.
-
 Four suites, 305 collected. `tests/test_tax.py` — 35, each defending a number
 published in `DECISIONS.md`, with the literals restated by hand rather than
 imported. `tests/test_engine.py` — opened at Sprint 2A, 207: 54 over the
@@ -540,11 +511,7 @@ follow it (D-56). Marked below.
 row above names functions that exist. Backward: `grep -c "^def .*T[1-8]"` returns
 **17**, and all seventeen appear above — 2 · 3 · 1 · 2 · 2 · 3 · 2 · 2. Selected,
 `uv run pytest -k "T1 or T2 or T3 or T4 or T5 or T6 or T7 or T8"` is **59 passed,
-222 deselected**; the 59 is the eight claims with their parametrize expansions.
-*(The deselect count was 191 against a 250-item suite. `tests/test_app.py`'s 31
-moved the total to 281 and the subtraction did not follow it — corrected at
-Sprint 6, and it is the same hand-maintained-number failure as the one two
-paragraphs up, in the same commit.)*
+246 deselected**; the 59 is the eight claims with their parametrize expansions.
 
 T6–T8 assert the *mechanism*, not the magnitude. Three rungs are three code
 branches, so three tests — a severity dial would have needed one.

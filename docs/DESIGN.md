@@ -1,5 +1,11 @@
 # Design
 
+> **Working record.**
+> I built this project with an AI model, and the model wrote much of this file during the build.
+> The file keeps the build's bookkeeping: sprint numbers, two design gates (cold reviews by a fresh agent with no access to the design conversation), and decision IDs that resolve in [DECISIONS.md](DECISIONS.md).
+> CONTEXT, TRADEOFFS, the sprint plan and the gate reviews are design-phase files I kept private.
+> Start with the [README](../README.md).
+
 **What this file is.** The reasoning behind the model and the interface, with the
 mockups that carry it. Four parts:
 
@@ -18,8 +24,6 @@ file argues *why* the model has its shape; that one is *what it does*.
 text. Where a decision later moved, a blockquote says so and names the decision
 that won. Nothing is silently rewritten — a superseded reason is evidence about
 the method, and deleting it would remove the only proof the method does anything.
-
-`DECISIONS.md` wins over this file on any disagreement.
 
 ---
 
@@ -43,11 +47,6 @@ objective, columns = shock count. Cells = the break-even rate.
 | 3 | Max median outcome | Robust to tails | Hides the tail |
 | 4 | Max 10th percentile (regret-minimizing) | Matches how people actually feel | Conservative-looking |
 | 5 | P(not running out) | Intuitive | Binary; loses magnitude |
-
-> **Superseded by D-06.** Four objectives ship, not five. The bad-at column above
-> is the record of why: *needs a spending model* was objective 2's precondition,
-> and D-39 removed it. A gate-two regression, caught by asking what else a common
-> draw flattens.
 
 **The demo moment this ladder buys.** Same inputs, swap the objective, watch the
 recommendation move. That is *explain the numerical dynamics* delivered as one
@@ -251,11 +250,6 @@ property of the return *model*. An account balance carries contributions, which
 arrive every year and buy at the bottom, masking the decline they are supposed to
 measure. There is no profile in that function's arguments and the absence is the
 argument.
-
-*(The naming also had to survive grep. Three distinct tokens with no shared
-prefix means `grep drawdown` minus `path-drawdown` returns a set small enough to
-read — which is how the remaining ambiguous uses in this file were found once 3B
-resolved them.)*
 
 ---
 
@@ -512,6 +506,3 @@ Traditional trajectory is the Roth trajectory scaled by `(1−t_later)`, so in t
 base case `t*` **is** `t_now`. The number is a definition, not a result, and the
 app says so: *at these settings the break-even is just your current combined
 rate; here is what moves it.*
-
-Full record in [`review/GATE-2.md`](review/GATE-2.md). Gate one is in
-[`review/GATE-1.md`](review/GATE-1.md).

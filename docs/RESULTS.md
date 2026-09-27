@@ -1,5 +1,11 @@
 # Results
 
+> **Working record.**
+> I built this project with an AI model, and the model wrote much of this file during the build.
+> The file keeps the build's bookkeeping: sprint numbers, two design gates (cold reviews by a fresh agent with no access to the design conversation), and decision IDs that resolve in [DECISIONS.md](DECISIONS.md).
+> CONTEXT, TRADEOFFS, the sprint plan and the gate reviews are design-phase files I kept private.
+> Start with the [README](../README.md).
+
 **What this file is.** What building the model actually taught me, written as
 results rather than as decisions. A decision row says what was chosen. This file
 says what came back, what it cost to find out, and which parts I still cannot
@@ -55,7 +61,7 @@ The distinction between 🔒 and ✅ is the one I most want a reader to hold.
 | [8](#8--fragility-against-the-account-choice) | Fragility against the account choice | complete |
 | [9](#9--what-the-model-gets-wrong-on-purpose) | What the model gets wrong on purpose | **unsourced** |
 | [10](#10--reproducibility) | Reproducibility | mostly complete |
-| [11](#11--open-items) | Open items | the rollup |
+| [11](#11--known-limits) | Known limits | what the model does not settle |
 
 ---
 
@@ -118,7 +124,7 @@ Employer match · the taxable side account · RMDs · Social Security · real
 per-state tax rates · MFJ and Head of Household · over-65 deductions · SALT
 deductibility.
 
-*Source — D-02 §2's not-done list, D-04 §4's departure dispositions, README
+*Source — DECISIONS §4's departure dispositions and the README's
 `## Scope & Branches`.*
 
 ---
@@ -596,7 +602,7 @@ and reported a false 14.7% gap instead of 0.44%. `_growth_after()`'s docstring
 carries it so nobody re-derives it wrong.
 
 *Source — `scripts/measure_3b.py` §4, 2,000 paths at seed 20260815, captured in
-`scripts/out_measure_3b_20260820-2115.txt`. Recorded in D-45. **All six published
+`scripts/out_measure_3b_20260820-2115_claude.txt`. Recorded in D-45. **All six published
 figures reproduce.***
 
 ## 7.5 The tie-break, and the number that was measuring the wrong thing ✅
@@ -688,7 +694,6 @@ only, and the exact method is a fourth value with no number attached.
 
 *Source — `scripts/measure_3b.py` §6, same capture. Recorded in D-47, whose range
 and denominator were both corrected here.*
-
 
 # 8 — Fragility against the account choice
 
@@ -894,11 +899,6 @@ comments; `ADDITIONAL_DEDUCTION_65` and `OBBB_SENIOR_DEDUCTION` are present as
 constants and **deliberately unwired**, so no code path produces the 13.5%. No
 test asserts either figure.
 
-**Four documents cite them** — `README.md` twice, `TRADEOFFS.md` §1.5,
-`DECISIONS.md` R7, `remaining-sprints.md` Sprint 1. That is the same shape Sprint
-3A fixed by writing `scripts/measure_3a.py`, at four documents instead of five,
-and it is the one on the panel-facing page.
-
 **Both are cheap to close.** The over-65 side is one conditional on age. The SALT
 side is applying the state rate inside the federal calculation rather than beside
 it: `0.24 + 0.085 × (1 − 0.24)` = 30.5%, and it bites only on itemizers — state
@@ -1017,26 +1017,7 @@ and a guard that skips itself is the object the item existed to remove.
 *Source — `uv run pytest`. Recorded in D-57. Timings recorded in
 `remaining-sprints.md` Tech Debt.*
 
-## 10.5 ⚠️ The timing chain has been corrected three times — UNSOURCED
-
-The same measurement has four generations, each superseding the last, all living
-in a debt list rather than in a results file:
-
-| | Estimate | Basis |
-|---|---|---|
-| Design | ~470 ms per `outcome()`, ~38 min for the cube | synthetic array |
-| Sprint 2B | 323 ms cold, 24 ms warm, ~1.2 min for the cube | real 2B code |
-| Sprint 2C | 0.50 s cold, 0.31 s warm, 20–25 s | synthetic (2000, 65) |
-| **Sprint 4A** | **0.46–0.54 s cold, 0.28 s warm, 17.1 s, twelve accumulations** | **real bootstrap** |
-
-The note carrying it says *"Do not correct this note again; re-measure and replace
-it."* **That is a job description for this file, not for a debt list.**
-
-- [ ] Move the timing chain here and leave a pointer in Tech Debt
-- [ ] Have `spike_grid.py` print per-cell and total timing in a form worth
-      capturing, so the next generation is a capture rather than a paragraph
-
-## 10.6 ⚠️ The suite-runtime decision has no dated measurement — UNSOURCED
+## 10.5 ⚠️ The suite-runtime decision has no dated measurement — UNSOURCED
 
 D-53 wired `validate_cube()` into the default test run and accepted the cost:
 **1.67 s → 4.05 s** in the agent's container, **1.17 s → ~3.7 s** locally. The
@@ -1046,48 +1027,18 @@ what the test buys — it is the only code anywhere that verifies `paths_digest`
 **D-53 is an explicit standing reversal point**: when the suite crosses the
 threshold where someone stops running it locally, the marker option is the answer.
 
-**A number that exists to be compared against a future re-measurement needs a
-dated home.** It has one in a decision row, which is the wrong genre — decision
-rows are not supposed to move.
-
-- [ ] Move the runtime numbers here with the date and machine attached
-- [ ] Re-measure at each sprint close and append rather than overwrite
-- [ ] Name the threshold that triggers the reversal, in seconds
-
 ---
 
-# 11 — Open items
+# 11 — Known limits
 
-Every unfinished thing in this file, in one list.
+What the model does not settle, and two things not yet done.
 
-## Blocking nothing, but the results are assertions until they are closed
+## Not yet done
 
 | | Result | Where | Cost |
 |---|---|---|---|
-| [x] | The drawdown reading that chose `underwater-depth` | §7.4 | ✅ `measure_3b.py` §4 — all six figures reproduce |
-| [x] | The tie-break statistics | §7.5 | ✅ `measure_3b.py` §5 — D-46's pair was the ORDER column; corrected |
-| [x] | The gross-up base | §7.6 | ✅ `measure_3b.py` §6 — range and denominator both corrected |
 | [ ] | The two known biases, 13.5% and 30.5% | §9 | wire two flags in `tax.py`, assert in `tests/test_tax.py` |
 | [ ] | The preset's frozen allowance and modelled draw | §3 | one self-test line, or two asserted literals |
-
-**The first three are closed.** They were one script sitting between them, as
-predicted — all Sprint 3B measurements over the path array, none needing new
-modelling. **Two of the three published figures did not survive**, and in both
-cases the rule that produced the original was identified rather than guessed:
-D-46 had measured a permutation the engine discards, and D-47 had divided a
-stochastic numerator by a deterministic denominator. Both corrections run
-*against* their own decision, which is the direction worth trusting.
-
-**What remains is the panel-facing pair in §9**, and it is the one to do next.
-
-## Structural
-
-| | Item | Where |
-|---|---|---|
-| [ ] | Move the timing chain out of Tech Debt | §10.5 |
-| [ ] | Give the suite-runtime measurement a dated home | §10.6 |
-| [ ] | Decide whether D-21's straddle worst-error belongs here or in the tax contract | §9 |
-| [ ] | The `README`'s `## Results` becomes a digest pointing here, rather than a second copy | — |
 
 ## Deliberately not closed
 
