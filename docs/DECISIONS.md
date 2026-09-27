@@ -1,122 +1,88 @@
-# DECISIONS
+# Decisions
 
-Status: **design gate two closed.** This file is the build contract.
+> **Working record.**
+> I built this project with an AI model, and the model wrote much of this file during the build.
+> The file keeps the build's bookkeeping: sprint numbers, two design gates (cold reviews by a fresh agent with no access to the design conversation), and decision IDs, indexed below.
+> CONTEXT, TRADEOFFS, the sprint plan and the gate reviews are design-phase files I kept private.
+> Start with the [README](../README.md).
 
----
+Every decision has an ID.
+The index gives each one a line.
+The tables under §3 carry the reason for each, and six decisions have a full write-up.
+Sections 0, 2 and 8 of the working copy recorded process, and I removed them.
+The rest keep their numbers because the code cites them.
 
-## Changelog — Gate 2
+## Index
 
-Twenty-six defects found. Twenty-three resolved here, three were decisions and
-are recorded as such. Numbers in this file are now reproduced from a working
-deterministic engine rather than asserted.
-
-| # | Was | Now | What it breaks if you skip it |
-|---|---|---|---|
-| C1 | D-33 appeared **twice** with different ladders and different bands | One D-33. Flowchart ladder, Low 1–3 / Mid 4–6 / High 7–10 | Sprint 7 has no ladder to wire |
-| C2 | D-32 gave **six** checkboxes; D-37 and Sprint 7 assumed **ten** | Ten stops, ten checkboxes, defaults 1–6 on | The archetype cannot reach Mid — contiguity breaks at stop 1 |
-| C3 | `t_now` was **24%** in D-19/D-24/D-25 and **32.5%** in D-18/D-30 | 32.5% is live. D-24 relabeled *federal only* | Three dollar figures and both headline numbers |
-| C4 | D-25's $18,620 / $32,237 / "$763 spare" computed at 24% | Recomputed at 32.5%. **T3 moves to a $185,000 test profile** | T3's premise is false at the archetype — capacity $33,000 vs $36,296 needed |
-| C5 | D-19 gave the income shape's *shape* but no **values** | Four points in D-19, linear interpolation stated | The marker is unreproducible from this file |
-| C6 | D-28's 80% replacement **bankrupts both accounts** — Roth at 79, Traditional at 92 | D-28 rewritten: the draw is sized off the Roth (D-39) | Objective 1 returns $0 = $0 and the base case has no crossing |
-| C7 | The year-20 toggle was specified to **flip the verdict to Roth** | It cannot. The threshold moves *right*, to 58.4%. See D-40 | Sprint 2 and Sprint 6 both had unpassable done-whens |
-| C8 | No **shock magnitude** anywhere in any document | D-39: $40,000 real | Sprint 3 cannot run at all |
-| C9 | §5 held **one** `roth_dollars`/`trad_dollars` pair; D-17 needs two δ | `dollars` keyed by δ | Sprint 4's cross-δ invariant is uncheckable |
-| C10 | No **absorbing-floor** rule | D-38: no clamp. Ruin is a flag | The terminal difference stops being monotone and D-22's gate can't hold |
-| C11 | `seed`, `n_paths`, return series all unspecified | D-41 | The cube is not reproducible |
-| C12 | 8.5% state rate and the 10% penalty had no home | Both in `tax.py`, per D-21 | Sprint 1's "no tax number elsewhere" rule was unsatisfiable |
-| C13 | Return buttons were **7/10/12** in §1 and README, **7/9/12** in D-04a | 7 / 9 / 12 everywhere | — |
-| C14 | DoD said "the **four** tests in §6"; §6 has eight | Eight | — |
-| C15 | §8 budget (130) and remaining-sprints (160) disagreed, with different cut lists | One table, in remaining-sprints. §8 points at it | Two different cut #1s, one of which deletes L1's only gesture |
-| C16 | §7 caption said the mockup shows **8 rungs** | It shows ten, correctly banded | — |
-| C17 | §0's DESIGN.md grid-column row superseded nothing | Deleted | — |
-| C18 | README carried five stale numbers the panel would read | Propagated | §0 calls these defects, not notes |
-
-**The three that were decisions, not defects:**
-
-1. **The flip.** Kept, reversed, and moved to a preset. See D-40.
-2. **The draw rule.** Sized to what the Roth sustains. The published marker moves from ~17% to **15.2%**. See D-39.
-3. **The return series.** Stubbed for Sprints 1–2; real series is a gate on Sprint 3. See D-41.
-
----
-
-## 0. Precedence
-
-Where this file and `CONTEXT.md` disagree, **this file wins.** `CONTEXT.md` is
-the tradeoff reference — it records the option space that was considered, and its
-option tables carry two marker sets: `← initial pick` for the choice made during
-synthesis, `← design-phase pick` for what survived design.
-
-`README.md` is a working surface, not a source. It is reconciled against this
-file at each gate — so between gates it may disagree, and this file wins by
-default. **Except** where the README states a number or a claim the panel will
-read, in which case the disagreement is a defect and gets fixed in the same pass.
-
-`remaining-sprints.md` is a **source, not a working surface — but only for the
-budget table and the cut ladder**, both of which §8 delegates to it. On anything
-else this file wins. Gate two's HoH correction landed in D-21 and in `tax.py` and
-did *not* land in Sprint 1's goal paragraph, where it then propagated forward into
-a sprint brief. That gap is what this row closes.
-
-`TRADEOFFS.md` is a **compressed restatement, not a source.** It reorganizes the
-option space against the brief's own Focus and Evaluation language so it can be
-read aloud. It restates rather than links because a presentation touchpoint that
-sends the reader to another file is not a touchpoint. **This file wins over it,
-and `CONTEXT.md` holds the fuller design-phase framing it was compressed from.**
-Where a compression drops a qualification that changes an answer, that is a
-defect and gets fixed here first.
-
-`ENGINE.md` is the **numerical specification** — the engine's contract, the five
-choices that change an answer, the return series, the shock branches, the cube
-and the tests. It is where the README's PoC essay went. This file still wins:
-§5 holds the contract and §6 holds the eight engine tests, and `ENGINE.md`
-explains them rather than defining them. **One exception worth naming:** the
-block-vs-IID measurement lives there in full, and D-05 carries the summary. If
-those two ever disagree, the measurement is the fact and D-05 is the stale copy.
-
-`RESULTS.md` holds **measurements a decision cites** — the run behind a number,
-kept separately from the number. This file still wins on what was DECIDED, and
-`RESULTS.md` wins on what was MEASURED: if D-51 and the plateau walk ever
-disagree, the walk is the fact and the decision row is the stale copy. Same
-exemption `ENGINE.md` already carries for the block-vs-IID table, and the same
-rule `scripts/measure_*.py` exists to enforce — a published figure keeps its
-source. **Nothing in it is a contract and nothing plans a sprint.**
-*(This paragraph named `EVIDENCE.md` until Sprint 6. That file was created at
-Sprint 4B and folded into `RESULTS.md` three commits later; the pointer outlived
-it in four places and the README linked it twice.)*
-
-`DESIGN.md` is the **design rationale and the mockup gallery.** The five `*.PNG`
-files now live there with captions saying what each one decides and what moved
-afterwards. It is still a working surface and this file still wins — §7 remains
-the layout contract — but the deck is no longer loose: a mockup that disagrees
-with a decision now disagrees *in writing, next to the decision*, rather than
-inside an image nobody opened.
-
-Design deck (`*.PNG`) — working surface, captioned in `DESIGN.md` part 3. This
-file wins. Where the deck carries a number that exists nowhere else, that number
-gets promoted into a decision rather than left in an image. **Two have not been
-promoted and are labeled design-phase estimates in the gallery:** the income
-shape's *"ending at $200k costs Traditional 1.4 points"*, and the layout's *"$Y —
-about four times the account choice."* Neither is verifiable before Sprints 2 and
-4, and Sprint 4's third gate warns `$Y` may land near `$X`.
-
-Conflicts that markers can't express:
-
-| Says | Superseded by |
-|---|---|
-| CONTEXT part B — PoC is "deliberately throwaway" | D-11. The PoC *is* the engine `app.py` imports |
-| CONTEXT part B — "Cost in the budget" includes research and design | §8. Both are outside the implementation budget |
-| CONTEXT part G3 — model the employer match | D8 disposition. Grayed, `TODO` |
-| CONTEXT part D — app buttons are 7 / 10 / 12 | D-04a. 7 / 9 / 12, all real |
-| DESIGN.md — rung slider, 8–10 stops, feeding shock *severity* | D-16. Three rungs; the rung selects a *mechanism* |
-| DESIGN.md — tail visual "Pick 3, with 2 under it" | Cut. The $X/$Y sentence survives; the two-bar chart is a Scope & Branches row |
-| DESIGN.md — "Recommended output stack ≈ 75 min" | §8 |
-| DESIGN.md — the nine-stop resilience ladder | D-33. The ten-stop flowchart ladder replaces it |
-| DESIGN.md — flat file of design-phase notes | Restructured into four parts: insight, model, interface gallery, gate-two reversals. All superseded text and its banners are preserved |
-| README — the PoC/engine essay | Moved to `ENGINE.md`. README is now a standard repo README |
-| README — the four-lesson prose | Moved to `DESIGN.md`. The L1 identity stays in the README because it is five lines and everything rests on it |
-| Deck `withdrawal-rate-graphic` — second threshold at 14%, Roth wins | D-40. It is 58.4%, and the verdict does not flip at the archetype |
-| Deck `accordion-input` D7 — "all tax benefits go away" | D-09. Roth only. Traditional needs no branch, and that absence is the asymmetry |
-| Deck `fragility-graph` — "Rung 2", "Rung 3", eight rungs, 160 floats | D-16. Three rungs, named never numbered, 48 cells |
+| ID | Decision | Where |
+|---|---|---|
+| D-01 | Contribution convention: same pre-tax dollars | [Conventions](#conventions) |
+| D-02 | Wash band: ±2 percentage points | [Conventions](#conventions) |
+| D-03 | Income shape is independent of the resilience rung | [Conventions](#conventions) |
+| D-04 | Return buttons at 7 / 10 / 12%, real | retired: superseded by D-04a |
+| D-04a | Return buttons are 7 / 9 / 12%, all real | [Model](#model) |
+| D-05 | Block bootstrap over a historical real return series | [Model](#model) |
+| D-06 | `optimal` is a parameter, not a choice | [Model](#model) |
+| D-07 | Common random numbers | [Model](#model) |
+| D-08 | Shock columns are a count (0–3); shock *timing* is correlated with drawdown | [Model](#model) |
+| D-09 | Policy scenario is "nevermind," prospective and Roth-only | [Model](#model) |
+| D-10 | Both thresholds display, always | [Model](#model) |
+| D-11 | One engine module, two entry points | [Architecture](#architecture) |
+| D-12 | The app contains no stochastic code | [Architecture](#architecture) |
+| D-13 | The deterministic path is the same function at `n_paths=1, sigma=0` | retired: superseded by D-22 |
+| D-14 | The cube is computed at the reference archetype, not at the user's profile | [Architecture](#architecture) |
+| D-15 | User inputs move the vertical line, not the dots | [write-up](#d-15--the-dollar-side-of-the-return-model-mismatch---proxy-restored-sprint-2a) |
+| D-16 | Resilience rungs | [write-up](#d-16--resilience-rungs) |
+| D-17 | Dollar fields are evaluated at `t* + δ`, δ ∈ {2, 10} percentage points | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-18 | The verdict compares `t*` against the today's-law marker | retired at design gate two |
+| D-19 | Reference archetype: age 35, retires 65, dies 100, filing single | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-20 | Horizon runs to age 100; `n_years = 100 − current_age` | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-21 | `tax.py` implements SINGLE only: 2026 bracket edges, seven rates, standard deduction $16,100, deferral cap $24,500, state rate 8.5%,… | [write-up](#d-21--t_now-is-a-deferral-rate-not-a-bracket-lookup) |
+| D-22 | Deterministic mode is `paths` of shape `(1, n_years)` filled with the constant real return | [write-up](#d-22--why-the-collapse-is-derivable-and-how-much-of-the-cube-it-covers) |
+| D-23 | The $X / $Y sentence reads objective 4 (max 10th percentile) at 1 shock | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-24 | Departures do not perturb the deterministic headline | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-25 | D-01 applies at `min(capacity, cap)` in PRE-TAX terms | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-26 | At year N, snapshot the Roth balance as a tax-free allowance in real dollars | [write-up](#d-26--the-terminal-rule-as-code) |
+| D-27 | Everything is in real 2026 dollars | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-28 | Spending stub: save 20% of income during accumulation | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-29 | The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-30 | State tax is two booleans sharing one rate: 8.5%, DC's marginal rate at the archetype income | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-31 | Income suggests a rung; the checkboxes set it | [Ladder and gates](#ladder-and-gates) |
+| D-32 | Ten checkboxes, one per stop | [Ladder and gates](#ladder-and-gates) |
+| D-33 | Canonical ladder is the ten-stop flowchart ladder | [Ladder and gates](#ladder-and-gates) |
+| D-34 | Dot encoding: row = shock count (0 at top, 3 at bottom) | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-35 | The verdict is suppressed when either of the first two gates is unchecked | [Ladder and gates](#ladder-and-gates) |
+| D-36 | `$Y` compares the user's rung to the next rung up, one step | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-37 | The rung is the highest CONTIGUOUS stop cleared | [Ladder and gates](#ladder-and-gates) |
+| D-38 | The engine never clamps a balance at zero | [Architecture](#architecture) |
+| D-39 | The retirement draw is the level real after-tax amount that leaves 15% of the *Roth's* age-65 balance at 100 | [write-up](#d-39--the-draw-under-a-stochastic-path-set) |
+| D-40 | The policy threshold moves RIGHT, not left | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-41 | `seed = 20260815`, `n_paths = 2000` | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-42 | T3 runs at a `$185,000` test profile, not the archetype | [Archetype](#the-archetype-and-the-numbers-that-come-out-of-it) |
+| D-43 | The three parameters D-05 left open, decided at Sprint 3A BEFORE the first array existed | [Model](#model) |
+| D-44 | Drawdown vocabulary | [Model](#model) |
+| D-45 | D-08's "deepest drawdown years" means `underwater-depth`, decided at Sprint 3B BEFORE the first branch | [Model](#model) |
+| D-46 | The `argsort` tie-break is `kind="stable"`, which means THE EARLIER YEAR — named, not inherited | [Model](#model) |
+| D-47 | Low's gross-up base is `income(age) − contribution`, not gross income | [Model](#model) |
+| D-48 | The uncorrelated toggle is a MODULE CONSTANT, `engine.SHOCK_PLACEMENT`, and `_accumulations()`'s cache key carries it | [Model](#model) |
+| D-49 | Sprint 4A's invariants live in `spike_grid.validate_cube(cube)`, and its `--check` flag re-runs them against a committed `cube.json` | [Architecture](#architecture) |
+| D-50 | `cube.json` publishes ONE `ruin` reading and it is per-cell — 2C's pin, unchanged — and the header block says so | [Cube, sentence, encoding](#cube-sentence-encoding) |
+| D-51 | The 36-cell slab check is TWO assertions over two operands, not one over 36 cells | [Architecture](#architecture) |
+| D-52 | `constants_fingerprint` is a blake2b-128 digest over a DECLARED, sorted list of `name=repr(value)` lines — seven `engine` module constants plus… | [Architecture](#architecture) |
+| D-53 | The `validate_cube` wire runs in the default suite, unmarked and unfixtured — `validate_cube(committed_cube())`, `paths=None` | [Architecture](#architecture) |
+| D-54 | The T-table reconciliation runs against `DECISIONS.md` §6, and `ENGINE.md` carries the MAPPING | [Architecture](#architecture) |
+| D-55 | One row per CLAIM, every function named inside it with a ROLE, and the role word opens the function's own docstring | [Architecture](#architecture) |
+| D-56 | A docstring QUOTES its claim, and the quote is taken from whichever §6 cell states what must be true | [Architecture](#architecture) |
+| D-57 | The suite asserts its own size in FUNCTIONS, not collected items — 168, walked with `ast` | [Architecture](#architecture) |
+| D-58 | The objective radio does NOT ship | [Panels](#the-panels-decided-before-any-chart) |
+| D-59 | The dots encode BREAK-EVEN FUTURE MARGINAL RATE `t*`, in percentage points, on a shared domain pinned at `[0, 40]` | [Panels](#the-panels-decided-before-any-chart) |
+| D-60 | Objective 5's offset is disclosed in a PANEL CAPTION, rendered from `cube.json`'s `header["captions"]["breakeven_objective_5"]` rather than retyped | [Panels](#the-panels-decided-before-any-chart) |
+| D-61 | D-35's suppression trigger is the FIRST TWO GATES | [Panels](#the-panels-decided-before-any-chart) |
+| D-62 | `breakeven()` does not gain a `t_now <= 0` branch | [Panels](#the-panels-decided-before-any-chart) |
+| D-63 | The panels' vertical line is read under CURRENT RULES, even when the nevermind toggle is on | [Panels](#the-panels-decided-before-any-chart) |
+| D-64 | The resilience ladder's column is `position: sticky` and follows the scroll, roughly centred in the viewport | [Panels](#the-panels-decided-before-any-chart) |
+| D-65 | Render hygiene, and one token changed on the page | [Panels](#the-panels-decided-before-any-chart) |
+| D-66 | Every control moves into the sticky rail | [Panels](#the-panels-decided-before-any-chart) |
 
 ---
 
@@ -134,25 +100,6 @@ can't be traced to a row here, cut it.
 
 **L1 and L2 are taught by contrast.** The return-rate buttons sit physically
 beside the tax controls. One moves the answer, one can't.
-
----
-
-## 2. Definition of done
-
-Shipped when all eight exist:
-
-1. `tax.py` — 2026 brackets, deferral limit, state rate, early-withdrawal penalty. One module, source comments
-2. `engine.py` — pure functions, no Streamlit import
-3. `spike_grid.py` — CLI; writes `cube.json` and prints the markdown grid
-4. `test_engine.py` — **the eight tests in §6**
-5. `tests/test_tax.py` — **Sprint 1's assertions**, listed in that sprint's done-when. Not among §6's eight, which are engine tests
-6. `app.py` — Streamlit, layout per §7
-7. Deployed, reachable by URL
-8. `## Scope & Branches` in README — Cut / Why / What-it-would-take
-
-Not done, and labeled as such in the UI: historical sequence replay, a real
-spending model, RMDs, Social Security, real per-state tax data, the employer
-match.
 
 ---
 
@@ -219,9 +166,7 @@ that outlived the convention that produced it. **Recording the provenance rather
 than the correction alone, on the same principle D-05 records a failed reason
 rather than quietly rewriting it.**
 
-**What is still stale, and why it is blank rather than guessed.** Two figures
-were computed off 6.81% and both are downstream of an engine that does not exist
-yet:
+**Two figures were computed off 6.81%:**
 
 | Figure | Published | Status |
 |---|---|---|
@@ -236,29 +181,6 @@ the series' own **6.776229%** returns **$2,028,066.17**, which is the published
 figure. Ten dollars, on a number that is only in this document to be checked
 against — so `engine.geometric_mean(return_series.REAL_RETURNS)` is the operand,
 and the rounded literal appears nowhere in code.
-
-**Two stages, because the published figure was a proxy and nobody said so.**
-$2,038,611 was a *deterministic run at the series' geometric mean*, not a
-bootstrap result. Sprint 2A can reproduce that object directly — expect **T65 ≈
-$2,028,066 at 6.7762%, a 3.83% gap** — and clearing this row's tag is one of its
-done-whens. But the proxy and the bootstrap are not the same thing: by Jensen,
-the mean of terminal values need not equal the terminal of the mean-compounding
-path. **Sprint 3 checks the proxy against the real distribution and reports the
-difference**, whichever way it goes.
-
-A level-contribution stream over 30 years lands about **3.9%** below the 7% case
-at 6.7762%, against 3.35% at 6.81%. That is an annuity approximation, not the
-model: the archetype's contributions are `min(0.20 × income, cap)` over D-19's
-four-point income shape, not a level stream. **It is here to say which direction
-the correction runs and roughly how far — not to be published.** Sprint 2A's
-accumulation produces the proxy (~$2,028,066, a 3.83% gap) and Sprint 3 produces
-the real distribution.
-
-**Consequence for Sprint 6.** Its done-when instructs a caption reading *dollar
-figures differ by about 3.4%*. That number is withdrawn; the caption is not.
-Write it from Sprint 3's output — the caption is about the bootstrap, so the
-Sprint 2A proxy is not the right number to publish there. The caption's job — telling a panelist the two
-return models are different on purpose — is unchanged and is still load-bearing.
 
 **THE BOOTSTRAP DISTRIBUTION, MEASURED AT SPRINT 3A.** 2,000 paths, `seed =
 20260815`, T65 Traditional, against the $2,028,066 deterministic proxy:
@@ -663,9 +585,7 @@ tests run single-row arrays and `make_paths("block", ...)` raises, so no
 multi-row array existed in the suite — a gate whose failing input cannot yet be
 constructed, which is the streamlit-grep shape a third time.
 
-**OWED TO SPRINT 3, AND IT IS THIS SUBSECTION'S OWN MEASUREMENT. ~~Owed.~~
-DISCHARGED AT SPRINT 3A** — the re-measurement and the decision are at the foot
-of this subsection. R9's 53.1% was taken with the draw sized at the **7%
+R9's 53.1% was taken with the draw sized at the **7%
 deterministic solve**. Under this rule a bootstrap draws at 6.776%, which is a
 smaller draw and therefore *less* ruin. The favorable direction is precisely why
 it had to be re-measured rather than assumed to still hold.
@@ -741,7 +661,7 @@ rewritten.
 | D-29 | **The grayed excess-savings row carries the solar-capex analog in its label, with no outbound link.** Suggested: *"excess savings — in the energy analog, this is the year you buy the panels."* The phrase links inward to the domain-analog table in the README | It is the one place in the app that addresses the panel rather than the user, so it should spend that attention on the analog rather than on an ask. A careers link is the wrong mapping — part A pairs solar capex with Roth tax paid up front, and a hiring page is neither capex nor a rate schedule |
 | D-41 | **`seed = 20260815`, `n_paths = 2000`. The return series is `return_series.py`, a module-level list of annual real returns with a source comment. ~~It is STUBBED for Sprints 1–2 and is a hard gate on Sprint 3~~ — the stub period is OVER. The real series landed at gate two: 98 annual real returns, 1928–2025, Damodaran + CPI, Fisher-deflated on load, `STUB = False`, self-test passes. Sprint 3's gate is CLEARED (P4, R5)** | The cube must be byte-reproducible from the header, which means both constants are contract, not preference. 2000 paths is where the p10 estimate stops moving at three significant figures under common random numbers. Stubbing the series was legitimate only because Sprints 1 and 2 are deterministic — `make_paths("constant", ...)` never touches it — and the stub rule was that it be obviously fake (a short repeating list) so that nobody shipped it by accident. That rule is now spent: the file holds the real record, and what guards it instead is `_selftest()`, which pins the 1931 and 1954 anchors, the 26 negative years, the contiguity of 1928–2025, and the variance-drag identity. **`STUB` survives as the flag `make_paths("block", ...)` raises on, not as a description of the file's contents** |
 
-### Sprint 8 — the panels, decided before any chart
+### The panels, decided before any chart
 
 **Six decisions, brought in one message and answered before the first Altair
 spec.** Same rule 3A, 3B, 4A and 4B ran under: a parameter the code picks by
@@ -1072,15 +992,6 @@ without implying the other seven exist.
 
 ---
 
-## 8. Budget
-
-A fixed implementation budget. Research, design, and README are outside it and
-reported separately. **The single budget table and the cut ladder live in
-`remaining-sprints.md`** — the earlier per-item table here disagreed with it on
-both the total and the order of cuts. Actuals go in the README.
-
----
-
 ## 9. Open risks
 
 | # | Risk | Mitigation |
@@ -1137,11 +1048,6 @@ tests refuse to hard-code. *(The module docstring does name `app.py`, explaining
 the root-file scan. That is prose, not a check — a rename dates the paragraph
 and breaks nothing.)*
 
-**The 15-minute flag means something different now.** It is not *abandon
-Railway* — every fallback below costs more than fifteen minutes. It means **stop
-guessing and open the deployment details pane**, which shows which setting came
-from which line of `railway.toml`.
-
 **Fallback ladder, replacing CONTEXT part D's.** That note predates Sprints 6–8,
 which specify sixty-five minutes of Streamlit-native UI. Option 4 there is no
 longer a fallback; it is a rewrite.
@@ -1154,7 +1060,3 @@ longer a fallback; it is a rewrite.
 | F4 | Hugging Face Spaces — Streamlit-native, private repos on the free tier | ~15 min | Mostly |
 | F5 | Render / Fly | Same work as Railway, no advantage | No |
 | ~~F6~~ | ~~Single-file HTML + JS (CONTEXT part D option 4)~~ | Deletes Sprints 6–8 | Not credible |
-
-**F1 ran and it held.** The rest of the ladder stays written down anyway: it
-costs nothing to keep, and it is the answer if Sprint 6's real app fails where
-the probe did not.
