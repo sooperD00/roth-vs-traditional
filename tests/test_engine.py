@@ -484,7 +484,7 @@ def test_the_archetype_lands_at_mid_contiguously():
 
 
 def test_the_ladder_has_ten_stops():
-    """D-33/C2. Ten stops, ten checkboxes. The six-checkbox version is deleted."""
+    """D-33. Ten stops, ten checkboxes. The six-checkbox version is deleted."""
     assert len(engine.LADDER_STOPS) == 10
     assert len(engine.DEFAULT_STOPS) == 10
 
