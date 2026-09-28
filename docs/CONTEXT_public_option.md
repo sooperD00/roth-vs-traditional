@@ -205,7 +205,6 @@ so a reader who lands here first isn't misled:
 | This file says | Superseded by |
 |---|---|
 | Part B — the PoC is "deliberately throwaway" | D-11. It became the engine `app.py` imports |
-| Part B — research and design counted inside the implementation budget | DECISIONS §8. Both are outside it; the single budget table lives in `remaining-sprints.md` |
 | Part C — `optimal` ships five objectives as grid rows | **D-06. FOUR ship.** Objective 2 is cut: its bad-at column here reads *needs a spending model*, and D-39 made spending a fixed common input, so both accounts fund identical spending and the difference is identically zero. The option stays listed above because this file records the space that was considered. Also constrained by D-22: objective 5 will not bisect on one path, so the deterministic headline rejects it |
 | Part D — the app offers 7/10/12 | D-04a. 7/9/12, all real |
 | Part D — #6's justification, that block bootstrap keeps bad years in runs and therefore fattens the tail | D-05, measured. It thins the tail slightly. The pick stands on the recovery-forgone channel instead |
