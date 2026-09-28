@@ -123,7 +123,7 @@ I built this with Claude (Opus 5, extended thinking).
 I set the questions, the design, the checks and the cuts.
 The model wrote much of the code and the working docs in `docs/`, which say so at the top.
 
-- A planning session wrote each build session a reading list: what to read in full, what to skip, and when to stop and ask. [`readinglist.sh`](prompts/readinglist.sh) drafts one from the plan's own cross-references, then prints what it cannot see.
+- A planning session wrote each build session a reading list: what to read in full, what to skip, and when to stop and ask. [`readinglist.sh`](method/readinglist.sh) drafts one from the plan's own cross-references, then prints what it cannot see.
 - Two design reviews were cold. A fresh agent got the documents and none of the conversation, and tried to reproduce my headline figures. It reproduced two of three and showed the third was impossible as specified. Three headline numbers changed as a result.
 - I also gave a model the bare question and asked for an app. It built a clean calculator in about twenty minutes, framed as "one bet" between two tax rates. It never asked whether the saver might have to pull the money out early. [FINDINGS](docs/FINDINGS.md) compares the two.
 
