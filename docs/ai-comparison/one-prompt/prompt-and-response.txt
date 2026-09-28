@@ -1,0 +1,33 @@
+Traditional vs Roth IRA decision app
+(chat link removed)
+
+---
+
+Aug 21, 2026, 6:57a
+
+Traditional or Roth? Make an app to answer. Decide everything yourself. Don't read any of my memories.
+
+---
+
+Created a file, shared a file:
+- Thinking about building an interactive Traditional vs. Roth retirement tool.
+- Crafting interactive React app for retirement decision-making.
+
+Loaded skill: frontend-design
+
+Architected interactive tax strategy tool with custom design system:
+- Architecting interactive tax comparison tool with visual balance design.
+- Architecting tax bracket calculations and default parameters.
+- Architected interactive tax strategy tool with custom design system.
+
+Created: traditional-or-roth.jsx
+
+Shared traditional-or-roth.jsx
+
+---
+
+The app takes one position and builds everything around it: Traditional-vs-Roth is a single bet — your marginal rate now vs. in retirement — and everything else is a tiebreaker.
+
+So: pick your two rates from bracket chips, watch the same dollar walk both timelines side by side, and get a verdict stamped (literally — it's rendered as a tax stamp) with the dollar difference. Equal rates gets an honest "DEAD HEAT" (the math is commutative), which hands you off to the tiebreaker list: Roth's effective-limit advantage, RMDs, splitting as a real strategy, income limits.
+
+Defaults I chose for you to argue with: 22% now, 12% later, $10k, 25 years, 7% growth.
