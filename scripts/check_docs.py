@@ -8,8 +8,9 @@ Four checks over every tracked markdown file, plus the code and tests:
   3. every decision ID (D-xx) and risk ID (Rn) cited anywhere is defined in docs/DECISIONS.md
   4. every "DECISIONS section 6" / "RESULTS 8.4"-style reference names a heading that exists
 
-Frozen records (the showcase reading list, captured script output) are skipped
-for checks 3 and 4: they describe the repo as it was when they were written.
+Frozen records (method/'s script, draft and reading list, and captured script
+output) are skipped for checks 3 and 4: they describe the repo as it was when
+they were written.
 
 Exit 0 when clean, 1 with a list of problems otherwise.
 """
@@ -23,7 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = {"DECISIONS": "docs/DECISIONS.md", "RESULTS": "docs/RESULTS.md",
         "ENGINE": "docs/ENGINE.md", "DESIGN": "docs/DESIGN.md"}
 LINK = re.compile(r"!?\[(?:[^\]\[]|\[[^\]]*\])*\]\(([^)\s]+)\)")
-FROZEN = re.compile(r"^(prompts/|method/.*\.txt$|scripts/.*\.txt$)")
+FROZEN = re.compile(r"^(method/.*\.(txt|sh)$|scripts/.*\.txt$)")
 SECTION_REF = re.compile(
     r"\b(DECISIONS|RESULTS|ENGINE|DESIGN)(?:\.md)?(?:'s)? (?:section |§ ?)?(\d+(?:\.\d+)?[a-z]?)\b")
 
