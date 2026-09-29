@@ -1,0 +1,44 @@
+# Runs the three checks the README lists, on every push to main and every pull request.
+# The Windows job exists for one claim: the cube rebuilds byte-identical on another OS
+# (RESULTS 10.1 and 10.2). Python comes from .python-version; packages from uv.lock.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: tests, cube check, docs check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - run: uv run python spike_grid.py --check cube.json
+      - run: uv run python scripts/check_docs.py
+
+  cube-on-windows:
+    name: cube rebuilds byte-identical on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run python spike_grid.py --check cube.json
+      - name: rebuild the cube from its seed and compare bytes
+        shell: bash
+        run: |
+          uv run python spike_grid.py --out "$RUNNER_TEMP/cube_windows.json"
+          sha256sum "$RUNNER_TEMP/cube_windows.json" cube.json cube_reference.json
+          cmp "$RUNNER_TEMP/cube_windows.json" cube.json
