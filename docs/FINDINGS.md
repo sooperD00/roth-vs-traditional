@@ -29,7 +29,9 @@ Every number traces to [RESULTS](RESULTS.md) or to a committed run.
 
 *Break-even future tax rate after zero to three life events, for savers with no buffer, some buffer and a deep buffer. Each dot is one definition of "optimal": the mean, median or 10th percentile of wealth at 100, or the chance of not running out. The legend numbers them 1, 3, 4 and 5, because a second definition, lifetime spending, drops out: both accounts fund the same spending. The vertical line is the reference saver's break-even under today's rules, 32.5%.*
 
-The app's ladder has ten stops, adapted from the [r/personalfinance flowchart](https://imgur.com/personal-income-spending-flowchart-united-states-lSoUQr2): $400 of cash, then $2,000, high-interest debt, the employer match, and on up to other assets.
+The app's ladder is based on the [r/personalfinance flowchart](https://imgur.com/personal-income-spending-flowchart-united-states-lSoUQr2), simplified into ten stops: $400 of cash, then $2,000, high-interest debt, the employer match, and on up to other assets.
+The flowchart takes the match before high-interest debt, as free money.
+I reversed the two, because a match can be worth more or less than the interest the debt charges.
 Stops 1–3 make the no-buffer rung, 4–6 the some-buffer rung, and 7–10 the deep-buffer rung.
 Each rung meets a $40,000 life event its own way:
 
