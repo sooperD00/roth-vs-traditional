@@ -46,7 +46,7 @@ A 90-second path through the [live app](https://roth-vs-traditional-production.u
 | Switch the return from 7% to 12% | The balances leap, and the 32.5% break-even does not move |
 | Press **Early-career preset** | *Roth, by 3.9 points* |
 | Turn on **Tax law changes** | Traditional again: the rule change costs the low-bracket saver Roth was supposed to help |
-| Untick the first stop on the ladder, $400 of emergency cash | You drop to the no-buffer rung, where the dots spread apart |
+| Untick the first stop on the ladder, $400 of emergency cash | You drop to the no-buffer rung: the verdict gives way to a note about the missing stop, and the dots spread apart |
 
 ## Why a threshold, not a verdict
 
@@ -72,7 +72,8 @@ For savers with a buffer, the pencil answer is exact: the break-even equals toda
 The model derives that before it runs, because a buffer means no forced sale.
 For savers without one, a shock forces a sale, and shocks tend to arrive in down markets.
 The sale costs the two accounts differently, because Traditional pays tax and a penalty while Roth contributions come out free.
-I stepped the return model from a fixed rate to Monte Carlo to a block bootstrap, which replays real five-year stretches of market history, before that difference showed up.
+A fixed return gives one path, so it can show what a forced sale costs but not how the outcomes spread.
+I stepped the return model from a fixed rate through Monte Carlo to a block bootstrap, which replays real five-year stretches of market history.
 
 Nobody knows which regime a future year will put them in, because a layoff or a medical bill can wipe out a buffer.
 A model can still count outcomes: how many paths end in ruin, how many end fine, and for whom.
@@ -113,7 +114,7 @@ uv run python scripts/check_docs.py             # links, anchors and cited IDs r
 
 - I chose the block bootstrap to fatten the tail. It thins it: the 10th-percentile drawdown is −59.6% against −63.7% for independent draws, because real annual returns lean slightly toward reversal. I kept it for a different reason: it replays real multi-year sequences, including history's own worst five-year run.
 - I expected one rung of buffer to be worth about four times the account choice in dollars. The comparison depends on δ, the size of your miss on your future tax rate. I fixed δ at 10 points before the sweep, and there the account choice wins. The two cross near 5 points.
-- The base case runs out of money in 48 to 49% of paths. A level withdrawal sized to the average return, against returns with a 19.3% standard deviation over 35 years, fails that often. Closing the gap would take a cushion above 50%, and at that size it stops being a safety margin.
+- The base case runs out of money in 48 to 49% of paths. A level withdrawal sized to the series' compounded return, against returns with a 19.3% standard deviation over 35 years, fails that often. Closing the gap would take a cushion above 50%, and at that size it stops being a safety margin.
 
 [RESULTS](docs/RESULTS.md) holds these and the rest, each with the script that reproduces it.
 
@@ -125,7 +126,7 @@ The model wrote much of the code and the working docs in `docs/`, which say so a
 
 - A planning session wrote each build session a reading list: what to read in full, what to skip, and when to stop and ask. [`readinglist.sh`](method/readinglist.sh) drafts one from the plan's own cross-references, then prints what it cannot see. The [method folder](method/README.md) sets its draft for one sprint beside the list that sprint got.
 - Two design reviews were cold. A fresh agent got the documents and none of the conversation, and tried to reproduce my headline figures. It reproduced two of three and showed the third was impossible as specified. Three headline numbers changed as a result.
-- I also gave a model the bare question and asked for an app. It built a clean calculator in about twenty minutes, framed as "one bet" between two tax rates. It never asked whether the saver might have to pull the money out early. [FINDINGS](docs/FINDINGS.md) compares the two.
+- I also gave a model the bare question and asked for an app. It built a clean calculator in about twenty minutes, framed as "one bet" between two tax rates. It never considered that the saver might have to pull the money out early. [FINDINGS](docs/FINDINGS.md) compares the two.
 
 ## Read more
 
