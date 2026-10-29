@@ -1,3 +1,6 @@
+# For the dev
+devlog*
+
 # Python
 __pycache__/
 *.py[cod]
