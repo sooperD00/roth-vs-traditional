@@ -1,35 +1,23 @@
-"""Traditional vs Roth -- the app.  DECISIONS section 7 is the layout contract.
+"""Traditional or Roth: the Streamlit app. DECISIONS section 7 is the layout.
 
-THE SEAM, AND IT IS ONE SENTENCE: THE APP COMPUTES ONE NUMBER AND READS ALL THE
-OTHERS.  The deterministic line -- both thresholds and the today's-law marker --
-comes from engine.breakeven() on a ONE-ROW CONSTANT array.  Everything else on
-this page is either a control's own state or an index into cube.json.  A loop
-over paths means the seam is crossed (D-12).
+The app computes one number and reads all the others. The two thresholds
+and the today's-law marker come from engine.breakeven() at a fixed return,
+solved live. Every other number on the page is a control's own state or a
+value read from cube.json (D-12).
 
-WHAT MUST NOT APPEAR IN THIS FILE
-  - stochastic code of any kind; the cube ships committed and is read     (D-12)
-  - a tax literal; they live in tax.py and arrive through engine           (D-21)
-  - a second copy of any engine constant; import it or read it off the cube
+Keep out of this file:
+  - stochastic code; spike_grid.py writes cube.json            (D-12)
+  - tax literals; they live in tax.py                          (D-21)
+  - copies of engine constants; import them or read the cube
 
-WHAT SPRINT 6 KEPT FROM THE P3a PROBE THIS FILE REPLACES.  The probe proved six
-things about the container and one of them shapes this file: ROOT-LEVEL MODULES
-IMPORT BECAUSE STREAMLIT PUTS THE SCRIPT'S DIRECTORY ON sys.path, NOT because
-they are installed as a package -- Railpack installs with --no-install-project.
-So `import engine` works in the container for a reason that has nothing to do
-with packaging, and moving this file into a subdirectory would break it.
-Path(__file__).resolve().parent is the same reason cube.json resolves.
+Keep this file at the repo root, named app.py:
+  - `import engine` works because Streamlit puts this file's folder on
+    sys.path. The deploy does not install the project as a package.
+  - railway.toml's start command names app.py, and
+    tests/test_deploy_config.py reads the name from there.
 
-THE FILENAME IS LOad-BEARING.  railway.toml's start command names app.py and
-tests/test_deploy_config.py reads the entry point OUT of that command rather
-than hard-coding it.  Keeping the name is what lets this sprint touch no deploy
-config at all.  Do not rename this file.
-
-THE ONE THING THAT COULD HAVE FAILED WAS TIMING, AND IT DOES NOT.  breakeven()
-runs a bisection to float exhaustion inside every rerun.  MEASURED at Sprint 6,
-on the (1, 65) constant array, both thresholds together: ~54 ms.  Sprint 9's
-gate is a cold load under five seconds.  st.cache_data is kept anyway -- it is
-one decorator and Profile is frozen and hashable for exactly this reason (D-48
-makes the same argument one layer down) -- but it is insurance, not a fix.
+The live solve takes about 54 ms per rerun. st.cache_data is insurance,
+and Profile is frozen so the cache can hash it.
 """
 
 import json
