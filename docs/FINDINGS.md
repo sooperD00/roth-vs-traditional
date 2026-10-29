@@ -11,6 +11,8 @@ Every number traces to [RESULTS](RESULTS.md) or to a committed run.
 - Contributions are deferred at 32.5%: 24% federal plus 8.5% state.
 - The saver puts 20% of pay into the account until 65, up to the $24,500 annual limit, then draws a level real amount until 100.
   The limit binds in 22 of the 30 working years.
+- Both accounts get the same pre-tax dollars.
+  Once the limit binds, a Roth could shelter more of the saver's budget, and the model leaves that out, which favors Traditional.
 - A life event costs $40,000 in today's dollars.
   I place each event in a year when the market sits furthest below its last peak, on the assumption that layoffs and bad markets arrive together.
   Against random placement, that lowers Traditional's 10th-percentile balance at 65, for a no-buffer saver, by 4.7% after one event and 13.6% after three ([RESULTS §7.1](RESULTS.md#71-placement-matters-and-it-is-the-cheapest-demonstration-in-the-project-)).
@@ -25,9 +27,11 @@ Every number traces to [RESULTS](RESULTS.md) or to a committed run.
 
 ![Three panels of break-even future tax rates for zero to three life events. With no buffer, the dots drift left and spread apart as events add up. With some buffer or a deep buffer, every dot sits on the 32.5% line.](pics/readme-panels.png)
 
-*Break-even future tax rate after zero to three life events, for savers with no buffer, some buffer and a deep buffer. Each dot is one definition of "optimal": the mean, median or 10th percentile of wealth at 100, or the chance of not running out. The vertical line is the reference saver's break-even under today's rules, 32.5%.*
+*Break-even future tax rate after zero to three life events, for savers with no buffer, some buffer and a deep buffer. Each dot is one definition of "optimal": the mean, median or 10th percentile of wealth at 100, or the chance of not running out. The legend numbers them 1, 3, 4 and 5, because a second definition, lifetime spending, drops out: both accounts fund the same spending. The vertical line is the reference saver's break-even under today's rules, 32.5%.*
 
-The app's ladder has ten stops, adapted from the [r/personalfinance flowchart](https://imgur.com/personal-income-spending-flowchart-united-states-lSoUQr2): $400 of cash, then $2,000, high-interest debt, the employer match, and on up to other assets.
+The app's ladder is based on the [r/personalfinance flowchart](https://imgur.com/personal-income-spending-flowchart-united-states-lSoUQr2), simplified into ten stops: $400 of cash, then $2,000, high-interest debt, the employer match, and on up to other assets.
+The flowchart takes the match before high-interest debt, as free money.
+I reversed the two, because a match can be worth more or less than the interest the debt charges.
 Stops 1–3 make the no-buffer rung, 4–6 the some-buffer rung, and 7–10 the deep-buffer rung.
 Each rung meets a $40,000 life event its own way:
 
@@ -117,7 +121,7 @@ I listed nine return models, from a fixed rate up to correlated paths for inflat
 I stepped from a fixed rate through Monte Carlo to a block bootstrap, which replays real five-year runs of market history.
 The app ships two: a fixed real rate for the headline, where the return cancels out, and the block bootstrap for the risk panels.
 
-The block bootstrap is not there to generate plausible returns.
+The block bootstrap is not fancy machinery for its own sake.
 It supplies enough different economic paths for a thin buffer to interact with timing.
 Without a buffer, small differences in timing produce large differences downstream, and it takes many paths to show it.
 I chose the block bootstrap to fatten the tail, and it thins it slightly ([README](../README.md#what-didnt-survive)).
@@ -136,7 +140,7 @@ Out of every 100 simulated lifetimes, this many Roth savers run out of money bef
 | 2 | 62 | 53 | 49 |
 | 3 | 70 | 55 | 49 |
 
-*2,000 paths per cell. A Roth balance does not depend on the future tax rate, so this count needs no guess about it. Traditional's count does depend on that rate. Section 2 of [the capture](../scripts/out_measure_4a_20260819-2237.txt) has the exact figures, with Traditional's read at 32.5%.*
+*2,000 paths per cell. A Roth balance does not depend on the future tax rate, so this count needs no guess about it. Traditional's count does depend on that rate. Section 2 of [the script's saved output](../scripts/out_measure_4a_20260819-2237.txt) has the exact figures, with Traditional's read at 32.5%.*
 
 The zero-event row sits at 49 because the withdrawal is sized to the series' compounded return, and against a 19.3% standard deviation about half the paths fall short of it ([README](../README.md#what-didnt-survive)).
 The finding is in how far each column climbs.
@@ -161,14 +165,14 @@ The same structure runs through this repo and through rooftop solar:
 
 | | Retirement (this repo) | Rooftop solar | Transistor oxides (my PhD) |
 |---|---|---|---|
-| The regime variable | The saver's buffer | The share of output used on site | Hydrogen around the device |
+| The regime variable | The saver's buffer | The export credit rule, and the share of output used on site | Hydrogen around the device |
 | The cheap model | Two tax rates | Output times the retail rate | One mechanism |
 | Where the cheap model holds | Any buffer: an event never forces a sale | Output used on site, or exports credited at the retail rate | Low hydrogen (direct release), or medium and high (cracking) |
 | Where it takes the full model | No buffer: events force sales in down markets | Exports credited below retail, or time-of-use rates: an hourly model of load, output and tariff | The crossover, where both mechanisms contribute |
 
 The thesis also taught me to look for the one uncertain input that decides the headline.
 A 0.1 eV change in one energy barrier, inside the error bound of the calculation that produced it, shifted the hydrogen response by an order of magnitude or more ([1](#references)).
-Here δ plays that role, so I published where it flips the answer instead of a single verdict.
+Here δ plays that role for the buffer-versus-account comparison, so I published where it flips instead of a single ratio.
 
 ## 4. What a one-prompt AI build got right, and what it put last
 
@@ -176,15 +180,17 @@ On August 21, 2026, I gave Claude Fable 5, at high effort, one line:
 
 > Traditional or Roth? Make an app to answer. Decide everything yourself. Don't read any of my memories.
 
+(The last sentence keeps it from drawing on my earlier chats.)
+
 ![The one-prompt app: bracket chips for the tax rate today and in retirement, a side-by-side ledger for one $10,000 contribution, and a stamp that reads TRADITIONAL, worth $5,427 more.](ai-comparison/one-prompt/above-the-fold.png)
 
 It built a clean React calculator in about twenty minutes.
 It framed the decision as "one bet": your marginal rate now against your rate in retirement.
-The math is right, and it compares the same pre-tax dollars in both accounts, which is the fair comparison.
+The math is right, and it compares the same pre-tax dollars in both accounts, the convention this repo uses too.
 Its defaults, 22% now and 12% later, give Traditional by $5,427 on a $10,000 contribution over 25 years at 7%.
 Everything else sits below the fold, under "Tiebreakers."
 The last line on the page is the caveat I would put first: "Assumes the tax saved by Traditional actually gets invested — if it'd get spent, Roth wins by default."
-It never asks whether the saver might have to sell early.
+Nothing in it considers a saver who has to sell early.
 
 A second run, the same morning, got a longer prompt with instructions about presenting the answer and about what a simple answer leaves out.
 It did not separate the analysis from the presentation: it built one page in five parts, half app and half slide deck.
@@ -210,6 +216,8 @@ The prompt, the code and the screenshots are in [ai-comparison](ai-comparison/RE
   The panels that carry the finding sit below it.
 - **Sweep the savings rate.**
   The model holds it at 20% of pay, capped at the annual limit, and saving steadily for decades is the lever most people control.
+- **Count the Roth's extra room once the limit binds.**
+  The limit binds in 22 of the 30 working years, and the model leaves that room out.
 - **Run the grid at a second profile.**
   Every risk panel comes from one reference saver.
   I have not measured how far the dots move for a different saver in the same segment ([RESULTS §11](RESULTS.md#11--known-limits)).

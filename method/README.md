@@ -18,7 +18,6 @@ It also works backwards, from the sprint's tests to the decision rows that name 
 It maps each decision to the section of DECISIONS that holds it, so the list names sections instead of IDs.
 Everything else goes under DO NOT READ.
 Then it prints eight notes on what it cannot see, and each note names the sprint that taught it.
-Its header reports its score on an earlier sprint: 9 of the 11 decisions that sprint needed, 2 missed, and 2 volunteered that should have been skipped.
 
 ## The draft beside the final list
 
@@ -34,7 +33,7 @@ It put `engine.py` and `tests/test_engine.py` under READ IN FULL, and the final 
 `engine.py` alone is 86k characters, and the session used three names from it.
 The final list came to about 44k tokens.
 
-The final list also holds what no script writes: two traps where the plan's own acceptance criteria contradict the committed cube, three decisions to bring back before drawing anything, and the order to build in.
+The final list also holds what no script writes: two traps where the plan's own acceptance criteria contradict the committed results file, `cube.json`, three decisions to bring to me before drawing anything, and the order to build in.
 
 ## What is not here
 
